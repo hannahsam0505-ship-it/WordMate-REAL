@@ -1012,7 +1012,14 @@ function wmReadStudentFromStorage(){
           return {
             학생ID: studentId,
             학생이름: String(data.학생이름 || data.studentName || data.name || '').trim(),
-            학습배정: String(data.학습배정 || data.learningAssign || data.level || '').trim()
+            학교: String(data.학교 || data.school || '').trim(),
+            학년: String(data.학년 || data.grade || '').trim(),
+            Class: String(data.Class || data.className || data.class || data['반'] || '').trim(),
+            교사명: String(data.교사명 || data.teacherName || '').trim(),
+            학습배정: String(data.학습배정 || data.learningAssign || data.level || '').trim(),
+            현재세트: wmNormalizeCurrentSetIdForMap_(data.현재세트 || data.currentSet || data.setId || data.set_id || '') || String(data.현재세트 || data.currentSet || data.setId || data.set_id || '').trim(),
+            현재세션: String(data.현재세션 || data.sessionToken || data.wmSessionToken || '').trim(),
+            sessionToken: String(data.sessionToken || data.현재세션 || data.wmSessionToken || '').trim()
           };
         }
       }
@@ -1182,7 +1189,8 @@ function wmGetCurrentSessionToken(){
     const raw = sessionStorage.getItem('wmLoggedInStudent') || localStorage.getItem('wmLoggedInStudent') || '';
     if(raw){
       const parsed = JSON.parse(raw);
-      candidates.push(parsed.sessionToken || parsed.현재세션 || '');
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      candidates.push(data.sessionToken || data.현재세션 || data.wmSessionToken || '');
     }
   }catch(err){}
 
