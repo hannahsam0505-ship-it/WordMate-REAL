@@ -1,0 +1,2904 @@
+<!-- ============================================================
+   🧪 WORD MATE Study.html - TEST / REAL 전환 설정
+   ============================================================
+
+   ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
+
+      테스트부스 적용: const WM_ENV = 'TEST';
+      리얼부스 적용: const WM_ENV = 'REAL';
+
+   ⚠️ 아래 WM_ENV 한 줄 외에는 테스트/리얼 전환 목적으로 수정하지 않습니다.
+   ⚠️ 이 파일의 모든 URL 호출은 반드시 WM_CONFIG 또는 아래 자동 선택 상수를 사용합니다.
+   ⚠️ 공통 코드 아래에서 URL을 직접 문자열로 새로 쓰지 않습니다.
+   🚨 리얼 배포 체크: ① WM_ENV TEST → REAL 변경 → ② 저장(Ctrl+S) → ③ 배포(Deploy) → ④ 리얼 테스트 완료
+============================================================ -->
+<script>
+const WM_ENV = 'REAL';
+
+/* ============================================================
+   🔒 자동 선택 + 공통 확인 영역 - 수정 금지
+============================================================
+
+WM_ENV 값에 따라 Study.html이 호출할 Apps Script URL과 아임웹 주소를 자동 선택합니다.
+리얼 적용 시에도 이 영역의 URL을 직접 교체하지 말고 위 WM_ENV만 'REAL'로 변경합니다.
+
+✅ 하단 공통코드 사용 원칙
+- API 호출: API_URL 사용
+- 로그인 이동: WM_LOGIN_URL 사용
+- 학습맵 복귀: WM_MAP_URL 사용
+- 직접 URL 문자열 사용 금지
+============================================================ */
+
+const WM_ENV_CONFIG = {
+  TEST: {
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    LOGIN_URL: 'https://hsam05.com/test-login',
+    MAP_URL: 'https://new-word-mate.vercel.app',
+    STUDY_URL: 'https://new-word-mate.vercel.app/study',
+    LMS_URL: 'https://new-word-mate.vercel.app/lms'
+  },
+  REAL: {
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
+    LOGIN_URL: 'https://hsam05.com/64',
+    MAP_URL: 'https://new-word-mate.vercel.app',
+    STUDY_URL: 'https://new-word-mate.vercel.app/study',
+    LMS_URL: 'https://new-word-mate.vercel.app/lms'
+  }
+};
+
+const WM_CONFIG = WM_ENV_CONFIG[WM_ENV];
+if(!WM_CONFIG || !WM_CONFIG.APPS_SCRIPT_URL || !WM_CONFIG.LOGIN_URL || !WM_CONFIG.MAP_URL){
+  throw new Error('WM_ENV_CONFIG 설정 오류: TEST/REAL URL을 확인하세요.');
+}
+
+const API_URL = WM_CONFIG.APPS_SCRIPT_URL;
+const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
+const WM_MAP_URL = WM_CONFIG.MAP_URL;
+const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
+const WM_LMS_URL = WM_CONFIG.LMS_URL;
+</script>
+
+<!-- TEST_BOOTH_BANNER_DELETE_START -->
+<div id="wm-test-booth-banner">🧪 TEST 부스</div>
+<style>
+  #wm-test-booth-banner{
+    width:100%;
+    box-sizing:border-box;
+    background:#dc2626;
+    color:#fff;
+    text-align:center;
+    font-size:28px;
+    font-weight:900;
+    line-height:1.25;
+    padding:14px 10px;
+    letter-spacing:-0.02em;
+    font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
+    position:relative;
+    z-index:999999;
+  }
+</style>
+<script>
+(function(){
+  const banner = document.getElementById('wm-test-booth-banner');
+  if(banner && WM_ENV !== 'TEST'){
+    banner.style.display = 'none';
+  }
+})();
+</script>
+<!-- TEST_BOOTH_BANNER_DELETE_END -->
+
+
+
+
+<!-- WM_STUDY_LEARNING_MODE_ENGINE_V3: Step 저장 완료 보장 + S4/S6 학습모드 + 최종시험점수 저장. -->
+<!-- WM_DEPLOY_ORDER_MANDATORY_V1 / STUDY_HTML_REQUIRED_CHECK
+[공식 - 배포 순서 절대 준수]
+1. Code.gs 수정 → 2. Apps Script 새 배포 → 3. 최신 /exec 주소 확인 → 4. Map.html / Study.html / 아임웹 로그인코드에 동일 /exec 반영 → 5. 실제 학생 로그인 테스트
+[수정 전 필수 체크]
+현재 Code.gs /exec 주소와 Study.html API_URL은 반드시 동일해야 합니다. 주소 불일치 시 저장은 되더라도 Step 자동복귀가 실패할 수 있습니다.
+[학습기록 공식]
+학습기록ID = R + YY + MM + 3자리 순번 예: R2606001 / 완료상태는 완료 전 공백, 완료 후 완료 / 기기정보는 PC·Tap·Mobile 중 하나 / Class 표시값은 반ID가 아니라 실제 반명 우선입니다.
+-->
+<!-- WM_STUDY_LMS_SAVE_JSONP_V1: 학습 완료 시 action=saveLearningRecord로 2.학습기록_DB 저장. -->
+<!-- WM_STUDY_URL_SET_ID_FIX_V1: Study.html reads URL set_id and starts the requested set. -->
+
+<!-- WM_LMS_OFFICIAL_RECORD_RULES_20260608_V1
+[확정 공식]
+1. 점수 = 한영주관식 점수, 평균점수 사용 금지.
+2. 총소요시간 = 완료 Step 시간 합산.
+3. Step별 시간 = 각 Step 단독시간.
+4. Test_총시간 = 4개 시험 시간만 합산하며 오답 재시험/오답 Memory 시간은 제외.
+5. 레벨 진행률 = 완료세트 ÷ 전체세트 × 100, 반올림.
+-->
+
+
+<!--
+영어잡는 워드메이트 6-1-1 수정본
+
+적용사항:
+1. 영한 주관식 뜻 순서가 바뀌어도 정답 처리
+2. 점수 큰 글씨 50px으로 수정
+3. Flash Card / Step 2 / Step 3 진행 동그라미 적용
+4. Test 단계에는 진행 동그라미 적용하지 않음
+5. 마지막 완료 화면 문구 및 점수 글씨 PC 24px / 모바일 20px 적용
+6. 첫 페이지 제목 중앙 정렬 유지
+7. Step 2 / Step 3 / Step 4 / Step 6 틀린문제 재학습 안내 2줄 적용
+8. 학습 몰입형 Fullscreen 및 직접입력 유도 기능 적용
+-->
+
+<div id="wordmate-app"></div>
+
+<audio id="wordAudio" preload="auto" playsinline></audio>
+
+<style>
+  html,
+  body{
+    margin:0;
+    min-height:100%;
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
+  }
+
+  html:fullscreen,
+  body:fullscreen{
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
+  }
+
+
+
+  /* WM_FULLSCREEN_BLACK_BG_FINAL_FIX_V1
+     Fullscreen 진입 시 브라우저 기본 ::backdrop 검정 배경을 차단하고,
+     실제 fullscreen 대상인 #wordmate-app 자체에 밝은 배경을 적용합니다. */
+  #wordmate-app:fullscreen,
+  #wordmate-app:-webkit-full-screen{
+    width:100vw;
+    min-height:100vh;
+    max-width:none;
+    margin:0;
+    padding:30px 16px;
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
+    overflow:auto;
+  }
+
+  #wordmate-app:fullscreen::backdrop,
+  #wordmate-app:-webkit-full-screen::backdrop,
+  html:fullscreen::backdrop,
+  body:fullscreen::backdrop,
+  *:fullscreen::backdrop{
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%) !important;
+  }
+
+  #wordmate-app:fullscreen .wm-card,
+  #wordmate-app:-webkit-full-screen .wm-card{
+    width:100%;
+    max-width:760px;
+    margin:auto;
+  }
+
+  #wordmate-app{max-width:760px;margin:30px auto;font-family:Arial,sans-serif;}
+
+  .wm-card{
+    position:relative;
+    overflow:hidden;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:18px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+  }
+
+  .wm-card > *{position:relative;z-index:1;}
+  .wm-set-badge{
+    position:absolute;
+    top:28px;
+    left:28px;
+    z-index:3;
+    color:#dc2626;
+    font-size:18px;
+    font-weight:900;
+    line-height:1;
+    letter-spacing:-0.02em;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  @media(max-width:480px){
+    .wm-set-badge{
+      top:20px;
+      left:18px;
+      font-size:14px;
+    }
+  }
+
+
+  .wm-card::after{
+    content:"";
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:64px;
+    height:64px;
+    background-image:url("https://cdn.imweb.me/upload/S20260309094cd4587c32d/a48173e72e34e.png");
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:contain;
+    opacity:.96;
+    z-index:2;
+    pointer-events:none;
+  }
+
+  .wm-title{
+    font-size:25px;
+    font-weight:bold;
+    margin-bottom:18px;
+    text-align:center;
+    padding-left:74px;
+    padding-right:74px;
+  }
+
+  .wm-wrong-retry-main{
+    display:block;
+    font-size:28px;
+    font-weight:bold;
+    line-height:1.25;
+  }
+
+  .wm-wrong-retry-sub{
+    display:block;
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+    margin-top:6px;
+  }
+
+
+  @media(max-width:480px){
+    .wm-card{padding:24px 18px;}
+    .wm-card::after{width:54px;height:54px;top:12px;right:12px;}
+    .wm-title{padding-left:60px;padding-right:60px;}
+  }
+
+  .wm-word{font-size:42px;font-weight:bold;margin:14px 0 10px;letter-spacing:0;}
+  .wm-pos{font-size:15px;color:#666;margin-bottom:14px;}
+  .wm-silhouette{color:#d9d9d9;}
+  .wm-meaning{font-size:28px;margin:20px 0;}
+  .wm-small{font-size:15px;color:#666;margin-top:10px;}
+  .wm-memory-count{font-size:18px;color:#2563eb;font-weight:900;margin:10px 0 10px;}
+  .wm-alert{color:#dc2626;font-size:16px;margin-top:12px;font-weight:bold;}
+
+  .wm-btn{
+    width:100%;
+    padding:14px;
+    margin-top:14px;
+    border:none;
+    border-radius:12px;
+    background:#2563eb;
+    color:white;
+    font-size:17px;
+    cursor:pointer;
+  }
+
+  .wm-option{background:#f3f4f6;color:#111;}
+  .wm-option:hover{background:#2563eb;color:white;}
+  .wm-correct{background:#16a34a!important;color:white!important;}
+  .wm-wrong{background:#dc2626!important;color:white!important;}
+
+  .audio-btn{
+    width:auto;
+    min-width:120px;
+    padding:10px 18px;
+    margin:8px auto 8px;
+    border:none;
+    border-radius:999px;
+    background:#111;
+    color:#fff;
+    font-size:15px;
+    cursor:pointer;
+  }
+
+  .word-progress,
+  .memory-progress{
+    display:flex;
+    justify-content:center;
+    gap:7px;
+    flex-wrap:wrap;
+    margin:10px auto 18px;
+  }
+
+  .word-dot,
+  .memory-dot{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:2px solid #d1d5db;
+    background:#fff;
+    color:#9ca3af;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:900;
+    transition:all .2s ease;
+  }
+
+  .word-dot.done{background:#2563eb;color:#fff;border-color:#2563eb;}
+  .word-dot.current{transform:scale(1.16);box-shadow:0 0 0 4px rgba(37,99,235,.16);}
+  .memory-dot.done{color:#fff;border-color:transparent;}
+  .memory-dot.current{transform:scale(1.16);box-shadow:0 0 0 4px rgba(37,99,235,.16);}
+  .memory-dot.level-100{background:#bfdbfe;}
+  .memory-dot.level-70{background:#93c5fd;}
+  .memory-dot.level-30{background:#60a5fa;}
+  .memory-dot.level-0{background:#2563eb;}
+
+  .memory-stage-guide{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 auto 14px;font-size:12px;color:#555;}
+  .stage-chip{padding:5px 9px;border-radius:999px;font-weight:bold;background:#f3f4f6;color:#1d4ed8;}
+
+  .memory-input,
+  .test-input{
+    width:100%;
+    padding:14px;
+    font-size:22px;
+    text-align:center;
+    border-radius:10px;
+    border:1px solid #ccc;
+    margin-top:20px;
+    box-sizing:border-box;
+  }
+
+  .test-question{text-align:left;border:1px solid #eee;border-radius:14px;padding:16px;margin-top:14px;background:#fafafa;outline:none;}
+  .test-question:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+  .test-q-title{font-size:18px;font-weight:bold;margin-bottom:10px;}
+  .test-option{display:block;margin:10px 0;font-size:16px;}
+  .timer{font-size:20px;font-weight:bold;color:#dc2626;margin-bottom:15px;}
+
+  .score-area{position:relative;margin:20px 0 10px;min-height:90px;}
+  .score-big{font-size:50px;font-weight:900;color:#dc2626;line-height:1;text-align:center;}
+  .score-side-info{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;line-height:1.7;color:#333;text-align:right;white-space:nowrap;}
+
+  .result-list{margin-top:28px;text-align:left;}
+  .result-item{display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:center;background:#fff;border:1px solid #eee;border-radius:16px;padding:14px;margin-bottom:12px;}
+  .result-num-wrap{position:relative;width:62px;height:62px;display:flex;align-items:center;justify-content:center;}
+  .result-num{font-size:18px;font-weight:bold;color:#555;text-align:center;z-index:2;}
+  .mark-circle{position:absolute;width:48px;height:42px;border:4px solid #dc2626;border-radius:48% 52% 46% 54%;transform:rotate(-13deg);left:5px;top:8px;z-index:1;}
+  .mark-slash{position:absolute;width:54px;height:5px;background:#dc2626;border-radius:999px;transform:rotate(-35deg);left:4px;top:30px;z-index:3;}
+
+  .q-blue{color:#2563eb;font-weight:bold;}
+  .a-black{color:#111;}
+  .a-red{color:#dc2626;font-weight:bold;}
+
+  .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
+  .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
+
+  @media(max-width:480px){
+    .final-title{font-size:20px;}
+    .final-score-box{font-size:20px;}
+  }
+
+  .final-result-info{
+    text-align:center;
+    font-size:13px;
+    line-height:1.7;
+    color:#333;
+    margin-top:18px;
+    margin-bottom:24px;
+  }
+
+  .final-save-row{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:34px;
+    margin:4px auto 24px;
+  }
+
+  .final-save-text{
+    text-align:left;
+    font-size:20px;
+    line-height:1.7;
+    color:#333;
+    font-weight:500;
+    white-space:nowrap;
+  }
+
+  .final-save-icon{
+    width:54px;
+    height:54px;
+    transform:translateY(10px);
+    flex:0 0 auto;
+  }
+
+  .final-save-spinner{
+    border-radius:50%;
+    border:7px solid #dbeafe;
+    border-top-color:#2563eb;
+    border-right-color:#2563eb;
+    animation:wmSpin .8s linear infinite;
+    box-sizing:border-box;
+  }
+
+  .final-save-check{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:48px;
+    line-height:1;
+    animation:none;
+  }
+
+  .button-row{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:nowrap;
+    margin-top:8px;
+  }
+
+  .button-row .wm-btn{
+    width:150px;
+    max-width:150px;
+    flex:0 0 150px;
+    padding-left:0;
+    padding-right:0;
+  }
+
+  .wm-exit-btn{
+    position:fixed;
+    top:14px;
+    right:14px;
+    z-index:9999;
+    width:auto;
+    min-width:44px;
+    height:44px;
+    padding:0 14px;
+    border:none;
+    border-radius:999px;
+    background:#111;
+    color:#fff;
+    font-size:15px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
+
+  .wm-exit-modal{
+    position:fixed;
+    inset:0;
+    z-index:10000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.45);
+    padding:20px;
+    box-sizing:border-box;
+  }
+
+  .wm-exit-box{
+    width:100%;
+    max-width:360px;
+    background:#fff;
+    border-radius:18px;
+    padding:24px;
+    text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+  }
+
+  .wm-exit-title{font-size:22px;font-weight:900;margin-bottom:12px;color:#111;}
+  .wm-exit-text{font-size:15px;line-height:1.6;color:#444;margin-bottom:18px;}
+  .wm-exit-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .wm-exit-actions button{flex:1;min-width:130px;padding:13px;border:none;border-radius:12px;font-size:16px;font-weight:900;cursor:pointer;}
+  .wm-continue-btn{background:#2563eb;color:#fff;}
+  .wm-leave-btn{background:#f3f4f6;color:#111;}
+
+  .wm-learning-guide{
+    text-align:center;
+    color:#2563eb;
+    font-size:20px;
+    font-weight:800;
+    line-height:1.45;
+    margin:0 0 16px;
+  }
+
+  .wm-test-guide{
+    text-align:center;
+    color:#2563eb;
+    font-size:18px;
+    font-weight:700;
+    line-height:1.45;
+    margin:10px 0 14px;
+  }
+
+  @media(max-width:480px){
+    .final-save-row{
+      gap:16px;
+      margin-top:2px;
+      margin-bottom:22px;
+    }
+
+    .final-save-text{
+      font-size:15px;
+      line-height:1.65;
+    }
+
+    .final-save-icon{
+      width:42px;
+      height:42px;
+      transform:translateY(8px);
+    }
+
+    .final-save-spinner{
+      border-width:6px;
+    }
+
+    .final-save-check{
+      font-size:38px;
+    }
+
+    .button-row{
+      gap:6px;
+      width:100%;
+    }
+
+    .button-row .wm-btn{
+      width:auto;
+      max-width:none;
+      flex:1 1 0;
+      min-width:0;
+      padding-left:0;
+      padding-right:0;
+      font-size:17px;
+    }
+  }
+
+
+@keyframes wmSpin{
+  to{transform:rotate(360deg);}
+}
+</style>
+
+<script>
+
+function getInitialSetIdFromUrl(){
+  const params = new URLSearchParams(window.location.search || '');
+  const value = String(
+    params.get('set_id') ||
+    params.get('setId') ||
+    params.get('Set_ID') ||
+    params.get('currentSetId') ||
+    'WM5-1-1'
+  ).trim().toUpperCase();
+
+  if(/^WM\d+-\d+-\d+$/.test(value)){
+    return value;
+  }
+
+  return 'WM5-1-1';
+}
+
+const WM_INJECTED_INITIAL_SET_ID = "__WM_INITIAL_SET_ID__";
+const INITIAL_currentSetId = (
+  WM_INJECTED_INITIAL_SET_ID && WM_INJECTED_INITIAL_SET_ID.indexOf("__WM_") !== 0
+) ? WM_INJECTED_INITIAL_SET_ID : getInitialSetIdFromUrl();
+const STUDENT_NAME = getInitialStudentName();
+const WM_STUDENT_PROFILE = getInitialStudentProfile();
+const BASE_TEST_TIME = 300;
+const WM_SAVE_API_URL = getSaveApiUrl();
+const WM_PROGRESS_API_URL = getProgressApiUrl();
+const WM_LMS_RETURN_URL = "";
+
+const WM_STUDENT_ID = getInitialStudentId();
+const WM_SESSION_TOKEN = getInitialSessionToken();
+const WM_INITIAL_LEARNING_MODE = getInitialLearningMode();
+const WM_DEFAULT_STUDY_MODE = {
+  S4실루엣단계: '전체',
+  S6테스트모드: WM_INITIAL_LEARNING_MODE || '기본전체',
+  레벨완료조건: '2회',
+  레벨회차추가: 0,
+  applyScope: 'NEXT_SET'
+};
+let WM_ACTIVE_STUDY_MODE = {...WM_DEFAULT_STUDY_MODE};
+let WM_ACTIVE_STUDY_MODE_SET_ID = '';
+let WM_ACTIVE_LEARNING_ASSIGN = '';
+
+function wmReadServerStudyMode(){
+  try{
+    if(window.WM_STUDY_MODE_FROM_SERVER && typeof window.WM_STUDY_MODE_FROM_SERVER === 'object'){
+      return window.WM_STUDY_MODE_FROM_SERVER;
+    }
+  }catch(err){}
+  return null;
+}
+
+function wmReadServerLearningAssign(){
+  try{
+    return String(window.WM_LEARNING_ASSIGN_FROM_SERVER || '').trim();
+  }catch(err){
+    return '';
+  }
+}
+function getInitialSessionToken(){
+  const injected = "__WM_SESSION_TOKEN__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim();
+  }
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("sessionToken") || params.get("wmSessionToken") || params.get("WM_SESSION_TOKEN") || "").trim();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const direct = String(sessionStorage.getItem("WM_SESSION_TOKEN") || localStorage.getItem("WM_SESSION_TOKEN") || "").trim();
+    if(direct) return direct;
+  }catch(err){}
+
+  try{
+    const raw = sessionStorage.getItem("wmLoggedInStudent") || localStorage.getItem("wmLoggedInStudent") || "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const value = String(data.sessionToken || data.현재세션 || data.wmSessionToken || "").trim();
+      if(value) return value;
+    }
+  }catch(err){}
+
+  return "";
+}
+function getInitialLearningMode(){
+  try{
+    const serverMode = wmReadServerStudyMode();
+    if(serverMode && typeof serverMode === 'object'){
+      return String(serverMode.S6테스트모드 || serverMode.s6 || serverMode.testMode || '').trim() || '기본전체';
+    }
+  }catch(err){}
+
+  try{
+    const raw =
+      sessionStorage.getItem("wmLoggedInStudent") ||
+      localStorage.getItem("wmLoggedInStudent") ||
+      "";
+
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const storedMode = data.학습모드 || data.learningMode || data.learningModeObject || null;
+
+      if(storedMode && typeof storedMode === 'object'){
+        return String(storedMode.S6테스트모드 || storedMode.s6 || storedMode.testMode || '').trim() || '기본전체';
+      }
+
+      const mode = String(storedMode || data.S6테스트모드 || data.s6 || "").trim();
+      if(mode) return mode;
+    }
+  }catch(err){}
+
+  return "기본전체";
+}
+
+function getInitialStudentId(){
+  const injected = "__WM_STUDENT_ID__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim().toUpperCase();
+  }
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("studentId") || params.get("studentID") || params.get("sid") || "").trim().toUpperCase();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const raw =
+      localStorage.getItem("wmStudent") ||
+      localStorage.getItem("wmLoginStudent") ||
+      sessionStorage.getItem("wmStudent") ||
+      sessionStorage.getItem("wmLoggedInStudent") ||
+      localStorage.getItem("wmLoggedInStudent") ||
+      "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const value = String(data.학생ID || data.studentId || data.studentID || data.id || "").trim().toUpperCase();
+      if(value) return value;
+    }
+  }catch(err){}
+
+  return "";
+}
+
+function getInitialStudentName(){
+  const injected = "__WM_STUDENT_NAME__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim();
+  }
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("studentName") || params.get("name") || "").trim();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const raw = localStorage.getItem("wmStudent") || localStorage.getItem("wmLoginStudent") || sessionStorage.getItem("wmStudent") || "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const value = String(data.학생이름 || data.studentName || data.name || "").trim();
+      if(value) return value;
+    }
+  }catch(err){}
+
+  return "학생";
+}
+
+function getInitialStudentProfile(){
+  /* WM_STUDY_STUDENT_PROFILE_PAYLOAD_V1
+     저장 payload에 학생관리_DB 기본 컬럼명을 함께 실어 보냅니다.
+     최종 보강 기준은 Code.gs의 1.학생관리_DB 조회이며, 여기서는 URL/저장소 값이 있을 때만 보조 전달합니다. */
+  const profile = {
+    school: "",
+    grade: "",
+    className: "",
+    teacherName: ""
+  };
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    profile.school = String(params.get("school") || params.get("학교") || "").trim();
+    profile.grade = String(params.get("grade") || params.get("학년") || "").trim();
+    profile.className = String(params.get("className") || params.get("Class") || params.get("class") || params.get("반") || "").trim();
+    profile.teacherName = String(params.get("teacherName") || params.get("교사명") || "").trim();
+  }catch(err){}
+
+  try{
+    const raw = localStorage.getItem("wmStudent") || localStorage.getItem("wmLoginStudent") || sessionStorage.getItem("wmStudent") || sessionStorage.getItem("wmLoggedInStudent") || "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      profile.school = profile.school || String(data.학교 || data.school || "").trim();
+      profile.grade = profile.grade || String(data.학년 || data.grade || "").trim();
+      profile.className = profile.className || String(data.Class || data.className || data.class || data.반 || "").trim();
+      profile.teacherName = profile.teacherName || String(data.교사명 || data.teacherName || "").trim();
+    }
+  }catch(err){}
+
+  return profile;
+}
+
+function getSaveApiUrl(){
+  /* WM_STUDY_SAVE_EXEC_URL_FIX_V2
+     HtmlService iframe 안의 window.location.href는 /exec가 아닐 수 있으므로
+     저장 API는 반드시 서버 배포 /exec 상수(API_URL)를 기준으로 호출합니다. */
+  return API_URL + "?action=saveLearningRecordV2";
+}
+
+function getProgressApiUrl(){
+  /* WM_STUDY_PROGRESS_EXEC_URL_FIX_V2
+     복귀 조회도 저장과 동일하게 실제 Apps Script /exec 상수(API_URL)를 기준으로 호출합니다. */
+  return API_URL + "?action=getLearningProgress";
+}
+
+
+
+/* WM_STUDY_STABLE_FLOW_260612_V1 */
+/* WM_SINGLE_DEVICE_STUDY_SESSION_GUARD_V1
+   학습 중 다른 기기에서 새 로그인되면 현재 학습 접속을 종료합니다. */
+let wmStudySessionExpiredShown = false;
+let wmStudySessionCheckTimer = null;
+
+function wmStudyClearLoginStorage(){
+  try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
+  try{ localStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
+  try{ sessionStorage.removeItem('wmLoggedInStudent'); }catch(err){}
+  try{ localStorage.removeItem('wmLoggedInStudent'); }catch(err){}
+}
+
+function wmStudyGoLoginAfterSessionExpired(){
+  wmStudyClearLoginStorage();
+  window.top.location.href = WM_LOGIN_URL;
+}
+
+function wmStudyShowSessionExpiredModal(){
+  if(wmStudySessionExpiredShown) return;
+  wmStudySessionExpiredShown = true;
+  if(wmStudySessionCheckTimer){
+    clearInterval(wmStudySessionCheckTimer);
+    wmStudySessionCheckTimer = null;
+  }
+  try{ clearInterval(testTimer); }catch(err){}
+  try{ stopWordAudio(); }catch(err){}
+
+  let modal = document.getElementById('wmStudySessionExpiredModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'wmStudySessionExpiredModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:20px;box-sizing:border-box;';
+    modal.innerHTML = '<div style="width:100%;max-width:360px;background:#fff;border-radius:18px;padding:24px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.2);font-family:Arial,sans-serif;"><div style="font-size:22px;font-weight:900;margin-bottom:12px;color:#111;">로그아웃되었습니다.</div><div style="font-size:15px;line-height:1.6;color:#444;margin-bottom:18px;">다른 기기에서 새로 로그인되어 현재 접속이 종료되었습니다.</div><button type="button" onclick="wmStudyGoLoginAfterSessionExpired()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:16px;font-weight:900;cursor:pointer;">확인</button></div>';
+    document.body.appendChild(modal);
+  }else{
+    modal.style.display = 'flex';
+  }
+}
+
+async function wmStudyCheckCurrentSession(){
+  /* WM_STUDY_SESSION_GUARD_STRICT_FIX_V2_20260611
+     학생ID 또는 sessionToken이 없으면 세션검사를 통과시키지 않습니다.
+     이전 코드의 return true 때문에 토큰 누락 상태에서 자동로그아웃이 무력화될 수 있었습니다. */
+  if(!WM_STUDENT_ID || !WM_SESSION_TOKEN){
+    wmStudyShowSessionExpiredModal();
+    return false;
+  }
+
+  try{
+    const url = API_URL
+      + '?action=checkStudentSession'
+      + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
+      + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
+      + '&t=' + Date.now();
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
+      wmStudyShowSessionExpiredModal();
+      return false;
+    }
+  }catch(err){
+    return true;
+  }
+
+  return true;
+}
+
+function wmStudyStartSessionWatcher(){
+  if(wmStudySessionCheckTimer) clearInterval(wmStudySessionCheckTimer);
+  wmStudyCheckCurrentSession();
+  wmStudySessionCheckTimer = setInterval(function(){
+    wmStudyCheckCurrentSession();
+  }, 5000);
+}
+
+function getSimpleDeviceInfo(){
+  const ua = String(navigator.userAgent || '').toLowerCase();
+  if(/ipad|tablet|sm-t|galaxy tab|nexus 7|nexus 9|kindle|silk/.test(ua)) return "Tap";
+  if(/mobile|iphone|android|phone|ipod/.test(ua)) return "Mobile";
+  return "PC";
+}
+
+
+let currentSetId = INITIAL_currentSetId;
+let currentSetName = makeSetName(currentSetId);
+/* WM_STUDY_COMPLETED_SET_SAVE_LOCK_V1_20260611
+   완료 화면 진입 시점의 Set_ID를 고정하여, 다음학습 이동 과정에서
+   완료 저장 Set_ID가 다음 세트로 밀려 저장되는 것을 방지합니다. */
+let WM_COMPLETED_SAVE_SET_ID = "";
+let WM_COMPLETED_SAVE_SET_NAME = "";
+let finalSavePromise = null;
+let WM_RECORD_SESSION_ID = ''; // 공식 학습기록ID는 Code.gs가 R+YY+MM+3자리 순번으로 생성합니다.
+let wmStepSaveChain = Promise.resolve();
+let wmStepSaveLastError = null;
+
+let originalWords = [];
+
+const app = document.getElementById("wordmate-app");
+const wordAudio = document.getElementById("wordAudio");
+
+let stage = 0, index = 0;
+let currentWords = [];
+let step2Wrong = [], step3Wrong = [], memoryWrong = [];
+let isStep2Review = false, isStep3Review = false, isMemoryReview = false;
+let memoryPhase = 0, memoryCount = 0, memoryLocked = false, afterMemoryAction = null;
+let testIndex = 0, testWords = [], testTimer = null, timeLeft = BASE_TEST_TIME, isRetest = false;
+let firstTestScores = [], firstWrongWords = [], currentTestResults = [], currentTestWrongs = [];
+let wmFirstTestTotalSeconds = 0;
+let wmActiveFirstTestStartTime = 0;
+let activeTestQuestionIndex = null;
+let learningStartTime = null;
+let wmCurrentStepStartTime = null;
+let completedSteps = [];
+let latestSavedPayload = null;
+let wmResumeProgress = null;
+let wmProgressLoaded = false;
+
+let audioTimer = null;
+let audioGapTimer = null;
+let audioRepeatCount = 0;
+let audioMaxRepeat = Infinity;
+let currentAudioItem = null;
+let isDbReady = false;
+let isDbLoading = false;
+let dbLoadError = "";
+
+const WM_FULL_MEMORY_STEPS = [
+  { type:"100", count:3, label:"전체보기" },
+  { type:"70", count:2, label:"힌트기억" },
+  { type:"30", count:2, label:"부분기억" },
+  { type:"0", count:3, label:"스스로쓰기" }
+];
+
+function getSetParts(setId){
+  const match = String(setId || "").match(/^WM(\d+)-(\d+)-(\d+)$/);
+  if(!match) return null;
+  return { level:Number(match[1]), part:Number(match[2]), set:Number(match[3]) };
+}
+
+function makeSetName(setId){
+  const parts = getSetParts(setId);
+  if(!parts) return "Basic 5-1-1";
+  return `Basic ${parts.level}-${parts.part}-${parts.set}`;
+}
+
+function wmSetBadgeHtml(){
+  const parts = getSetParts(currentSetId);
+  const label = parts ? `WM Basic ${parts.level}-${parts.part}-${parts.set}` : `WM ${makeSetName(currentSetId)}`;
+  return `<div class="wm-set-badge">${label}</div>`;
+}
+
+function wmGetLevelPartSetCounts(level){
+  const n = Number(level || 0);
+
+  if(n === 3) return [10, 10, 2];
+  if(n === 4) return [10, 10, 2];
+  if(n === 5) return [10, 10, 3];
+  if(n === 6) return [10, 10, 3];
+
+  if(n >= 7 && n <= 9) return [10, 10, 10, 10];
+  if(n >= 10 && n <= 13) return [10, 10, 10, 10, 10];
+
+  return [];
+}
+
+function getNextSetId(setId){
+  const parts = getSetParts(setId);
+  if(!parts) return "";
+
+  let level = parts.level;
+  let part = parts.part;
+  let set = parts.set + 1;
+
+  let partCounts = wmGetLevelPartSetCounts(level);
+  let maxSet = Number(partCounts[part - 1] || 0);
+
+  if(!partCounts.length || !maxSet) return "";
+
+  if(set > maxSet){
+    set = 1;
+    part++;
+  }
+
+  if(part > partCounts.length){
+    level++;
+    if(level > 13) return "";
+    part = 1;
+    set = 1;
+  }
+
+  return `WM${level}-${part}-${set}`;
+}
+
+function wmNormalizeS4Mode(value){
+  const text = String(value || '').trim();
+  if(text === '0' || text === '0단계') return '0단계';
+  if(text === '1' || text === '1단계') return '1단계';
+  if(text === '2' || text === '2단계') return '2단계';
+  if(text === '3' || text === '3단계') return '3단계';
+  return '전체';
+}
+
+function wmNormalizeS6Mode(value){
+  const text = String(value || '').trim();
+  if(text === '객관식' || text === '객관식2' || text === '객관식(2개)') return '객관식(2개)';
+  if(text === '객관식+영한') return '객관식+영한';
+  if(text === '객관식+한영') return '객관식+한영';
+  return '기본전체';
+}
+
+function wmNormalizeStudyMode(mode){
+  let src = mode || {};
+
+  if(typeof src === 'string'){
+    src = { S6테스트모드: src };
+  }
+
+  const normalized = {
+    S4실루엣단계: wmNormalizeS4Mode(src.S4실루엣단계 || src.s4 || src.silhouetteStep),
+    S6테스트모드: wmNormalizeS6Mode(src.S6테스트모드 || src.s6 || src.testMode || src.학습모드 || WM_INITIAL_LEARNING_MODE),
+    레벨완료조건: String(src.레벨완료조건 || src.levelCompleteCondition || '2회').trim() || '2회',
+    레벨회차추가: Number(src.레벨회차추가 || src.extraRounds || 0) || 0,
+    applyScope: 'NEXT_SET'
+  };
+
+  normalized.목표회차 = wmGetTargetRoundsFromMode(normalized);
+  return normalized;
+}
+
+function wmGetTargetRoundsFromMode(mode){
+  const condition = String((mode && mode.레벨완료조건) || '2회').trim();
+  let base = 2;
+  if(condition === '1' || condition === '1회') base = 1;
+  else if(condition === '2' || condition === '2회') base = 2;
+  else if(condition === '3' || condition === '3회') base = 3;
+  else if(condition === '추가' || condition === '추가회차') base = 2;
+
+  const extra = Math.max(0, Math.floor(Number((mode && mode.레벨회차추가) || 0) || 0));
+  return Math.max(1, Math.min(6, base + extra));
+}
+
+function wmStudyModeCacheKey(setId){
+  return 'wordmate_learning_mode_' + String(WM_STUDENT_ID || 'UNKNOWN').trim().toUpperCase() + '_' + String(setId || '').trim().toUpperCase();
+}
+
+function wmReadCachedStudyMode(setId){
+  try{
+    const raw = localStorage.getItem(wmStudyModeCacheKey(setId)) || '';
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return wmNormalizeStudyMode(parsed);
+  }catch(err){
+    return null;
+  }
+}
+
+function wmCacheStudyMode(setId, mode){
+  try{
+    localStorage.setItem(wmStudyModeCacheKey(setId), JSON.stringify(wmNormalizeStudyMode(mode)));
+  }catch(err){}
+}
+
+async function wmFetchStudentLearningMode(){
+  const serverMode = wmReadServerStudyMode();
+  if(serverMode){
+    WM_ACTIVE_LEARNING_ASSIGN = wmReadServerLearningAssign();
+    return wmNormalizeStudyMode(serverMode);
+  }
+
+  if(!WM_STUDENT_ID) return wmNormalizeStudyMode(WM_DEFAULT_STUDY_MODE);
+
+  try{
+    const res = await fetch(
+      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&ts=' + Date.now(),
+      { method:'GET', cache:'no-store' }
+    );
+    const data = await res.json();
+    if(data && data.success && data.learningMode){
+      WM_ACTIVE_LEARNING_ASSIGN = String(data.learningAssign || (data.modeColumns && data.modeColumns.학습배정) || '').trim();
+      return wmNormalizeStudyMode(data.learningMode);
+    }
+  }catch(err){
+    console.warn('Word Mate learning mode load failed', err);
+  }
+
+  const cached = wmReadCachedStudyMode(currentSetId);
+  if(cached) return cached;
+
+  return wmNormalizeStudyMode(WM_DEFAULT_STUDY_MODE);
+}
+
+async function wmPrepareStudyModeForCurrentSet(){
+  /* WM_STUDENT_DB_MODE_APPLY_20260616_V1
+     학생관리_DB의 학습배정/S4/S6/레벨완료조건/레벨회차추가를 우선 적용합니다.
+     이전 캐시가 있더라도 먼저 서버 DB 값을 다시 읽고, 실패할 때만 캐시를 사용합니다. */
+  const mode = await wmFetchStudentLearningMode();
+  WM_ACTIVE_STUDY_MODE = mode;
+  WM_ACTIVE_STUDY_MODE_SET_ID = currentSetId;
+  wmCacheStudyMode(currentSetId, mode);
+  return WM_ACTIVE_STUDY_MODE;
+}
+
+function getActiveS4Mode(){
+  return wmNormalizeS4Mode(WM_ACTIVE_STUDY_MODE && WM_ACTIVE_STUDY_MODE.S4실루엣단계);
+}
+
+function getActiveS6Mode(){
+  return wmNormalizeS6Mode(WM_ACTIVE_STUDY_MODE && WM_ACTIVE_STUDY_MODE.S6테스트모드);
+}
+
+function getActiveMemorySteps(){
+  const mode = getActiveS4Mode();
+  if(mode === '0단계') return [];
+  if(mode === '1단계') return WM_FULL_MEMORY_STEPS.slice(0,1);
+  if(mode === '2단계') return WM_FULL_MEMORY_STEPS.slice(0,2);
+  if(mode === '3단계') return WM_FULL_MEMORY_STEPS.slice(0,3);
+  return WM_FULL_MEMORY_STEPS;
+}
+
+function getActiveMemoryTotalRounds(){
+  return getActiveMemorySteps().reduce((sum, step)=>sum + Number(step.count || 0), 0);
+}
+
+function showStudyConfirmModal(message, onConfirm){
+  let modal = document.getElementById("wmStudyConfirmModal");
+  if(!modal){
+    modal = document.createElement("div");
+    modal.id = "wmStudyConfirmModal";
+    modal.className = "wm-exit-modal";
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `<div class="wm-exit-box"><div class="wm-exit-text" style="font-size:17px;font-weight:800;color:#111;line-height:1.75;margin-bottom:18px;">${message}</div><div class="wm-exit-actions"><button class="wm-continue-btn" type="button" id="wmStudyConfirmOkBtn">확인</button></div></div>`;
+  modal.style.display = "flex";
+  const okBtn = document.getElementById("wmStudyConfirmOkBtn");
+  if(okBtn){
+    okBtn.onclick = function(){
+      modal.style.display = "none";
+      if(typeof onConfirm === "function") onConfirm();
+    };
+  }
+}
+
+function renderStep4SkippedNotice(nextAction){
+  showStudyConfirmModal(
+    "이번 Set에서는<br>Step 4 쓰기학습이 생략되고<br>Step 5 학습으로 넘어갑니다.",
+    function(){
+      if(typeof nextAction === "function"){
+        nextAction();
+        return;
+      }
+      stage=6;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
+    }
+  );
+}
+
+function getTestList(){
+  const mode = getActiveS6Mode();
+
+  if(mode === '객관식(2개)'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" }
+    ];
+  }
+
+  if(mode === '객관식+영한'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 영한 TEST`, type:"write", direction:"eng-ko" }
+    ];
+  }
+
+  if(mode === '객관식+한영'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 한영 TEST`, type:"write", direction:"ko-eng" }
+    ];
+  }
+
+  return [
+    { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 영한 TEST`, type:"write", direction:"eng-ko" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 한영 TEST`, type:"write", direction:"ko-eng" }
+  ];
+}
+
+function getActiveTestGuideText(){
+  return getTestList().map(test=>{
+    if(test.type === 'choice' && test.direction === 'eng-ko') return '영한객관식';
+    if(test.type === 'choice' && test.direction === 'ko-eng') return '한영객관식';
+    if(test.type === 'write' && test.direction === 'eng-ko') return '영한주관식';
+    if(test.type === 'write' && test.direction === 'ko-eng') return '한영주관식';
+    return 'TEST';
+  }).join(' · ');
+}
+
+
+function getFinalOfficialTestScore(){
+  const scores = Array.isArray(firstTestScores) ? firstTestScores : [];
+  if(!scores.length) return null;
+  const last = scores[scores.length - 1] || {};
+  return {
+    title: last.title || '',
+    type: last.type || '',
+    direction: last.direction || '',
+    score: Number(last.score || 0),
+    total: Number(last.total || 0),
+    percent: Number(last.percent || 0)
+  };
+}
+
+function getFinalOfficialScoreText(){
+  const finalScore = getFinalOfficialTestScore();
+  return finalScore ? String(finalScore.percent) : '';
+}
+
+function todayString(){
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function shuffle(array){return [...array].sort(()=>Math.random()-0.5);}
+
+function wrongRetryTitle(stepTitle,count){
+  return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재학습합니다.</span>`;
+}
+
+function learningGuide(color = "blue"){
+  const guideColor = color === "red" ? "#dc2626" : "#2563eb";
+  return `<div class="wm-learning-guide" style="color:${guideColor};">언어의 빠른 정복을 위해<br>영어와 한글을 소리내어 따라하면서 학습하세요</div>`;
+}
+
+function testGuide(test){
+  if(test.type==="choice" && test.direction==="eng-ko") return `<div class="wm-test-guide">다음 영어에 맞는 우리말 뜻을 고르세요</div>`;
+  if(test.type==="choice" && test.direction==="ko-eng") return `<div class="wm-test-guide">다음 한글에 맞는 영어를 고르세요</div>`;
+  if(test.type==="write" && test.direction==="eng-ko") return `<div class="wm-test-guide">다음 영어를 보고 우리말의미를 쓰세요.</div>`;
+  if(test.type==="write" && test.direction==="ko-eng") return `<div class="wm-test-guide">다음 한글을 보고 영어로 쓰세요.</div>`;
+  return "";
+}
+
+
+function fixDriveAudioUrl(url){
+  const raw = String(url || "").trim();
+  if(!raw) return "";
+  const match = raw.match(/\/d\/([^/]+)/) || raw.match(/[?&]id=([^&]+)/);
+  if(match && match[1]){
+    return "https://drive.google.com/uc?export=download&id=" + match[1];
+  }
+  return raw;
+}
+
+function normalizeDbWord(item){
+  return {
+    word: item.word || item.Word || "",
+    meaning: item.meaning || item.meaning_kr || item.Meaning_KR || "",
+    pos: item.pos || item.POS || "",
+    example_en: item.example_en || item.Example_EN || "",
+    example_kr: item.example_kr || item.Example_KR || "",
+    start: Number(item.start ?? item.Start_Time ?? item.start_time ?? item.START_TIME),
+    end: Number(item.end ?? item.End_Time ?? item.end_time ?? item.END_TIME)
+  };
+}
+
+function renderDbLoading(){
+  app.innerHTML = `
+    <div class="wm-card">
+      ${wmSetBadgeHtml()}
+      <div class="wm-title">
+        영어잡는 Word Mate<br>
+        ${currentSetName}
+      </div>
+
+      <div style="padding:30px 0 24px;text-align:center;">
+        <div class="wm-meaning" style="font-size:25px;margin:4px 0 24px;">
+          학습 데이터를 불러오는 중입니다.
+        </div>
+
+        <div style="
+          width:58px;
+          height:58px;
+          border:6px solid #e5e7eb;
+          border-top-color:#2563eb;
+          border-radius:50%;
+          margin:0 auto 22px;
+          animation:wmSpin .8s linear infinite;
+        "></div>
+
+        <div class="wm-small" style="font-size:15px;color:#555;line-height:1.6;">
+          잠시만 기다려 주세요.
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadSetFromDB(){
+  if(isDbLoading) return false;
+
+  isDbLoading = true;
+  dbLoadError = "";
+  renderDbLoading();
+
+  try{
+    const callbackName = "wmCallback_" + Date.now();
+    const data = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(result){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(result);
+      };
+
+      script = document.createElement("script");
+      script.src = API_URL
+        + "?action=getSetData"
+        + "&set_id=" + encodeURIComponent(currentSetId)
+        + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
+        + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&t=" + Date.now();
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("JSONP load error"));
+      };
+      document.body.appendChild(script);
+
+      setTimeout(()=>{
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("JSONP timeout"));
+      }, 10000);
+    });
+
+    if(data && (data.sessionExpired === true || data.sessionValid === false || data.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return false;
+    }
+
+    if(!data || !data.success || !Array.isArray(data.words)){
+      throw new Error((data && data.message) || "DB 응답 오류");
+    }
+
+    const loadedWords = data.words.map(normalizeDbWord).filter(item=>item.word && item.meaning);
+    if(!loadedWords.length){
+      throw new Error("단어 데이터 없음");
+    }
+
+    const audioSource =
+      data.audio_url ||
+      data.Audio_URL ||
+      (data.audio && (data.audio.Audio_URL || data.audio.audio_url || data.audio.Drive_URL || data.audio.drive_url)) ||
+      (data.words && data.words[0] && (data.words[0].Audio_URL || data.words[0].audio_url || data.words[0].Drive_URL || data.words[0].drive_url)) ||
+      "";
+
+    const audioUrl = fixDriveAudioUrl(audioSource);
+    if(!audioUrl){
+      throw new Error("Audio_URL 없음");
+    }
+
+    originalWords = loadedWords;
+    currentWords = [...originalWords];
+    wordAudio.src = audioUrl;
+    wordAudio.load();
+
+    isDbReady = true;
+    isDbLoading = false;
+    return true;
+  }catch(error){
+    console.error(error);
+    isDbReady = false;
+    isDbLoading = false;
+    dbLoadError = error && error.message ? error.message : "DB 또는 음원 정보를 불러오지 못했습니다.";
+    app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">불러오기 실패</div><div class="wm-meaning">DB 또는 음원 정보를 확인하세요.</div><div class="wm-small">${dbLoadError}<br>currentSetId: ${currentSetId}</div><button class="wm-btn" onclick="startLearning()">다시 시도</button></div>`;
+    return false;
+  }
+}
+
+function normalizeText(text){
+  return String(text).trim().toLowerCase().replace(/[,\s\/·ㆍ;|]+/g,"").replace(/[.?!'"“”‘’()[\]{}<>:：，。]/g,"");
+}
+
+function splitMeaningParts(text){return String(text).split(/[,\//·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
+function splitUserMeaningParts(text){return String(text).split(/[,\s\/·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
+
+function makeSubsets(arr){
+  const result = [];
+  const n = arr.length;
+  for(let mask = 1; mask < (1 << n); mask++){
+    const subset = [];
+    for(let i = 0; i < n; i++) if(mask & (1 << i)) subset.push(arr[i]);
+    result.push(subset);
+  }
+  return result;
+}
+
+function makePermutations(arr){
+  if(arr.length <= 1) return [arr];
+  const result = [];
+  arr.forEach((item, index)=>{
+    const rest = arr.slice(0,index).concat(arr.slice(index+1));
+    makePermutations(rest).forEach(perm=>result.push([item, ...perm]));
+  });
+  return result;
+}
+
+function isMeaningCorrect(input, meaning){
+  const correctParts = splitMeaningParts(meaning);
+  const answerSet = new Set(correctParts);
+  const userParts = splitUserMeaningParts(input);
+  const normalizedInput = normalizeText(input);
+  if(!normalizedInput) return false;
+  if(answerSet.has(normalizedInput)) return true;
+  if(userParts.length > 0 && userParts.every(part => answerSet.has(part))) return true;
+  const subsets = makeSubsets(correctParts);
+  for(const subset of subsets){
+    const permutations = makePermutations(subset);
+    for(const perm of permutations){
+      if(perm.join("") === normalizedInput) return true;
+    }
+  }
+  return false;
+}
+
+function getMemoryRoundNumber(){
+  const steps = getActiveMemorySteps();
+  let count = 0;
+  for(let i = 0; i < memoryPhase; i++) count += Number((steps[i] && steps[i].count) || 0);
+  count += memoryCount + 1;
+  return count;
+}
+
+function getMemoryLevelClass(round){
+  if(round <= 3) return "level-100";
+  if(round <= 5) return "level-70";
+  if(round <= 7) return "level-30";
+  return "level-0";
+}
+
+function renderWordProgress(current,total){
+  let html = `<div class="word-progress">`;
+  for(let i = 1; i <= total; i++){
+    const doneClass = i <= current ? "done" : "";
+    const currentClass = i === current ? "current" : "";
+    html += `<div class="word-dot ${doneClass} ${currentClass}">${i}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderMemoryProgress(){
+  const steps = getActiveMemorySteps();
+  const totalRounds = getActiveMemoryTotalRounds();
+  const currentRound = Math.min(getMemoryRoundNumber(), Math.max(1,totalRounds));
+  let html = `<div class="memory-progress">`;
+  for(let i = 1; i <= totalRounds; i++){
+    const doneClass = i <= currentRound ? "done" : "";
+    const currentClass = i === currentRound ? "current" : "";
+    const levelClass = i <= currentRound ? getMemoryLevelClass(i) : "";
+    html += `<div class="memory-dot ${doneClass} ${currentClass} ${levelClass}">${i}</div>`;
+  }
+  html += `</div><div class="memory-stage-guide">${steps.map((step, i)=>`<span class="stage-chip">${i+1}️⃣ ${step.label}</span>`).join('')}</div>`;
+  return html;
+}
+
+function stopWordAudio(){
+  clearInterval(audioTimer);
+  clearTimeout(audioGapTimer);
+  audioTimer = null;
+  audioGapTimer = null;
+  audioRepeatCount = 0;
+  currentAudioItem = null;
+  if(wordAudio) wordAudio.pause();
+}
+
+function waitForAudioReady(audio){
+  return new Promise((resolve, reject)=>{
+    if(!audio){ reject(new Error("audio element 없음")); return; }
+    if(audio.readyState >= 1){ resolve(); return; }
+
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error("audio metadata timeout"));
+    }, 5000);
+
+    function cleanup(){
+      clearTimeout(timer);
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("error", onError);
+    }
+
+    function onReady(){ cleanup(); resolve(); }
+    function onError(){ cleanup(); reject(new Error("audio load error")); }
+
+    audio.addEventListener("loadedmetadata", onReady, {once:true});
+    audio.addEventListener("canplay", onReady, {once:true});
+    audio.addEventListener("error", onError, {once:true});
+    audio.load();
+  });
+}
+
+async function playWordSegment(item, maxRepeat = 5){
+  if(!item) return;
+
+  const start = Number(item.start);
+  const end = Number(item.end);
+  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+  if(!wordAudio || !wordAudio.src) return;
+
+  stopWordAudio();
+
+  currentAudioItem = item;
+  audioRepeatCount = 0;
+  audioMaxRepeat = maxRepeat;
+  wordAudio.playbackRate = 1;
+
+  try{
+    await waitForAudioReady(wordAudio);
+  }catch(error){
+    console.error(error);
+    return;
+  }
+
+  async function playOneRound(){
+    if(!currentAudioItem) return;
+
+    try{
+      wordAudio.pause();
+      wordAudio.currentTime = start;
+      await wordAudio.play();
+    }catch(error){
+      console.error(error);
+      return;
+    }
+
+    while(currentAudioItem && wordAudio.currentTime < end){
+      await new Promise(resolve => setTimeout(resolve, 80));
+    }
+
+    if(!currentAudioItem) return;
+    wordAudio.pause();
+    audioRepeatCount++;
+
+    if(audioRepeatCount >= audioMaxRepeat){
+      stopWordAudio();
+      return;
+    }
+
+    await new Promise(resolve=>{
+      audioGapTimer = setTimeout(resolve, 1000);
+    });
+
+    if(!currentAudioItem) return;
+    playOneRound();
+  }
+
+  playOneRound();
+}
+
+
+
+function getElapsedSeconds(){
+  if(!learningStartTime) return 0;
+  return Math.max(0, Math.round((Date.now()-learningStartTime)/1000));
+}
+
+function getCurrentStepElapsedSeconds(){
+  if(!wmCurrentStepStartTime) return getElapsedSeconds();
+  return Math.max(0, Math.round((Date.now()-wmCurrentStepStartTime)/1000));
+}
+
+function markStepCompleted(stepId, stepTitle){
+  if(completedSteps.some(step=>step.stepId===stepId)){
+    return Promise.resolve({ok:true, duplicate:true});
+  }
+  /* WM_STEP_SAVE_GUARANTEE_V1_20260615
+     Step 완료는 반드시 Step 단위로 저장합니다.
+     Step 전환/나가기는 저장 체인(wmStepSaveChain)이 끝난 뒤에만 진행합니다. */
+  const stepElapsedSeconds = (stepId === "test_all" && wmFirstTestTotalSeconds > 0)
+    ? Math.max(0, Math.round(wmFirstTestTotalSeconds))
+    : getCurrentStepElapsedSeconds();
+  completedSteps.push({
+    stepId,
+    stepTitle,
+    completedAt:new Date().toISOString(),
+    elapsedSeconds:stepElapsedSeconds
+  });
+  wmCurrentStepStartTime = Date.now();
+  return queueStepSave("step_completed");
+}
+
+function queueStepSave(status){
+  saveProgressSnapshot(status);
+
+  if(!WM_SAVE_API_URL){
+    return Promise.resolve({ok:true, localOnly:true});
+  }
+
+  /* WM_STEP_SAVE_BACKGROUND_QUEUE_V1_20260615
+     Step 완료 기록은 즉시 큐에 넣고 백그라운드에서 순서대로 저장합니다.
+     일반 Step 이동은 저장 완료를 기다리지 않아 화면이 멈춘 것처럼 보이지 않게 합니다.
+     단, 나가기/다음학습/최종이동 시점에는 wmWaitForStepSaves()로 저장 완료를 보장합니다. */
+  wmStepSaveChain = wmStepSaveChain
+    .catch(function(error){
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return null;
+    })
+    .then(function(){ return saveLearningRecord(status || "step_completed"); })
+    .then(function(result){
+      if(result && result.ok === false){
+        wmStepSaveLastError = result;
+      }else if(wmIsSaveSuccess(result)){
+        wmStepSaveLastError = null;
+      }
+      return result;
+    })
+    .catch(function(error){
+      console.warn("Word Mate step save failed", error);
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return wmStepSaveLastError;
+    });
+
+  return wmStepSaveChain;
+}
+
+function wmWaitForStepSaves(){
+  return wmStepSaveChain
+    .catch(function(error){
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return wmStepSaveLastError;
+    })
+    .then(function(result){
+      if(wmIsSaveSuccess(result)){
+        wmStepSaveLastError = null;
+        return result;
+      }
+      return wmStepSaveLastError || result || {ok:true};
+    });
+}
+
+function renderStepSaveWaiting(stepTitle){
+  app.innerHTML = `<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title">학습기록 저장 중</div>
+    <div class="wm-meaning" style="font-size:20px;line-height:1.8;margin-bottom:18px;">${stepTitle} 완료 기록을 저장하고 있습니다.</div>
+    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 다음 Step으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+  </div>`;
+  afterScreenRender();
+}
+
+function completeStepThen(stepId, stepTitle, nextAction){
+  /* WM_STEP_SAVE_IMMEDIATE_TRANSITION_V1_20260615
+     Step 완료 저장은 백그라운드 큐에 즉시 등록하고, 화면은 바로 다음 Step으로 이동합니다.
+     저장 완료 대기는 X/나가기/다음학습/최종이동 시점에만 처리합니다. */
+  markStepCompleted(stepId, stepTitle);
+  if(typeof nextAction === "function") nextAction();
+}
+
+function wmLastCompletedStepCode(){
+  const order = [
+    ["step1_flash_card", "STEP1"],
+    ["step2_choose_meaning", "STEP2"],
+    ["step3_choose_english", "STEP3"],
+    ["step4_memory", "STEP4"],
+    ["step6_last_flash_review", "STEP5"],
+    ["test_all", "TEST"]
+  ];
+  let last = "";
+  order.forEach(([stepId, code])=>{
+    if(completedSteps.some(step=>step.stepId===stepId)) last = code;
+  });
+  return last;
+}
+
+function wmCurrentProgressStepCode(status){
+  if(status === "completed") return "COMPLETE";
+  const last = wmLastCompletedStepCode();
+  if(last === "STEP1") return "STEP2";
+  if(last === "STEP2") return "STEP3";
+  if(last === "STEP3") return "STEP4";
+  if(last === "STEP4") return "STEP5";
+  if(last === "STEP5") return "TEST";
+  if(last === "TEST") return "COMPLETE";
+  return "STEP1";
+}
+
+function wmStageFromProgressStep(stepCode){
+  const code = String(stepCode || "").toUpperCase().trim();
+  if(code === "STEP2") return 2;
+  if(code === "STEP3") return 3;
+  if(code === "STEP4") return 4;
+  if(code === "STEP5") return 6;
+  if(code === "BEFORE_TEST") return 6;
+  if(code === "TEST") return 9;
+  return 1;
+}
+
+function wmNormalizeCompletedStepsFromProgress(progress){
+  const steps = Array.isArray(progress && progress.completedSteps) ? progress.completedSteps : [];
+  return steps.map(step=>({
+    stepId:String(step.stepId || "").trim(),
+    stepTitle:String(step.stepTitle || "").trim(),
+    completedAt:String(step.completedAt || new Date().toISOString()).trim(),
+    elapsedSeconds:Number(step.elapsedSeconds || 0),
+    elapsedText:String(step.elapsedText || step.timeText || "").trim()
+  })).filter(step=>step.stepId);
+}
+
+async function wmLoadLearningProgress(){
+  /* WM_STUDY_RESUME_FORCE_RELOAD_V1
+     복귀 적용 공식: 학습 시작 버튼을 누를 때마다 getLearningProgress를 다시 호출합니다.
+     이유: Step 저장은 정상인데, 같은 Study 화면에서 나갔다가 다시 시작할 때
+     기존 wmResumeProgress 캐시(null/STEP1)가 남으면 최신 DB Step을 못 읽고 STEP1로 돌아갑니다.
+     저장 로직은 건드리지 않고, 복귀 조회 캐시만 제거합니다. */
+  wmProgressLoaded = false;
+  wmResumeProgress = null;
+
+  if(!WM_PROGRESS_API_URL || !WM_STUDENT_ID || !currentSetId){
+    return null;
+  }
+
+  try{
+    const callbackName = "wmProgressCallback_" + Date.now();
+    const result = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(response){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(response);
+      };
+
+      script = document.createElement("script");
+      script.src = WM_PROGRESS_API_URL
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
+        + "&set_id=" + encodeURIComponent(currentSetId)
+        + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
+        + "&t=" + Date.now();
+
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("progress JSONP load error"));
+      };
+
+      document.body.appendChild(script);
+
+      setTimeout(function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("progress JSONP timeout"));
+      }, 12000);
+    });
+
+    if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return null;
+    }
+
+    if(result && result.success){
+      wmResumeProgress = result;
+      return result;
+    }
+  }catch(error){
+    console.warn("Word Mate progress load failed", error);
+  }
+
+  wmResumeProgress = null;
+  return null;
+}
+
+function wmApplyResumeProgress(progress){
+  if(!progress || !progress.success) return 1;
+
+  const progressStep = String(progress.currentProgressStep || "").toUpperCase().trim();
+
+  /* WM_RESUME_RECORD_ID_NEW_SESSION_INSERT_20260617_V1
+     이어학습 데이터는 사용하되, 이전 학습기록ID는 재사용하지 않습니다.
+     같은 화면 세션 안에서는 첫 저장 후 받은 WM_RECORD_SESSION_ID로 UPDATE하고,
+     학습 종료/재접속 후 이어학습하면 같은 Set_ID라도 새 행 INSERT가 되게 합니다. */
+  WM_RECORD_SESSION_ID = "";
+
+  if(progressStep === "COMPLETE"){
+    completedSteps = [];
+    return 1;
+  }
+
+  completedSteps = wmNormalizeCompletedStepsFromProgress(progress);
+
+  /* WM_STUDY_RESUME_STEP_APPLY_FIX_20260623_V2
+     completedSteps가 있으면 실제 완료 배열 기준으로 다음 Step을 계산하고,
+     completedSteps가 비어 있으면 서버 currentProgressStep 값을 그대로 적용합니다.
+     기존 코드는 completedSteps가 비어 있을 때 서버 STEP 값을 무시해서 무조건 Step1로 복귀했습니다. */
+  if(completedSteps.length){
+    const nextStep = wmCurrentProgressStepCode("step_completed");
+    return wmStageFromProgressStep(nextStep);
+  }
+
+  return wmStageFromProgressStep(progressStep);
+}
+
+
+function buildOfficialTimeSummary(){
+  /* WM_STUDY_OFFICIAL_TIME_SUMMARY_V2_20260608
+     총소요시간 공식값을 Study.html에서 직접 계산해 payload에 실어 보냅니다.
+     공식: Step1 + Step2 + Step3 + Step4 + 시험전재학습 + Test_총시간
+     payload.elapsedSeconds 또는 마지막 Step 시간은 총소요시간으로 쓰지 않습니다. */
+  const stepSeconds = {
+    step1_flash_card: 0,
+    step2_choose_meaning: 0,
+    step3_choose_english: 0,
+    step4_memory: 0,
+    step6_last_flash_review: 0,
+    test_all: 0
+  };
+
+  (Array.isArray(completedSteps) ? completedSteps : []).forEach(step=>{
+    if(!step || !Object.prototype.hasOwnProperty.call(stepSeconds, step.stepId)) return;
+    const seconds = Number(step.elapsedSeconds || 0);
+    if(Number.isFinite(seconds) && seconds > 0){
+      stepSeconds[step.stepId] = Math.max(0, Math.round(seconds));
+    }
+  });
+
+  const totalSeconds =
+    stepSeconds.step1_flash_card +
+    stepSeconds.step2_choose_meaning +
+    stepSeconds.step3_choose_english +
+    stepSeconds.step4_memory +
+    stepSeconds.step6_last_flash_review +
+    stepSeconds.test_all;
+
+  return {
+    stepSeconds,
+    step1: stepSeconds.step1_flash_card,
+    step2: stepSeconds.step2_choose_meaning,
+    step3: stepSeconds.step3_choose_english,
+    step4: stepSeconds.step4_memory,
+    beforeTest: stepSeconds.step6_last_flash_review,
+    testTime: stepSeconds.test_all,
+    totalSeconds
+  };
+}
+
+function buildLearningPayload(status){
+  const saveSetId = (status === "completed" && WM_COMPLETED_SAVE_SET_ID) ? WM_COMPLETED_SAVE_SET_ID : currentSetId;
+  const saveSetName = (status === "completed" && WM_COMPLETED_SAVE_SET_NAME) ? WM_COMPLETED_SAVE_SET_NAME : makeSetName(saveSetId);
+  const nextSetId = getNextSetId(saveSetId);
+  return {
+    courseType:"BASIC",
+    setId:saveSetId,
+    setName:saveSetName,
+    nextSetId,
+    nextSetName:makeSetName(nextSetId),
+    studentId:WM_STUDENT_ID,
+    studentName:STUDENT_NAME,
+    sessionToken:WM_SESSION_TOKEN,
+    wmSessionToken:WM_SESSION_TOKEN,
+    현재세션:WM_SESSION_TOKEN,
+    school:WM_STUDENT_PROFILE.school || "",
+    grade:WM_STUDENT_PROFILE.grade || "",
+    className:WM_STUDENT_PROFILE.className || "",
+    teacherName:WM_STUDENT_PROFILE.teacherName || "",
+    learningAssign:WM_ACTIVE_LEARNING_ASSIGN || "",
+    학습배정:WM_ACTIVE_LEARNING_ASSIGN || "",
+    S4실루엣단계:WM_ACTIVE_STUDY_MODE.S4실루엣단계 || "",
+    S6테스트모드:WM_ACTIVE_STUDY_MODE.S6테스트모드 || "",
+    레벨완료조건:WM_ACTIVE_STUDY_MODE.레벨완료조건 || "",
+    레벨회차추가:WM_ACTIVE_STUDY_MODE.레벨회차추가 || 0,
+    목표회차:WM_ACTIVE_STUDY_MODE.목표회차 || wmGetTargetRoundsFromMode(WM_ACTIVE_STUDY_MODE),
+    userAgent:navigator.userAgent || "",
+    deviceInfo:getSimpleDeviceInfo(),
+    status,
+    완료저장요청: status === "completed",
+    completeRoundSaveRequest: status === "completed",
+    currentProgressStep: wmCurrentProgressStepCode(status),
+    lastCompletedStep: wmLastCompletedStepCode(),
+    recordSessionId: WM_RECORD_SESSION_ID,
+    completedSteps:[...completedSteps],
+    officialTimeSummary: buildOfficialTimeSummary(),
+    scores:[...firstTestScores],
+    finalScore:getFinalOfficialScoreText(),
+    finalTestScore:getFinalOfficialTestScore(),
+    scorePolicy:'LAST_TEST_SCORE',
+    wrongWords:firstWrongWords.map(w=>({word:w.word, meaning:w.meaning, pos:w.pos})),
+    elapsedSeconds:getElapsedSeconds(),
+    completedAt:new Date().toISOString()
+  };
+}
+
+function saveProgressSnapshot(status){
+  const payload=buildLearningPayload(status);
+  latestSavedPayload=payload;
+  try{
+    localStorage.setItem(`wordmate_${currentSetName}_latest_record`, JSON.stringify(payload));
+    localStorage.setItem(`wordmate_${STUDENT_NAME}_last_progress`, JSON.stringify({
+      studentName:STUDENT_NAME,
+      lastCompletedSetId:currentSetId,
+      nextSetId:payload.nextSetId,
+      nextSetName:payload.nextSetName,
+      updatedAt:payload.completedAt
+    }));
+  }catch(e){}
+  return payload;
+}
+
+function wmIsSaveSuccess(result){
+  /* WM_STUDY_SAVE_SUCCESS_OK_OR_SUCCESS_FIX_20260623_V1
+     저장 성공 판정은 래핑된 result.ok뿐 아니라 서버 원응답 result.success도 성공으로 인정합니다. */
+  if(!result) return false;
+  if(result.ok === true || result.success === true) return true;
+  const response = result.response || {};
+  return response.ok === true || response.success === true;
+}
+
+async function saveLearningRecord(status="completed"){
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return {ok:false, sessionExpired:true};
+
+  const payload=saveProgressSnapshot(status);
+
+  if(!WM_SAVE_API_URL){
+    return {ok:true, localOnly:true, payload};
+  }
+
+  try{
+    const callbackName = "wmSaveCallback_" + Date.now();
+
+    const result = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(response){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(response);
+      };
+
+      script = document.createElement("script");
+      script.src =
+        WM_SAVE_API_URL
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&payload=" + encodeURIComponent(JSON.stringify(payload))
+        + "&t=" + Date.now();
+
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("save JSONP load error"));
+      };
+
+      document.body.appendChild(script);
+
+      setTimeout(function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("save JSONP timeout"));
+      }, 12000);
+    });
+
+    if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return {ok:false, response:result, payload, sessionExpired:true};
+    }
+
+    if(result && result.success && result.recordId){
+      WM_RECORD_SESSION_ID = String(result.recordId || '').trim();
+    }
+
+    return {ok:!!(result && result.success), response:result, payload};
+  }catch(error){
+    return {ok:false, error:String(error), payload};
+  }
+}
+
+function returnToLmsIfReady(){
+  if(WM_LMS_RETURN_URL){
+    window.location.href=WM_LMS_RETURN_URL;
+  }
+}
+
+function requestLearningFullscreen(){
+  const el=document.getElementById("wordmate-app") || document.documentElement;
+  if(document.fullscreenElement) return;
+  if(el.requestFullscreen){
+    el.requestFullscreen().catch(()=>{});
+  }else if(el.webkitRequestFullscreen){
+    el.webkitRequestFullscreen();
+  }
+}
+
+function exitLearningFullscreen(){
+  if(document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+function ensureExitControls(){
+  let btn=document.getElementById("wmExitButton");
+  if(stage>=1 && stage<=7){
+    if(!btn){
+      btn=document.createElement("button");
+      btn.id="wmExitButton";
+      btn.className="wm-exit-btn";
+      btn.type="button";
+      btn.textContent="✕";
+      btn.onclick=showExitModal;
+      document.body.appendChild(btn);
+    }
+  }else if(btn){
+    btn.remove();
+  }
+
+  if(!document.getElementById("wmExitModal")){
+    const modal=document.createElement("div");
+    modal.id="wmExitModal";
+    modal.className="wm-exit-modal";
+    modal.innerHTML=`<div class="wm-exit-box"><div class="wm-exit-title">학습을 종료하시겠습니까?</div><div class="wm-exit-text">완료된 Step 기준으로 저장됩니다.</div><div class="wm-exit-actions"><button class="wm-continue-btn" type="button" onclick="continueLearning()">취소</button><button class="wm-leave-btn" type="button" onclick="leaveLearning()">예</button></div></div>`;
+    document.body.appendChild(modal);
+  }
+}
+
+function showExitModal(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="flex";
+}
+
+function continueLearning(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="none";
+  requestLearningFullscreen();
+}
+
+function wmBuildReturnToMapUrl(){
+  const plainSetId = String(currentSetId || "").replace(/^WM/, "");
+  const params = new URLSearchParams();
+
+  params.set("mode", "map");
+
+  if(WM_STUDENT_ID){
+    params.set("studentId", WM_STUDENT_ID);
+    params.set("studentID", WM_STUDENT_ID);
+    params.set("wmStudentId", WM_STUDENT_ID);
+  }
+
+  if(WM_SESSION_TOKEN){
+    params.set("sessionToken", WM_SESSION_TOKEN);
+    params.set("wmSessionToken", WM_SESSION_TOKEN);
+  }
+
+  if(STUDENT_NAME){
+    params.set("studentName", STUDENT_NAME);
+    params.set("name", STUDENT_NAME);
+    params.set("wmStudentName", STUDENT_NAME);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.school){
+    params.set("school", WM_STUDENT_PROFILE.school);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.grade){
+    params.set("grade", WM_STUDENT_PROFILE.grade);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className){
+    params.set("className", WM_STUDENT_PROFILE.className);
+    params.set("Class", WM_STUDENT_PROFILE.className);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName){
+    params.set("teacherName", WM_STUDENT_PROFILE.teacherName);
+  }
+
+  if(plainSetId){
+    params.set("set_id", currentSetId);
+    params.set("setId", plainSetId);
+    params.set("currentSet", plainSetId);
+    params.set("wmCurrentSet", plainSetId);
+
+    /* WM_STUDY_RETURN_LEVEL_HISTORY_PARAMS_V1
+       Study에서 Map으로 복귀할 때 학습저장 여부와 무관하게 현재 레벨과 직전 레벨을 함께 전달합니다.
+       기존 wmStudentPayload는 유지하되, 히스토리 보드가 복귀 URL만 보고도 4→5 전환 이력을 잃지 않도록 보강합니다. */
+    const levelMatch = plainSetId.match(/^(3|4|5|6|7|8|9|10|11|12|13)-/);
+    const currentLevel = levelMatch ? Number(levelMatch[1]) : 0;
+    if(currentLevel){
+      const historyLevels = [];
+      if(currentLevel > 3) historyLevels.push(currentLevel - 1);
+      historyLevels.push(currentLevel);
+      params.set("levelHistoryLevels", historyLevels.join(","));
+      params.set("wmLevelHistoryLevels", historyLevels.join(","));
+    }
+  }
+
+  try{
+    const currentParams = new URLSearchParams(window.location.search || "");
+    const learningAssign = String(currentParams.get("learningAssign") || currentParams.get("level") || currentParams.get("wmLearningAssign") || "").trim();
+    if(learningAssign){
+      params.set("learningAssign", learningAssign);
+      params.set("level", learningAssign);
+      params.set("wmLearningAssign", learningAssign);
+    }
+
+    const payload = String(currentParams.get("wmStudentPayload") || "").trim();
+    if(payload){
+      params.set("wmStudentPayload", payload);
+    }
+  }catch(err){}
+
+  return WM_MAP_URL + "?" + params.toString();
+}
+
+function wmStudyRestoreMapLoginStorage(){
+  if(!WM_STUDENT_ID) return;
+
+  const studentData = {
+    학생ID: WM_STUDENT_ID,
+    studentId: WM_STUDENT_ID,
+    studentID: WM_STUDENT_ID,
+    id: WM_STUDENT_ID,
+    학생이름: STUDENT_NAME || "",
+    studentName: STUDENT_NAME || "",
+    name: STUDENT_NAME || "",
+    학교: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.school) || "",
+    학년: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.grade) || "",
+    Class: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className) || "",
+    className: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className) || "",
+    교사명: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName) || "",
+    teacherName: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName) || "",
+    sessionToken: WM_SESSION_TOKEN || "",
+    wmSessionToken: WM_SESSION_TOKEN || "",
+    현재세션: WM_SESSION_TOKEN || ""
+  };
+
+  const wrapped = JSON.stringify({ student: studentData });
+  const plain = JSON.stringify(studentData);
+
+  try{ sessionStorage.setItem("WM_SESSION_TOKEN", WM_SESSION_TOKEN || ""); }catch(err){}
+  try{ localStorage.setItem("WM_SESSION_TOKEN", WM_SESSION_TOKEN || ""); }catch(err){}
+  try{ sessionStorage.setItem("wmLoggedInStudent", wrapped); }catch(err){}
+  try{ localStorage.setItem("wmLoggedInStudent", wrapped); }catch(err){}
+  try{ sessionStorage.setItem("wmStudent", plain); }catch(err){}
+  try{ localStorage.setItem("wmStudent", plain); }catch(err){}
+  try{ sessionStorage.setItem("wmLoginStudent", plain); }catch(err){}
+  try{ localStorage.setItem("wmLoginStudent", plain); }catch(err){}
+}
+
+function wmStudyReturnToMap(){
+  const mapUrl = wmBuildReturnToMapUrl();
+  wmStudyRestoreMapLoginStorage();
+
+  try{
+    window.top.location.href = mapUrl;
+  }catch(err){
+    window.location.href = mapUrl;
+  }
+}
+
+async function leaveLearning(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="none";
+
+  app.innerHTML = `<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title">학습기록 저장 확인 중</div>
+    <div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 기록을 확인하고 있습니다.</div>
+    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 학습맵으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+  </div>`;
+  afterScreenRender();
+
+  const result = await wmWaitForStepSaves();
+
+  if(result && result.ok === false){
+    const finalResult = await saveLearningRecord("completed");
+    if(!wmIsSaveSuccess(finalResult)){
+      app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
+      afterScreenRender();
+      return;
+    }
+  }
+
+  exitLearningFullscreen();
+  wmStudyReturnToMap();
+}
+
+function protectDirectTypingInputs(){
+  document.querySelectorAll(".memory-input, .test-input").forEach(input=>{
+    input.setAttribute("autocomplete","off");
+    input.setAttribute("autocorrect","off");
+    input.setAttribute("autocapitalize","off");
+    input.setAttribute("spellcheck","false");
+    input.addEventListener("paste",e=>e.preventDefault());
+    input.addEventListener("drop",e=>e.preventDefault());
+  });
+}
+
+function afterScreenRender(){
+  ensureExitControls();
+  protectDirectTypingInputs();
+}
+
+function render(){
+  stopWordAudio();
+  if(stage===0) renderStart();
+  if(stage===1) renderFlashCard();
+  if(stage===2) renderStep2();
+  if(stage===3) renderStep3();
+  if(stage===4) renderMemory();
+  if(stage===5) renderBeforeTest();
+  if(stage===6) renderOneMoreFlashCard();
+  if(stage===7) renderTest();
+  if(stage===8) renderFinalResult();
+  if(stage===9) renderStartTestOnly();
+  afterScreenRender();
+}
+
+function renderStart(){
+  app.innerHTML = `
+    <div class="wm-card">
+      ${wmSetBadgeHtml()}
+      <div class="wm-title">
+        영어잡는 Word Mate<br>
+        ${currentSetName}<br>
+        학습을 시작합니다
+      </div>
+
+      <div style="font-size:15px; line-height:1.6; color:#444; margin-top:10px;">
+        ✊ 지금부터 학습을 시작합니다
+      </div>
+
+      <div style="font-size:15px; line-height:1.75; color:#444; margin-top:14px;">
+        🧒📚<br>
+        가슴을 펴고 바른 자세로 앉아<br>
+        각 단어마다 <span style="color:#2563eb;font-weight:900;font-size:17px;">영어와 한글을 소리내어</span><br>
+        끝까지 읽으면서<br>
+        한 세트가 끝날 때까지 이동하지 않고 학습하세요
+      </div>
+
+      <div style="font-size:16px; line-height:1.75; color:#444; font-weight:700; margin-top:16px;">
+        ☀️ 지금 당신은<br>
+        단지 몇 단어를 공부하는 것이 아니라<br>
+        <span style="color:#dc2626;font-weight:900;font-size:19px;">'밝은 미래'</span>를 사고 있는 것입니다
+      </div>
+
+      <button id="wmStartBtn" class="wm-btn" onclick="startLearning()">학습 시작</button>
+    </div>`;
+}
+
+async function startLearning(){
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return;
+  wmStudyStartSessionWatcher();
+
+  if(!isDbReady || !originalWords.length){
+    const loaded = await loadSetFromDB();
+    if(!loaded) return;
+  }
+
+  await wmPrepareStudyModeForCurrentSet();
+
+  clearInterval(testTimer);
+  stopWordAudio();
+  requestLearningFullscreen();
+  learningStartTime=Date.now();
+  wmCurrentStepStartTime=learningStartTime;
+  latestSavedPayload=null;
+
+  const progress = await wmLoadLearningProgress();
+  const resumeStage = wmApplyResumeProgress(progress);
+
+  stage=resumeStage;
+  index=0;
+  currentWords=shuffle(originalWords);
+  step2Wrong=[];
+  step3Wrong=[];
+  memoryWrong=[];
+  isStep2Review=false;
+  isStep3Review=false;
+  isMemoryReview=false;
+  memoryPhase=0;
+  memoryCount=0;
+  memoryLocked=false;
+  afterMemoryAction=null;
+  testIndex=0;
+  testWords=[];
+  isRetest=false;
+  firstTestScores=[];
+  firstWrongWords=[];
+  currentTestResults=[];
+  currentTestWrongs=[];
+  activeTestQuestionIndex=null;
+  render();
+}
+
+function renderFlashCard(){
+  const item=currentWords[index];
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">Step 1 Flash Card</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><button class="wm-btn" onclick="nextFlashCard()">다음</button></div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function nextFlashCard(){
+  stopWordAudio();
+  index++;
+  if(index>=currentWords.length){
+    completeStepThen("step1_flash_card", "Step 1 Flash Card", function(){
+      stage=2;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function renderStep2(){
+  const item=currentWords[index];
+  const options=makeChoiceOptions(item.meaning, originalWords.map(w=>w.meaning), 5);
+  const title=isStep2Review?wrongRetryTitle("Step 2 Choose meaning",currentWords.length):"Step 2 Choose meaning";
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function checkStep2(button,selected,correct,wordIndex){
+  stopWordAudio();
+  const buttons=document.querySelectorAll(".wm-option");
+  buttons.forEach(btn=>btn.disabled=true);
+  const item=currentWords[wordIndex];
+  if(selected===correct){button.classList.add("wm-correct");}
+  else{
+    button.classList.add("wm-wrong");
+    if(!step2Wrong.some(w=>w.word===item.word)) step2Wrong.push(item);
+    buttons.forEach(btn=>{if(btn.textContent.replace(/^\d+\.\s*/,"").trim()===correct) btn.classList.add("wm-correct");});
+  }
+  setTimeout(nextStep2,900);
+}
+
+function nextStep2(){
+  index++;
+  if(index>=currentWords.length){
+    if(step2Wrong.length>0){currentWords=shuffle(step2Wrong);step2Wrong=[];index=0;isStep2Review=true;render();return;}
+    completeStepThen("step2_choose_meaning", "Step 2 Choose meaning", function(){
+      stage=3;
+      index=0;
+      currentWords=shuffle(originalWords);
+      isStep2Review=false;
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+let WM_STEP3_OPTIONS = [];
+
+function renderStep3(){
+  const item=currentWords[index];
+  const options=makeChoiceOptions(item.word, originalWords.map(w=>w.word), 5);
+  WM_STEP3_OPTIONS = options;
+  const title=isStep3Review?wrongRetryTitle("Step 3 Choose English",currentWords.length):"Step 3 Choose English";
+
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-meaning">${item.meaning}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button type="button" class="wm-btn wm-option" data-option-index="${i}">${i+1}. ${option}</button>`).join("")}</div>`;
+
+  document.querySelectorAll(".wm-option").forEach(btn=>{
+    btn.onclick=function(){
+      checkStep3(this, Number(this.getAttribute("data-option-index")), index);
+    };
+  });
+}
+
+function checkStep3(button,selectedIndex,wordIndex){
+  const buttons=document.querySelectorAll(".wm-option");
+  buttons.forEach(btn=>btn.disabled=true);
+
+  const item=currentWords[wordIndex];
+  const options=WM_STEP3_OPTIONS || [];
+  const selected=options[selectedIndex];
+  const correct=item.word;
+
+  if(selected===correct){
+    button.classList.add("wm-correct");
+  }else{
+    button.classList.add("wm-wrong");
+    if(!step3Wrong.some(w=>w.word===item.word)) step3Wrong.push(item);
+
+    buttons.forEach(btn=>{
+      const idx=Number(btn.getAttribute("data-option-index"));
+      if(options[idx]===correct) btn.classList.add("wm-correct");
+    });
+  }
+
+  setTimeout(nextStep3,900);
+}
+
+function nextStep3(){
+  index++;
+  if(index>=currentWords.length){
+    if(step3Wrong.length>0){currentWords=shuffle(step3Wrong);step3Wrong=[];index=0;isStep3Review=true;render();return;}
+    completeStepThen("step3_choose_english", "Step 3 Choose English", function(){
+      index=0;
+      currentWords=shuffle(originalWords);
+      isStep3Review=false;
+      memoryPhase=0;
+      memoryCount=0;
+      memoryLocked=false;
+      afterMemoryAction=null;
+      if(getActiveS4Mode() === '0단계'){
+        renderStep4SkippedNotice();
+        return;
+      }
+      stage=4;
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function createRandomSilhouette(word,percent){
+  const chars=word.split("");
+  const showCount=Math.max(1,Math.ceil(word.length*percent));
+  const visible=shuffle([...Array(word.length).keys()]).slice(0,showCount);
+  return chars.map((char,i)=>visible.includes(i)?char:"_").join("");
+}
+
+function getSilhouette(word,type){
+  if(type==="100") return word;
+  if(type==="70") return createRandomSilhouette(word,.7);
+  if(type==="30") return createRandomSilhouette(word,.3);
+  return "";
+}
+
+function renderMemory(){
+  memoryLocked=false;
+  const activeMemorySteps = getActiveMemorySteps();
+  if(!activeMemorySteps.length){
+    if(afterMemoryAction === "testRetake"){
+      afterMemoryAction = null;
+      startRetest();
+      return;
+    }
+    renderStep4SkippedNotice();
+    return;
+  }
+  const item=currentWords[index];
+  const currentStep=activeMemorySteps[memoryPhase] || activeMemorySteps[0];
+  const silhouette=getSilhouette(item.word,currentStep.type);
+  const title=isMemoryReview?wrongRetryTitle("Step 4 Memory",currentWords.length):"Step 4 Memory";
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div style="margin:8px 28px 18px;"><div style="color:#2563eb;font-size:16px;font-weight:800;margin-bottom:8px;text-align:center;">전체단어 ${index+1}/${currentWords.length} 학습, ${Math.round((index/currentWords.length)*100)}% 완료</div><div style="width:100%;height:14px;background:#dbeafe;border-radius:999px;overflow:hidden;"><div style="width:${(index/currentWords.length)*100}%;height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;"></div></div></div><div class="wm-memory-count">총${getActiveMemoryTotalRounds()}회 받아쓰기 ${getMemoryRoundNumber()} / ${getActiveMemoryTotalRounds()}</div>${renderMemoryProgress()}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word wm-silhouette">${silhouette}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><input id="memoryInput" class="memory-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div id="memoryMessage" class="wm-alert"></div><button class="wm-btn" onclick="checkMemory()">확인</button></div>`;
+  const input=document.getElementById("memoryInput");
+  setTimeout(()=>input.focus(),100);
+  input.addEventListener("keydown",e=>{if(e.key==="Enter") checkMemory();});
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function checkMemory(){
+  if(memoryLocked) return;
+  const item=currentWords[index];
+  const inputEl=document.getElementById("memoryInput");
+  const messageEl=document.getElementById("memoryMessage");
+  const input=normalizeText(inputEl.value);
+  const answer=normalizeText(item.word);
+  const currentStep=getActiveMemorySteps()[memoryPhase];
+  if(currentStep.type!=="0" && input!==answer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
+  if(currentStep.type==="0" && input!==answer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
+  memoryLocked=true;
+  nextMemory();
+}
+
+function nextMemory(){
+  stopWordAudio();
+  memoryCount++;
+  const currentStep=getActiveMemorySteps()[memoryPhase];
+  if(memoryCount>=currentStep.count){memoryCount=0;memoryPhase++;}
+  if(memoryPhase>=getActiveMemorySteps().length){memoryPhase=0;index++;}
+  if(index>=currentWords.length){
+    if(memoryWrong.length>0){currentWords=shuffle(memoryWrong);memoryWrong=[];index=0;isMemoryReview=true;memoryPhase=0;memoryCount=0;render();return;}
+    if(afterMemoryAction==="testRetake"){afterMemoryAction=null;startRetest();return;}
+    completeStepThen("step4_memory", "Step 4 Memory", function(){
+      stage=6;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function renderBeforeTest(){
+  app.innerHTML=`<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title" style="font-size:23px;font-weight:500;margin-bottom:50px;color:#000;">이제 시험을 시작합니다.</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">${getActiveTestGuideText()}</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">시험이 진행됩니다.</div>
+    <button class="wm-btn" onclick="startTest()">Start Test</button>
+  </div>`;
+}
+
+function startOneMoreFlash(){stage=6;index=0;currentWords=shuffle(originalWords);render();}
+
+function renderOneMoreFlashCard(){
+  const item=currentWords[index];
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">Step 5 Last Flash Review</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><button class="wm-btn" onclick="nextOneMoreFlashCard()">다음</button></div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function nextOneMoreFlashCard(){
+  stopWordAudio();
+  index++;
+  if(index>=currentWords.length){
+    completeStepThen("step6_last_flash_review", "Step 5 Last Flash Review", function(){
+      stage=9;
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function renderStartTestOnly(){
+  app.innerHTML=`<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title" style="font-size:23px;font-weight:500;color:#000;margin-bottom:40px;">
+      이제 시험을 시작합니다.
+    </div>
+
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">
+      ${getActiveTestGuideText()}
+    </div>
+
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">
+      시험이 진행됩니다.
+    </div>
+
+    <button class="wm-btn" onclick="startTest()">Start Test</button>
+  </div>`;
+}
+
+function startTest(){
+  stage=7;
+  testIndex=0;
+  testWords=shuffle(originalWords);
+  isRetest=false;
+  currentTestResults=[];
+  currentTestWrongs=[];
+  activeTestQuestionIndex=null;
+  render();
+}
+
+function renderTest(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  const test=getTestList()[testIndex];
+  timeLeft=getTestTime(testWords.length);
+  activeTestQuestionIndex=null;
+  const guideMessage = testGuide(test);
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea">${testWords.map((item,i)=>renderTestQuestion(test,item,i)).join("")}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
+  activateTestQuestionEvents();
+  addWritingEnterMove();
+  wmActiveFirstTestStartTime = isRetest ? 0 : Date.now();
+  startTimer();
+}
+
+function getTestTime(wordCount){return Math.max(30,Math.ceil(BASE_TEST_TIME*(wordCount/originalWords.length)));}
+
+function renderTestQuestion(test,item,i){
+  if(test.type==="choice"){
+    const answer=test.direction==="eng-ko"?item.meaning:item.word;
+    const pool=originalWords.map(w=>test.direction==="eng-ko"?w.meaning:w.word);
+    const options=makeChoiceOptions(answer,pool,5);
+    const question=test.direction==="eng-ko"?item.word:item.meaning;
+    return `<div class="test-question" tabindex="0" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div>${options.map((option,j)=>`<label class="test-option"><input type="radio" name="q${i}" value="${option}"> ${j+1}. ${option}</label>`).join("")}</div>`;
+  }
+  const question=test.direction==="eng-ko"?item.word:item.meaning;
+  return `<div class="test-question" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div><input class="test-input" id="q${i}" data-direction="${test.direction}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>`;
+}
+
+function activateTestQuestionEvents(){
+  const questions=document.querySelectorAll(".test-question");
+  questions.forEach(q=>{
+    q.addEventListener("focus",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
+    q.addEventListener("click",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
+    q.querySelectorAll("input[type='radio']").forEach(radio=>{
+      radio.addEventListener("change",()=>{
+        const qIndex=Number(q.dataset.qIndex);
+        activeTestQuestionIndex=qIndex;
+        const nextQuestion=document.querySelector(`.test-question[data-q-index="${qIndex+1}"]`);
+        if(nextQuestion) setTimeout(()=>nextQuestion.focus(),50);
+      });
+    });
+  });
+}
+
+function addWritingEnterMove(){
+  const inputs=document.querySelectorAll(".test-input");
+  inputs.forEach((input,i)=>{
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(inputs[i+1]) inputs[i+1].focus();
+        else submitTest();
+      }
+    });
+  });
+}
+
+function makeChoiceOptions(answer,pool,count){
+  const answerText = String(answer || "").trim();
+  const seen = new Set([answerText]);
+  const others = [];
+
+  pool.forEach(item=>{
+    const value = String(item || "").trim();
+    if(!value || seen.has(value)) return;
+    seen.add(value);
+    others.push(value);
+  });
+
+  const picked = shuffle(others).slice(0, Math.max(0, count - 1));
+  return shuffle([answerText, ...picked]);
+}
+
+function startTimer(){
+  updateTimer();
+  testTimer=setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){clearInterval(testTimer);submitTest();}
+  },1000);
+}
+
+function formatTime(sec){
+  const min=String(Math.floor(sec/60)).padStart(2,"0");
+  const s=String(sec%60).padStart(2,"0");
+  return `${min}:${s}`;
+}
+
+function updateTimer(){
+  const timerEl=document.getElementById("timer");
+  if(timerEl) timerEl.textContent=formatTime(timeLeft);
+}
+
+function wmCaptureFirstTestElapsedSeconds(){
+  if(isRetest || !wmActiveFirstTestStartTime) return;
+  const maxSeconds = getTestTime(testWords.length);
+  const elapsed = Math.max(0, Math.round((Date.now() - wmActiveFirstTestStartTime) / 1000));
+  wmFirstTestTotalSeconds += Math.min(maxSeconds, elapsed);
+  wmActiveFirstTestStartTime = 0;
+}
+
+function submitTest(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  wmCaptureFirstTestElapsedSeconds();
+  const test=getTestList()[testIndex];
+  let correctCount=0;
+  let wrongs=[];
+  currentTestResults=[];
+  currentTestWrongs=[];
+  testWords.forEach((item,i)=>{
+    let userAnswer="";
+    if(test.type==="choice"){
+      const checked=document.querySelector(`input[name="q${i}"]:checked`);
+      userAnswer=checked?checked.value:"";
+    }else{
+      const input=document.getElementById(`q${i}`);
+      userAnswer=input?input.value:"";
+    }
+    let isCorrect=false;
+    if(test.direction==="eng-ko") isCorrect=test.type==="choice" ? userAnswer===item.meaning : isMeaningCorrect(userAnswer,item.meaning);
+    if(test.direction==="ko-eng") isCorrect=normalizeText(userAnswer)===normalizeText(item.word);
+    const question=test.direction==="eng-ko"?item.word:item.meaning;
+    const correctAnswer=test.direction==="eng-ko"?item.meaning:item.word;
+    currentTestResults.push({item,question,correctAnswer,userAnswer,isCorrect});
+    if(isCorrect) correctCount++;
+    else{
+      wrongs.push(item);
+      if(!firstWrongWords.some(w=>w.word===item.word)) firstWrongWords.push(item);
+    }
+  });
+  currentTestWrongs=wrongs;
+  if(!isRetest){
+    firstTestScores.push({title:test.title,type:test.type,direction:test.direction,score:correctCount,total:testWords.length,percent:Math.round((correctCount/testWords.length)*100)});
+  }
+  renderTestResult(test,correctCount,testWords.length,wrongs);
+}
+
+function renderTestResult(test,score,total,wrongs){
+  const percent=Math.round((score/total)*100);
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list">${currentTestResults.map((r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`).join("")}</div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
+  afterScreenRender();
+}
+
+function continueAfterTestResult(){
+  const test=getTestList()[testIndex];
+  if(currentTestWrongs.length===0){goNextTest();return;}
+  testWords=[...currentTestWrongs];
+  if(test.type==="choice" || (test.type==="write" && test.direction==="eng-ko")){
+    isRetest=true;
+    app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><button class="wm-btn" onclick="startRetest()">재시험 보기</button></div>`;
+    afterScreenRender();
+    return;
+  }
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
+  afterScreenRender();
+}
+
+function startSubjectiveMemory(){
+  currentWords=shuffle(testWords);
+  memoryWrong=[];
+  isMemoryReview=true;
+  memoryPhase=0;
+  memoryCount=0;
+  index=0;
+  afterMemoryAction="testRetake";
+  stage=4;
+  render();
+}
+
+function startRetest(){isRetest=true;stage=7;render();}
+
+function goNextTest(){
+  testIndex++;
+  isRetest=false;
+  testWords=shuffle(originalWords);
+  if(testIndex>=getTestList().length){
+    completeStepThen("test_all", "All TEST", function(){
+      stage=8;
+      render();
+    });
+    return;
+  }
+  stage=7;
+  render();
+}
+
+function renderFinalResult(){
+  stopWordAudio();
+  const scoreText=firstTestScores.length ? firstTestScores.map(t=>`${t.percent}점`).join(" / ") : "점수 기록이 없습니다.";
+  WM_COMPLETED_SAVE_SET_ID = currentSetId;
+  WM_COMPLETED_SAVE_SET_NAME = currentSetName;
+  const nextSetId = getNextSetId(currentSetId);
+  const nextSetName = makeSetName(nextSetId);
+  app.innerHTML=`<div class="wm-card">
+      <div class="final-title">영어잡는 Word Mate<br>${currentSetName}<br>학습을 모두 마쳤습니다</div>
+      <div class="final-score-box">${scoreText}</div>
+
+      <div class="final-save-row">
+        <div class="final-save-text">
+          <div>날짜 : ${todayString()} &nbsp;&nbsp;&nbsp; 이름 : ${STUDENT_NAME}</div>
+          <div id="saveStatus">학습기록이 저장 중입니다.</div>
+          <div id="saveHelp" style="font-size:14px;line-height:1.55;color:#555;font-weight:500;margin-top:6px;">학습이 저장될 때까지 기다려주세요.<br>이탈 시 저장이 되지 않을 수 있습니다.</div>
+        </div>
+        <div id="saveIcon" class="final-save-icon final-save-spinner" aria-label="학습기록 저장 중"></div>
+      </div>
+
+      <div class="button-row">
+        <button class="wm-btn" onclick="restart()">재학습하기</button>
+        <button class="wm-btn" onclick="goNextLearning()">다음학습하기</button>
+        <button class="wm-btn" onclick="goFinalExit()">나가기</button>
+      </div>
+      <div class="wm-small" style="margin-top:14px;">다음 학습: ${nextSetName}</div>
+    </div>`;
+  finalSavePromise = wmWaitForStepSaves().then(function(result){
+    return saveLearningRecord("completed");
+  }).then(result=>{
+    const saveStatus=document.getElementById("saveStatus");
+    const saveIcon=document.getElementById("saveIcon");
+    if(saveStatus){
+      const saveOk = wmIsSaveSuccess(result);
+      saveStatus.textContent=saveOk ? "학습기록 저장이 완료되었습니다." : "학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    }
+    if(saveIcon){
+      const saveOk = wmIsSaveSuccess(result);
+      saveIcon.className = saveOk ? "final-save-icon final-save-check" : "final-save-icon final-save-check";
+      saveIcon.textContent = saveOk ? "✅" : "⚠️";
+      saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
+    }
+    if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
+      setTimeout(returnToLmsIfReady,700);
+    }
+    return result;
+  });
+}
+
+async function goFinalExit(){
+  stopWordAudio();
+  clearInterval(testTimer);
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    return;
+  }
+
+  exitLearningFullscreen();
+  wmStudyReturnToMap();
+}
+
+async function goNextLearning(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  const nextSetId = getNextSetId(currentSetId);
+  if(!nextSetId){
+    alert("다음 학습 세트 정보를 확인할 수 없습니다.");
+    return;
+  }
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    return;
+  }
+
+  /* WM_STUDY_NEXT_SET_STATE_RESET_FIX_V1_20260611
+     다음학습으로 넘어갈 때 이전 세트의 완료 Step/recordId/완료저장 고정값이
+     다음 세트에 남아 Step1을 건너뛰거나 16%로 시작되는 문제를 차단합니다. */
+  currentSetId = nextSetId;
+  currentSetName = makeSetName(currentSetId);
+  isDbReady = false;
+  originalWords = [];
+  currentWords = [];
+  completedSteps = [];
+  WM_RECORD_SESSION_ID = "";
+  wmResumeProgress = null;
+  wmProgressLoaded = false;
+  latestSavedPayload = null;
+  finalSavePromise = null;
+  wmStepSaveChain = Promise.resolve();
+  wmStepSaveLastError = null;
+  WM_COMPLETED_SAVE_SET_ID = "";
+  WM_COMPLETED_SAVE_SET_NAME = "";
+  WM_ACTIVE_STUDY_MODE_SET_ID = "";
+  await startLearning();
+}
+
+function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
+
+document.addEventListener("keydown",function(e){
+  if(!["1","2","3","4","5"].includes(e.key)) return;
+  const activeTag=document.activeElement && document.activeElement.tagName;
+  if(activeTag==="INPUT") return;
+  const options=document.querySelectorAll(".wm-option");
+  const idx=Number(e.key)-1;
+  if(options[idx] && !options[idx].disabled){options[idx].click();return;}
+  const test=getTestList()[testIndex];
+  if(stage===7 && test && test.type==="choice"){
+    if(activeTestQuestionIndex===null) return;
+    const question=document.querySelector(`.test-question[data-q-index="${activeTestQuestionIndex}"]`);
+    if(!question) return;
+    const radios=question.querySelectorAll("input[type='radio']");
+    if(radios[idx]){
+      radios[idx].checked=true;
+      radios[idx].dispatchEvent(new Event("change",{bubbles:true}));
+    }
+  }
+});
+
+renderStart();
+</script>
