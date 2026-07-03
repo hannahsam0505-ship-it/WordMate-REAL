@@ -350,7 +350,12 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 }
 
 #wm-map-root{
+  max-width:1280px;
+  margin:0 auto;
+  padding-left:16px;
+  padding-right:16px;
   padding-bottom:44px;
+  box-sizing:border-box;
 }
 
 body.wm-homework-fixed-scroll-ready{
@@ -1177,10 +1182,11 @@ function wmMergeStudentPreserveValues_(base, incoming){
 }
 
 function wmResolveStudentInfo(){
-  const rootStudent = wmNormalizeStudentObject(wmReadStudentFromRootData());
-  if(rootStudent && (rootStudent.학생이름 || rootStudent.학생ID)){
-    return rootStudent;
-  }
+  /* WM_MAP_URL_STUDENT_FULL_MERGE_SPEED_FIX_V1
+     Vercel Map은 URL 파라미터가 가장 빠른 1차 캐시입니다.
+     root data-*가 일부 값만 가지고 있어도 학교/학년/반/교사명/currentSet을 URL·저장소와 병합합니다. */
+  const rootStudent = wmNormalizeStudentObject(wmReadStudentFromRootData()) || {};
+  const storedStudent = wmReadStudentFromStorage() || {};
 
   const serverCandidates = [
     window.WM_MAP_SERVER_STUDENT,
@@ -1188,28 +1194,36 @@ function wmResolveStudentInfo(){
     window.WM_CURRENT_STUDENT
   ];
 
+  let serverStudent = {};
   for(const candidate of serverCandidates){
     const normalized = wmNormalizeStudentObject(candidate);
     if(normalized && (normalized.학생이름 || normalized.학생ID)){
-      return normalized;
+      serverStudent = normalized;
+      break;
     }
   }
 
-  const storedStudent = wmReadStudentFromStorage();
-
   const urlStudentId = wmGetUrlParam('studentId') || wmGetUrlParam('studentID') || wmGetUrlParam('sid') || wmGetUrlParam('wmStudentId');
   const urlStudentName = wmGetUrlParam('studentName') || wmGetUrlParam('name') || wmGetUrlParam('wmStudentName') || wmGetUrlParam('wmName');
+  const urlSchool = wmGetUrlParam('school') || wmGetUrlParam('wmSchool');
+  const urlGrade = wmGetUrlParam('grade') || wmGetUrlParam('wmGrade');
+  const urlClass = wmGetUrlParam('className') || wmGetUrlParam('class') || wmGetUrlParam('Class') || wmGetUrlParam('wmClassName');
+  const urlTeacher = wmGetUrlParam('teacherName') || wmGetUrlParam('teacher') || wmGetUrlParam('wmTeacherName');
   const urlLevel = wmGetUrlParam('level') || wmGetUrlParam('learningAssign') || wmGetUrlParam('wmLearningAssign');
   const urlSet = wmGetUrlParam('currentSet') || wmGetUrlParam('setId') || wmGetUrlParam('set_id') || wmGetUrlParam('wmCurrentSet');
   const urlSessionToken = wmGetUrlParam('sessionToken') || wmGetUrlParam('wmSessionToken') || wmGetUrlParam('WM_SESSION_TOKEN');
 
   const student = wmNormalizeStudentObject({
-    학생ID: urlStudentId || storedStudent?.학생ID || '',
-    학생이름: urlStudentName || storedStudent?.학생이름 || '',
-    학습배정: urlLevel || storedStudent?.학습배정 || '4레벨',
-    현재세트: urlSet || storedStudent?.현재세트 || '',
-    현재세션: urlSessionToken || storedStudent?.현재세션 || storedStudent?.sessionToken || '',
-    sessionToken: urlSessionToken || storedStudent?.sessionToken || storedStudent?.현재세션 || ''
+    학생ID: urlStudentId || rootStudent.학생ID || serverStudent.학생ID || storedStudent.학생ID || '',
+    학생이름: urlStudentName || rootStudent.학생이름 || serverStudent.학생이름 || storedStudent.학생이름 || '',
+    학교: urlSchool || rootStudent.학교 || serverStudent.학교 || storedStudent.학교 || '',
+    학년: urlGrade || rootStudent.학년 || serverStudent.학년 || storedStudent.학년 || '',
+    Class: urlClass || rootStudent.Class || serverStudent.Class || storedStudent.Class || '',
+    교사명: urlTeacher || rootStudent.교사명 || serverStudent.교사명 || storedStudent.교사명 || '',
+    학습배정: urlLevel || rootStudent.학습배정 || serverStudent.학습배정 || storedStudent.학습배정 || '4레벨',
+    현재세트: urlSet || rootStudent.현재세트 || serverStudent.현재세트 || storedStudent.현재세트 || '',
+    현재세션: urlSessionToken || rootStudent.현재세션 || serverStudent.현재세션 || storedStudent.현재세션 || storedStudent.sessionToken || '',
+    sessionToken: urlSessionToken || rootStudent.sessionToken || serverStudent.sessionToken || storedStudent.sessionToken || storedStudent.현재세션 || ''
   });
 
   return student || {
@@ -1326,12 +1340,59 @@ function wmStartSessionWatcher(){
   }, 5000);
 }
 
+function wmRenderInstantMapFromStudentCache_(){
+  /* WM_MAP_INSTANT_CURRENTSET_RENDER_V1
+     현재진행_DB 응답 전이라도 URL/currentSet 캐시로 세트 버튼을 먼저 생성해 1분 로딩 화면을 제거합니다. */
+  const student = wmCurrentStudent || {};
+  const currentSet = wmNormalizeCurrentSetIdForMap_(student.현재세트 || '');
+  let level = currentSet ? wmExtractLevelNumberFromSetId_(currentSet) : 0;
+  if(!level){
+    const match = String(student.학습배정 || '').match(/(3|4|5|6|7|8|9|10|11|12|13)/);
+    level = match ? Number(match[1]) : currentLevelNumber;
+  }
+  if(!level || !WM_LEVEL_CONFIG[level]) return false;
+
+  currentLevelNumber = level;
+  totalSets = wmBuildLevelSetData(currentLevelNumber).length;
+  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
+  const currentIndex = currentSet ? sequence.indexOf(currentSet) : -1;
+
+  setData = sequence.map(function(setId, index){
+    if(currentIndex >= 0 && index < currentIndex){
+      return {set:setId,status:'complete',progress:100,repeatCount:1,officialRound:1,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
+    }
+    if((currentIndex >= 0 && index === currentIndex) || (currentIndex < 0 && index === 0)){
+      return {set:setId,status:'current',progress:0,repeatCount:0,officialRound:0,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
+    }
+    return {set:setId,status:'locked',progress:0,repeatCount:0,officialRound:0,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
+  });
+
+  wmMapDataReady = true;
+  wmStopMapLoadingState_();
+  wmApplyStudentLearningMap(student, { skipMapRender:true });
+  renderSetMap();
+
+  const estimatedProgress = currentIndex >= 0 ? Math.round((currentIndex / Math.max(1, sequence.length)) * 100) : 0;
+  setText('levelPercent', estimatedProgress + '%');
+  setText('mainProgressText', estimatedProgress + '%');
+  const fill = document.getElementById('progressFill');
+  if(fill) fill.style.width = estimatedProgress + '%';
+  setText('summaryTotalSet', totalSets + ' SET');
+  setText('summaryCompleteSet', currentIndex >= 0 ? currentIndex + ' SET' : '0 SET');
+  setText('summaryProgress', estimatedProgress + '%');
+  setText('summaryRecentScore', '-');
+  renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+  wmShowMapMessage('현재진행_DB 캐시 동기화 중입니다. 세트 버튼은 즉시 사용할 수 있습니다.');
+  return true;
+}
+
 function wmInitLearningMap(){
   wmMapDataReady = false;
   wmCurrentStudent = wmResolveStudentInfo();
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   wmShowMapLoadingState_();
+  wmRenderInstantMapFromStudentCache_();
 
   if(wmCurrentStudent.학생ID && !wmCurrentStudent.학생이름 && window.google && google.script && google.script.run){
     google.script.run
@@ -1658,16 +1719,29 @@ function wmFetchLearningMap(studentId){
 
   const url = wmGetApiBaseUrl()
     + '?mode=getLearningMapCache'
-    + '&studentId=' + encodeURIComponent(studentId);
+    + '&action=getLearningMapCache'
+    + '&studentId=' + encodeURIComponent(studentId)
+    + '&t=' + Date.now();
 
   fetch(url)
     .then(function(res){ return res.json(); })
     .then(function(data){
-      wmHandleLearningMapResponse(data);
+      if(data && data.success === true){
+        wmHandleLearningMapResponse(data);
+        return;
+      }
+      const fallbackUrl = wmGetApiBaseUrl()
+        + '?action=getLearningMapData'
+        + '&studentId=' + encodeURIComponent(studentId)
+        + '&t=' + Date.now();
+      return fetch(fallbackUrl).then(function(res){ return res.json(); }).then(function(fallbackData){
+        wmHandleLearningMapResponse(fallbackData);
+      });
     })
     .catch(function(err){
+      wmMapDataReady = true;
       wmStopMapLoadingState_();
-      wmShowMapMessage('getLearningMap 호출 중 오류가 발생했습니다: ' + String(err && err.message ? err.message : err));
+      wmShowMapMessage('현재진행_DB 캐시 응답 지연: URL/currentSet 기준 맵을 먼저 표시했습니다.');
       renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     });
 }
