@@ -372,6 +372,26 @@ body.wm-homework-fixed-scroll-ready{
   background:#fff;
 }
 
+.wm-map-loading-block{
+  min-height:180px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border-radius:14px;
+  background:#EFF6FD;
+  color:#111;
+  font-size:18px;
+  font-weight:900;
+  line-height:1.6;
+}
+
+.set-block.wm-map-disabled{
+  pointer-events:none;
+  opacity:.72;
+  cursor:wait;
+}
+
 #wm-learning-record-widget .detail-box{
   background:#fff;
 }
@@ -946,6 +966,7 @@ let wmServerLevelHistoryLevels = [];
 let wmHistoryCompletedLevel = 0;
 let wmHistoryCurrentLevel = 0;
 let wmViewingCompletedHistoryLevel = false;
+let wmMapDataReady = false;
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1275,9 +1296,11 @@ function wmStartSessionWatcher(){
 }
 
 function wmInitLearningMap(){
+  wmMapDataReady = false;
   wmCurrentStudent = wmResolveStudentInfo();
 
-  wmApplyStudentLearningMap(wmCurrentStudent);
+  wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
+  wmShowMapLoadingState_();
 
   if(wmCurrentStudent.학생ID && !wmCurrentStudent.학생이름 && window.google && google.script && google.script.run){
     google.script.run
@@ -1285,7 +1308,7 @@ function wmInitLearningMap(){
         const normalized = wmNormalizeStudentObject(profile);
         if(normalized && (normalized.학생이름 || normalized.학생ID)){
           wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent, normalized);
-          wmApplyStudentLearningMap(wmCurrentStudent);
+          wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
         }
       })
       .getStudentMapProfile(wmCurrentStudent.학생ID);
@@ -1304,6 +1327,17 @@ function wmInitLearningMap(){
   });
 }
 
+function wmShowMapLoadingState_(){
+  const map = document.getElementById('setMap');
+  if(map){
+    map.innerHTML = '<div class="wm-map-loading-block">⏳ 학습맵을 불러오는 중입니다.<br>잠시만 기다려 주세요.</div>';
+  }
+  setText('summaryTotalSet', '-');
+  setText('summaryCompleteSet', '-');
+  setText('summaryProgress', '-');
+  setText('summaryRecentScore', '-');
+}
+
 function wmHandleLearningMapResponse(data){
   if(!data || data.success !== true){
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
@@ -1315,7 +1349,7 @@ function wmHandleLearningMapResponse(data){
 
   if(wmStudentProfile){
     wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, wmStudentProfile);
-    wmApplyStudentLearningMap(wmCurrentStudent);
+    wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
   wmLearningRecords = Array.isArray(data.records) ? wmSortLearningRecordsDesc_(data.records) : [];
@@ -1481,7 +1515,7 @@ function wmExtractLevelNumberFromSetId_(setId){
   return match ? Number(match[1]) : 0;
 }
 
-function wmApplyStudentLearningMap(student){
+function wmApplyStudentLearningMap(student, options){
   const s = student || {};
   const levelText = String(s.학습배정 || '').trim();
   const parsedAssignLevel = parseInt(levelText.replace(/[^0-9]/g, ''), 10);
@@ -1507,6 +1541,10 @@ function wmApplyStudentLearningMap(student){
   wmUpdateStudentLevelHeaderLabel_();
   setText('currentLevelLabel', currentLevelNumber + ' LEVEL');
   setText('progressLevelLabel', currentLevelNumber + ' LEVEL 진행률');
+
+  if(options && options.skipMapRender){
+    return;
+  }
 
   setData = wmBuildLevelSetData(currentLevelNumber);
   totalSets = setData.length;
@@ -2086,12 +2124,18 @@ function wmApplyLearningMapStatus(mapData){
   });
 
   wmRenderRecordLevelHistoryBoard_(records);
+  wmMapDataReady = true;
   renderSetMap();
 }
 
 function renderSetMap(){
   const map=document.getElementById('setMap');
   if(!map) return;
+
+  if(!wmMapDataReady){
+    wmShowMapLoadingState_();
+    return;
+  }
 
   const partConfig = WM_LEVEL_CONFIG[currentLevelNumber] || WM_LEVEL_CONFIG[4];
   const rows = [];
@@ -2426,6 +2470,11 @@ function wmForceHomeworkBottomFixedBarOnFirstView(){
 }
 
 async function startStudy(setId){
+  if(!wmMapDataReady){
+    alert('학습맵을 불러오는 중입니다. 잠시만 기다려 주세요.');
+    return;
+  }
+
   const selectedSetId = String(setId || '').trim();
   const selectedItem = setData.find(function(item){ return item.set === selectedSetId; });
 
