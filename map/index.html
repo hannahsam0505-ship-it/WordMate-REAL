@@ -373,17 +373,46 @@ body.wm-homework-fixed-scroll-ready{
 }
 
 .wm-map-loading-block{
-  min-height:180px;
+  min-height:260px;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   text-align:center;
   border-radius:14px;
   background:#EFF6FD;
   color:#111;
-  font-size:18px;
+  font-size:20px;
   font-weight:900;
   line-height:1.6;
+  cursor:wait;
+  user-select:none;
+}
+
+.wm-map-loading-spinner{
+  width:42px;
+  height:42px;
+  border:5px solid #bfdbfe;
+  border-top-color:#2563eb;
+  border-radius:50%;
+  margin-bottom:16px;
+  animation:wmMapSpin 1s linear infinite;
+}
+
+.wm-map-loading-sub{
+  margin-top:8px;
+  font-size:14px;
+  font-weight:800;
+  color:#555;
+}
+
+@keyframes wmMapSpin{
+  to{transform:rotate(360deg);}
+}
+
+body.wm-map-loading-active .set-map,
+body.wm-map-loading-active #wm-learning-record-widget{
+  pointer-events:none;
 }
 
 .set-block.wm-map-disabled{
@@ -966,6 +995,8 @@ let wmServerLevelHistoryLevels = [];
 let wmHistoryCompletedLevel = 0;
 let wmHistoryCurrentLevel = 0;
 let wmViewingCompletedHistoryLevel = false;
+let wmMapLoadingTimer = null;
+let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 
 function wmGetApiBaseUrl(){
@@ -1329,17 +1360,43 @@ function wmInitLearningMap(){
 
 function wmShowMapLoadingState_(){
   const map = document.getElementById('setMap');
+  document.body.classList.add('wm-map-loading-active');
+  if(!wmMapLoadingStartAt){
+    wmMapLoadingStartAt = Date.now();
+  }
   if(map){
-    map.innerHTML = '<div class="wm-map-loading-block">⏳ 학습맵을 불러오는 중입니다.<br>잠시만 기다려 주세요.</div>';
+    const seconds = Math.max(0, Math.floor((Date.now() - wmMapLoadingStartAt) / 1000));
+    map.innerHTML = '<div class="wm-map-loading-block" aria-live="polite">'
+      + '<div class="wm-map-loading-spinner" aria-hidden="true"></div>'
+      + '<div>학습맵을 불러오는 중입니다.</div>'
+      + '<div class="wm-map-loading-sub">DB 확인 중입니다. 세트 버튼은 로딩 완료 후 활성화됩니다. (' + seconds + '초)</div>'
+      + '</div>';
   }
   setText('summaryTotalSet', '-');
   setText('summaryCompleteSet', '-');
   setText('summaryProgress', '-');
   setText('summaryRecentScore', '-');
+  if(!wmMapLoadingTimer){
+    wmMapLoadingTimer = setInterval(function(){
+      if(!wmMapDataReady){
+        wmShowMapLoadingState_();
+      }
+    }, 1000);
+  }
+}
+
+function wmStopMapLoadingState_(){
+  document.body.classList.remove('wm-map-loading-active');
+  wmMapLoadingStartAt = 0;
+  if(wmMapLoadingTimer){
+    clearInterval(wmMapLoadingTimer);
+    wmMapLoadingTimer = null;
+  }
 }
 
 function wmHandleLearningMapResponse(data){
   if(!data || data.success !== true){
+    wmStopMapLoadingState_();
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
     renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     return;
@@ -1378,6 +1435,7 @@ function wmFetchLearningMap(studentId){
         wmHandleLearningMapResponse(data);
       })
       .withFailureHandler(function(err){
+        wmStopMapLoadingState_();
         wmShowMapMessage('getLearningMap 호출 중 오류가 발생했습니다: ' + String(err && err.message ? err.message : err));
         renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
       })
@@ -1395,6 +1453,7 @@ function wmFetchLearningMap(studentId){
       wmHandleLearningMapResponse(data);
     })
     .catch(function(err){
+      wmStopMapLoadingState_();
       wmShowMapMessage('getLearningMap 호출 중 오류가 발생했습니다: ' + String(err && err.message ? err.message : err));
       renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     });
@@ -2125,6 +2184,7 @@ function wmApplyLearningMapStatus(mapData){
 
   wmRenderRecordLevelHistoryBoard_(records);
   wmMapDataReady = true;
+  wmStopMapLoadingState_();
   renderSetMap();
 }
 
