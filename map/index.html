@@ -1675,18 +1675,13 @@ function wmHandleLearningMapResponse(data){
     wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
-  /* 현재진행_DB 캐시가 없는 응답만 기존 방식으로 처리하되, 화면 렌더링은 최근 30건까지만 사용합니다. */
-  wmLearningRecords = Array.isArray(data.records) ? wmSortLearningRecordsDesc_(data.records).slice(0, 30) : [];
-  wmServerLevelHistoryLevels = Array.isArray(data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
-  wmApplyLearningMapStatus({
-    records: wmLearningRecords,
-    levelHistoryLevels: wmServerLevelHistoryLevels,
-    completedSetIds: Array.isArray(data.completedSetIds) ? data.completedSetIds : [],
-    setStatusMap: data.setStatusMap || {}
-  });
-  wmRenderHomeworkForActiveLevel_();
-  updateRecentScore(wmGetHomeworkRecordsForActiveLevel_());
+  /* WM_MAP_CURRENT_PROGRESS_ONLY_V1
+     속도개선: Map은 현재진행_DB만 사용합니다.
+     학습기록_DB 기반 상태 계산은 수행하지 않습니다. */
+  wmLearningRecords = Array.isArray(data.records) ? wmSortLearningRecordsDesc_(data.records).slice(0,30) : [];
+  wmServerLevelHistoryLevels = [];
 
+  renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
   wmShowLearningModeBanner();
 }
 
