@@ -1859,11 +1859,58 @@ function buildOfficialTimeSummary(){
   };
 }
 
+
+/* WM_STUDY_CURRENT_PROGRESS_DB_SAVE_RULE_V1_20260704
+   현재진행_DB 저장 공식:
+   Set_ID = 방금 저장한 세트, 완료Step = 방금 완료한 Step,
+   현재Step = 다음에 이어서 할 Step, 기록Set_ID = 현재Step이 속한 세트. */
+function wmNormalizeDbStepLabel(stepCode){
+  const code = String(stepCode || "").toUpperCase().trim();
+  if(code === "STEP1") return "Step1";
+  if(code === "STEP2") return "Step2";
+  if(code === "STEP3") return "Step3";
+  if(code === "STEP4") return "Step4";
+  if(code === "STEP5") return "Step5";
+  if(code === "TEST") return "TEST";
+  if(code === "COMPLETE") return "COMPLETE";
+  return "";
+}
+
+function wmBuildCurrentProgressDbFields(status, saveSetId, nextSetId){
+  const completedCode = wmLastCompletedStepCode();
+  const nextProgressCode = wmCurrentProgressStepCode(status);
+  const isRoundComplete = (status === "completed" || nextProgressCode === "COMPLETE");
+
+  const completedStep = isRoundComplete
+    ? "TEST"
+    : wmNormalizeDbStepLabel(completedCode);
+
+  const currentStep = isRoundComplete
+    ? "Step1"
+    : wmNormalizeDbStepLabel(nextProgressCode || "STEP1");
+
+  const recordSetId = isRoundComplete
+    ? (nextSetId || saveSetId)
+    : saveSetId;
+
+  return {
+    Set_ID: saveSetId,
+    완료Step: completedStep,
+    현재Step: currentStep,
+    기록Set_ID: recordSetId,
+    currentProgressSetId: recordSetId,
+    currentProgressStepForDb: currentStep,
+    lastCompletedStepForDb: completedStep
+  };
+}
+
 function buildLearningPayload(status){
   const saveSetId = (status === "completed" && WM_COMPLETED_SAVE_SET_ID) ? WM_COMPLETED_SAVE_SET_ID : currentSetId;
   const saveSetName = (status === "completed" && WM_COMPLETED_SAVE_SET_NAME) ? WM_COMPLETED_SAVE_SET_NAME : makeSetName(saveSetId);
   const nextSetId = getNextSetId(saveSetId);
+  const currentProgressDbFields = wmBuildCurrentProgressDbFields(status, saveSetId, nextSetId);
   return {
+    ...currentProgressDbFields,
     courseType:"BASIC",
     setId:saveSetId,
     setName:saveSetName,
