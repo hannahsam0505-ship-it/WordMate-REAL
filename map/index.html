@@ -1397,7 +1397,7 @@ function wmInitLearningMap(){
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   wmShowMapLoadingState_();
-  wmRenderInstantMapFromStudentCache_();
+  /* WM_MAP_FAKE_INSTANT_RENDER_DISABLED_V1: 현재진행_DB 응답 전 임시맵 생성 금지 */
 
   if(wmCurrentStudent.학생ID && !wmCurrentStudent.학생이름 && window.google && google.script && google.script.run){
     google.script.run
@@ -1680,17 +1680,17 @@ function wmHandleLearningMapResponse(data){
     wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
-  /* WM_MAP_CURRENT_PROGRESS_ONLY_LOCK_V2
-     속도개선 LOCK: Map은 현재진행_DB 캐시만 사용합니다.
-     현재진행_DB 응답에 캐시 행이 없으면 학습기록_DB 직접 계산으로 되돌아가지 않고,
-     이미 그린 URL/currentSet 즉시 맵을 유지합니다. */
-  wmMapDataReady = true;
+  /* WM_MAP_CURRENT_PROGRESS_ONLY_LOCK_V3
+     Map은 현재진행_DB 캐시가 확인된 경우에만 학습맵을 활성화합니다.
+     캐시 행이 없으면 URL/currentSet 임시맵으로 되돌아가지 않습니다. */
+  wmMapDataReady = false;
   wmStopMapLoadingState_();
   wmLearningRecords = [];
   wmServerLevelHistoryLevels = [];
+  setData = [];
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmShowMapMessage('현재진행_DB 캐시 행을 찾지 못했습니다. 학습진입은 유지되며, 저장 후 현재진행_DB 갱신 여부를 확인하세요.');
+  wmShowMapUnavailable_('현재진행_DB 캐시 행을 찾지 못했습니다. 학습맵을 활성화하지 않았습니다.');
 }
 
 function wmFetchLearningMap(studentId){
@@ -1705,9 +1705,9 @@ function wmFetchLearningMap(studentId){
         wmHandleLearningMapResponse(data);
       })
       .withFailureHandler(function(err){
-        wmMapDataReady = true;
+        wmMapDataReady = false;
         wmStopMapLoadingState_();
-        wmShowMapMessage('현재진행_DB 캐시 조회 오류: URL/currentSet 기준 맵을 유지했습니다. ' + String(err && err.message ? err.message : err));
+        wmShowMapUnavailable_('현재진행_DB 캐시 조회 오류: 학습맵을 활성화하지 않았습니다. ' + String(err && err.message ? err.message : err));
         renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
       })
       .getLearningMapCacheData(studentId);
@@ -1726,9 +1726,9 @@ function wmFetchLearningMap(studentId){
       wmHandleLearningMapResponse(data);
     })
     .catch(function(err){
-      wmMapDataReady = true;
+      wmMapDataReady = false;
       wmStopMapLoadingState_();
-      wmShowMapMessage('현재진행_DB 캐시 응답 지연: URL/currentSet 기준 맵을 먼저 표시했습니다.');
+      wmShowMapUnavailable_('현재진행_DB 캐시 응답 실패: 학습맵을 활성화하지 않았습니다.');
       renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     });
 }
@@ -1739,6 +1739,14 @@ function wmShowMapMessage(message){
     box.classList.remove('wm-mode-banner-box');
     box.innerText = message;
   }
+}
+
+function wmShowMapUnavailable_(message){
+  const map = document.getElementById('setMap');
+  if(map){
+    map.innerHTML = '<div class="wm-map-loading-block" aria-live="polite"><div>' + escapeHtml(message || '현재진행_DB 확인 전에는 학습맵을 활성화하지 않습니다.') + '</div><div class="wm-map-loading-sub">DB 저장은 정상이어도 현재진행_DB 응답이 확인되어야 학습을 시작할 수 있습니다.</div></div>';
+  }
+  wmShowMapMessage(message || '현재진행_DB 확인 전에는 학습맵을 활성화하지 않습니다.');
 }
 
 function wmLearningAssignDisplay_(value){
