@@ -1490,6 +1490,7 @@ function wmFindCurrentProgressCache_(data){
   if(!data || typeof data !== 'object') return null;
 
   const candidates = [
+    data.currentProgressCache,
     data.currentProgress,
     data.currentProgressRow,
     data.progressCache,
@@ -1500,6 +1501,8 @@ function wmFindCurrentProgressCache_(data){
     data.현재진행,
     data.현재진행_DB,
     data.studentProgress,
+    data.officialLevelProgress,
+    data.currentLearningProgress,
     data.studentProfile,
     data.profile,
     data
@@ -1548,11 +1551,14 @@ function wmNormalizeCurrentProgressCache_(data){
     currentLevel = wmExtractLevelNumberFromSetId_(currentSet);
   }
 
-  const totalSetCount = Number(wmPickFirstValue_(cache.전체세트수, cache.totalSetCount, cache.totalSets, 0));
-  const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, 0));
-  const levelProgress = Number(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, 0));
-  const setProgress = Number(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, 0));
-  const recentScore = wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, '');
+  const officialProgress = (data && data.officialLevelProgress) || {};
+  const learningProgress = (data && data.currentLearningProgress) || {};
+
+  const totalSetCount = Number(wmPickFirstValue_(cache.전체세트수, cache.totalSetCount, cache.totalSets, officialProgress.전체세트수, officialProgress.totalSetCount, 0));
+  const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
+  const levelProgress = Number(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
+  const setProgress = Number(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
+  const recentScore = wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, '');
 
   return {
     raw: cache,
