@@ -1637,7 +1637,13 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   });
 
   totalSets = cacheData.totalSetCount || sequence.length;
-  wmLearningRecords = wmSortLearningRecordsDesc_(cacheData.recent30Records || []).slice(0, 30);
+  /* WM_MAP_LEARNING_RECORD_DB_DIRECT_RECORDS_FIX_20260704_V1
+     현재진행_DB 캐시는 맵 활성화에만 사용하고,
+     하단 학습기록 테이블은 서버 payload.records(2.학습기록_DB 직접 조회 결과)를 우선 사용합니다.
+     records가 없을 때만 현재진행_DB 최근30건JSON을 fallback으로 사용합니다. */
+  const serverLearningRecords = Array.isArray(data && data.records) ? data.records : [];
+  const cacheLearningRecords = Array.isArray(cacheData.recent30Records) ? cacheData.recent30Records : [];
+  wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords).slice(0, 30);
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
 
   wmMapDataReady = true;
