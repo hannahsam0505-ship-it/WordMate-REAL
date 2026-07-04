@@ -1680,38 +1680,35 @@ function wmHandleLearningMapResponse(data){
     wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
-  /* WM_MAP_CURRENT_PROGRESS_ONLY_V1
-     속도개선: Map은 현재진행_DB만 사용합니다.
-     학습기록_DB 기반 상태 계산은 수행하지 않습니다. */
-  wmLearningRecords = Array.isArray(data.records) ? wmSortLearningRecordsDesc_(data.records).slice(0,30) : [];
+  /* WM_MAP_CURRENT_PROGRESS_ONLY_LOCK_V2
+     속도개선 LOCK: Map은 현재진행_DB 캐시만 사용합니다.
+     현재진행_DB 응답에 캐시 행이 없으면 학습기록_DB 직접 계산으로 되돌아가지 않고,
+     이미 그린 URL/currentSet 즉시 맵을 유지합니다. */
+  wmMapDataReady = true;
+  wmStopMapLoadingState_();
+  wmLearningRecords = [];
   wmServerLevelHistoryLevels = [];
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmShowLearningModeBanner();
+  wmShowMapMessage('현재진행_DB 캐시 행을 찾지 못했습니다. 학습진입은 유지되며, 저장 후 현재진행_DB 갱신 여부를 확인하세요.');
 }
 
 function wmFetchLearningMap(studentId){
   wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
 
-  /* WM_GET_LEARNING_MAP_GOOGLE_SCRIPT_RUN_V1
-     HtmlService 안에서는 fetch가 CORS/redirect 때문에 Failed to fetch가 날 수 있으므로
-     우선 google.script.run으로 서버 함수를 직접 호출하고, 외부/로컬 확인 때만 fetch fallback을 사용합니다. */
+  /* WM_GET_LEARNING_MAP_CACHE_ONLY_V2
+     현재진행_DB 안정화: Map은 getLearningMapCacheData만 호출합니다.
+     getLearningMapData fallback은 학습기록_DB 계산으로 되돌아가 속도저하/상태꼬임을 만들 수 있어 차단합니다. */
   if(window.google && google.script && google.script.run){
     google.script.run
       .withSuccessHandler(function(data){
         wmHandleLearningMapResponse(data);
       })
       .withFailureHandler(function(err){
-        google.script.run
-          .withSuccessHandler(function(data){
-            wmHandleLearningMapResponse(data);
-          })
-          .withFailureHandler(function(fallbackErr){
-            wmStopMapLoadingState_();
-            wmShowMapMessage('getLearningMap 호출 중 오류가 발생했습니다: ' + String(fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr));
-            renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-          })
-          .getLearningMapData(studentId);
+        wmMapDataReady = true;
+        wmStopMapLoadingState_();
+        wmShowMapMessage('현재진행_DB 캐시 조회 오류: URL/currentSet 기준 맵을 유지했습니다. ' + String(err && err.message ? err.message : err));
+        renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
       })
       .getLearningMapCacheData(studentId);
     return;
@@ -1726,17 +1723,7 @@ function wmFetchLearningMap(studentId){
   fetch(url)
     .then(function(res){ return res.json(); })
     .then(function(data){
-      if(data && data.success === true){
-        wmHandleLearningMapResponse(data);
-        return;
-      }
-      const fallbackUrl = wmGetApiBaseUrl()
-        + '?action=getLearningMapData'
-        + '&studentId=' + encodeURIComponent(studentId)
-        + '&t=' + Date.now();
-      return fetch(fallbackUrl).then(function(res){ return res.json(); }).then(function(fallbackData){
-        wmHandleLearningMapResponse(fallbackData);
-      });
+      wmHandleLearningMapResponse(data);
     })
     .catch(function(err){
       wmMapDataReady = true;
