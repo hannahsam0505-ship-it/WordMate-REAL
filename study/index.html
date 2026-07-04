@@ -1,1333 +1,850 @@
-<!-- ==========================================================
-   🧪 WORD MATE Map.html - TEST / REAL 전환 설정
-   ==========================================================
+<!-- ============================================================
+   🧪 WORD MATE Study.html - TEST / REAL 전환 설정
+   ============================================================
 
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
 
-      테스트부스 적용: const WM_ENV = 'REAL';
+      테스트부스 적용: const WM_ENV = 'TEST';
       리얼부스 적용: const WM_ENV = 'REAL';
 
    ⚠️ 아래 WM_ENV 한 줄 외에는 테스트/리얼 전환 목적으로 수정하지 않습니다.
    ⚠️ 이 파일의 모든 URL 호출은 반드시 WM_CONFIG 또는 아래 자동 선택 상수를 사용합니다.
    ⚠️ 공통 코드 아래에서 URL을 직접 문자열로 새로 쓰지 않습니다.
    🚨 리얼 배포 체크: ① WM_ENV TEST → REAL 변경 → ② 저장(Ctrl+S) → ③ 배포(Deploy) → ④ 리얼 테스트 완료
-========================================================== -->
+============================================================ -->
 <script>
 const WM_ENV = 'REAL';
 
-/* ==========================================================
+/* ============================================================
    🔒 자동 선택 + 공통 확인 영역 - 수정 금지
-==========================================================
+============================================================
 
-WM_ENV 값에 따라 Map.html이 호출할 Apps Script URL과 부스별 이동 주소를 자동 선택합니다.
+WM_ENV 값에 따라 Study.html이 호출할 Apps Script URL과 아임웹 주소를 자동 선택합니다.
 리얼 적용 시에도 이 영역의 URL을 직접 교체하지 말고 위 WM_ENV만 'REAL'로 변경합니다.
 
 ✅ 하단 공통코드 사용 원칙
-- API 호출: WM_APPS_SCRIPT_URL 사용
-- 페이지 이동: WM_LOGIN_URL / WM_MAP_URL / WM_STUDY_URL / WM_LMS_URL 사용
+- API 호출: API_URL 사용
+- 로그인 이동: WM_LOGIN_URL 사용
+- 학습맵 복귀: WM_MAP_URL 사용
 - 직접 URL 문자열 사용 금지
-========================================================== */
+============================================================ */
 
 const WM_ENV_CONFIG = {
   TEST: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
-    MAP_URL   : 'https://word-mate-test.vercel.app/map',
-    STUDY_URL : 'https://word-mate-test.vercel.app/study',
-    LMS_URL   : 'https://word-mate-test.vercel.app/lms'
+    MAP_URL: 'https://new-word-mate.vercel.app',
+    STUDY_URL: 'https://new-word-mate.vercel.app/study',
+    LMS_URL: 'https://new-word-mate.vercel.app/lms'
   },
-
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL   : 'https://word-mate-real.vercel.app/map',
-    STUDY_URL : 'https://word-mate-real.vercel.app/study',
-    LMS_URL   : 'https://word-mate-real.vercel.app/lms'
+    MAP_URL: 'https://new-word-mate.vercel.app',
+    STUDY_URL: 'https://new-word-mate.vercel.app/study',
+    LMS_URL: 'https://new-word-mate.vercel.app/lms'
   }
 };
 
 const WM_CONFIG = WM_ENV_CONFIG[WM_ENV];
-if (!WM_CONFIG) {
-  throw new Error('WM_ENV 값이 잘못되었습니다. TEST 또는 REAL만 사용할 수 있습니다.');
+if(!WM_CONFIG || !WM_CONFIG.APPS_SCRIPT_URL || !WM_CONFIG.LOGIN_URL || !WM_CONFIG.MAP_URL){
+  throw new Error('WM_ENV_CONFIG 설정 오류: TEST/REAL URL을 확인하세요.');
 }
 
-const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
+const API_URL = WM_CONFIG.APPS_SCRIPT_URL;
 const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
 const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
-
-['APPS_SCRIPT_URL','LOGIN_URL','MAP_URL','STUDY_URL','LMS_URL'].forEach(function(key){
-  if (!WM_CONFIG[key]) {
-    throw new Error('WM_ENV_CONFIG.' + WM_ENV + '.' + key + ' 값이 비어 있습니다.');
-  }
-});
 </script>
 
-<!-- ==========================================================
-   ✅ 여기 아래부터는 TEST/REAL 공통 코드 영역
-   원칙: 위 WM_ENV 한 줄 외에는 전환 목적으로 수정하지 않습니다.
-========================================================== -->
+<!-- TEST_BOOTH_BANNER_DELETE_START -->
+<div id="wm-test-booth-banner">🧪 TEST 부스</div>
+<style>
+  #wm-test-booth-banner{
+    width:100%;
+    box-sizing:border-box;
+    background:#dc2626;
+    color:#fff;
+    text-align:center;
+    font-size:28px;
+    font-weight:900;
+    line-height:1.25;
+    padding:14px 10px;
+    letter-spacing:-0.02em;
+    font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
+    position:relative;
+    z-index:999999;
+  }
+</style>
+<script>
+(function(){
+  const banner = document.getElementById('wm-test-booth-banner');
+  if(banner && WM_ENV !== 'TEST'){
+    banner.style.display = 'none';
+  }
+})();
+</script>
+<!-- TEST_BOOTH_BANNER_DELETE_END -->
 
 
 
-<!-- WM_MAP_STUDENTNAME_ROOT_DATA_FIX_V13: 원본 전체 유지 + 루트 data-* 학생정보 우선 수신. -->
-<!-- WM_GET_LEARNING_MAP_FULL_ROUTE_AND_RUN_FIX_V1: getLearningMap은 google.script.run 우선, fetch는 fallback으로만 사용. -->
-<!-- WM_MAP_PASS_STUDENT_TO_STUDY_V1: Study 이동 시 studentId/studentName 전달. -->
+
+<!-- WM_STUDY_LEARNING_MODE_ENGINE_V3: Step 저장 완료 보장 + S4/S6 학습모드 + 최종시험점수 저장. -->
+<!-- WM_DEPLOY_ORDER_MANDATORY_V1 / STUDY_HTML_REQUIRED_CHECK
+[공식 - 배포 순서 절대 준수]
+1. Code.gs 수정 → 2. Apps Script 새 배포 → 3. 최신 /exec 주소 확인 → 4. Map.html / Study.html / 아임웹 로그인코드에 동일 /exec 반영 → 5. 실제 학생 로그인 테스트
+[수정 전 필수 체크]
+현재 Code.gs /exec 주소와 Study.html API_URL은 반드시 동일해야 합니다. 주소 불일치 시 저장은 되더라도 Step 자동복귀가 실패할 수 있습니다.
+[학습기록 공식]
+학습기록ID = R + YY + MM + 3자리 순번 예: R2606001 / 완료상태는 완료 전 공백, 완료 후 완료 / 기기정보는 PC·Tap·Mobile 중 하나 / Class 표시값은 반ID가 아니라 실제 반명 우선입니다.
+-->
+<!-- WM_STUDY_LMS_SAVE_JSONP_V1: 학습 완료 시 action=saveLearningRecord로 2.학습기록_DB 저장. -->
+<!-- WM_STUDY_URL_SET_ID_FIX_V1: Study.html reads URL set_id and starts the requested set. -->
 
 <!-- WM_LMS_OFFICIAL_RECORD_RULES_20260608_V1
 [확정 공식]
 1. 점수 = 한영주관식 점수, 평균점수 사용 금지.
 2. 총소요시간 = 완료 Step 시간 합산.
 3. Step별 시간 = 각 Step 단독시간.
-4. Test_총시간 = 4개 시험 시간 합산.
+4. Test_총시간 = 4개 시험 시간만 합산하며 오답 재시험/오답 Memory 시간은 제외.
 5. 레벨 진행률 = 완료세트 ÷ 전체세트 × 100, 반올림.
-6. 상단 진행률과 하단 진행률은 동일값.
-7. 학습기록 테이블은 상단 고정 가로스크롤을 제공.
 -->
 
 
-<!-- Word Mate 공통 학습맵 기준본 / Map.html -->
-<!-- 역할: 3~13레벨 학습맵 구조, 블럭 배열, 색상 공식, 진행률 공식 보관 -->
+<!--
+영어잡는 워드메이트 6-1-1 수정본
 
-<div id="wm-map-root">
+적용사항:
+1. 영한 주관식 뜻 순서가 바뀌어도 정답 처리
+2. 점수 큰 글씨 50px으로 수정
+3. Flash Card / Step 2 / Step 3 진행 동그라미 적용
+4. Test 단계에는 진행 동그라미 적용하지 않음
+5. 마지막 완료 화면 문구 및 점수 글씨 PC 24px / 모바일 20px 적용
+6. 첫 페이지 제목 중앙 정렬 유지
+7. Step 2 / Step 3 / Step 4 / Step 6 틀린문제 재학습 안내 2줄 적용
+8. 학습 몰입형 Fullscreen 및 직접입력 유도 기능 적용
+-->
 
-  <!-- 1. 상단 학생정보 -->
-  <div id="wm-student-info-widget">
+<div id="wordmate-app"></div>
 
-    <h1 class="main-title">영어잡는 Word Mate 학습맵</h1>
+<audio id="wordAudio" preload="auto" playsinline></audio>
 
-    <div class="student-top-card">
-
-      <div class="student-info-row student-info-row-main">
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad1" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><circle cx="24" cy="15" r="8" fill="url(#wmBlueGrad1)"/><path d="M9 39c1.8-9 8.2-14 15-14s13.2 5 15 14c.35 1.75-.95 3-2.7 3H11.7C9.95 42 8.65 40.75 9 39z" fill="url(#wmBlueGrad1)"/></svg></span>
-          <div class="wm-info-text">
-            <span>학생명</span>
-            <strong id="studentName">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad2" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><rect x="9" y="26" width="7" height="14" rx="2" fill="url(#wmBlueGrad2)"/><rect x="20.5" y="18" width="7" height="22" rx="2" fill="url(#wmBlueGrad2)"/><rect x="32" y="10" width="7" height="30" rx="2" fill="url(#wmBlueGrad2)"/><path d="M7 41h34" stroke="url(#wmBlueGrad2)" stroke-width="4" stroke-linecap="round" opacity=".95"/></svg></span>
-          <div class="wm-info-text">
-            <span id="studentLevelLabel">현재 레벨</span>
-            <strong id="studentLevel">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad3" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><rect x="7" y="10" width="34" height="28" rx="5" fill="url(#wmBlueGrad3)"/><circle cx="18" cy="22" r="5" fill="#fff" opacity=".95"/><path d="M11.5 33c1.1-4.2 3.8-6.2 6.5-6.2s5.4 2 6.5 6.2" fill="#fff" opacity=".95"/><path d="M27 20h9M27 27h8M27 32h6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".95"/></svg></span>
-          <div class="wm-info-text">
-            <span>학생 ID</span>
-            <strong id="studentId">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item logout-card wm-student-visual-card wm-logout-visual-card" onclick="wmLogout()" role="button" tabindex="0">
-          <div class="wm-logout-button" aria-hidden="true">
-            <span class="wm-logout-icon">↪</span>
-            <strong>로그아웃</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="student-info-row student-info-row-sub">
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad4" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><path d="M24 7 8 16v4h32v-4L24 7z" fill="url(#wmBlueGrad4)"/><rect x="10" y="20" width="28" height="18" rx="2" fill="url(#wmBlueGrad4)" opacity=".92"/><path d="M14 38h20M15 24v10M23 24v10M31 24v10" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".95"/></svg></span>
-          <div class="wm-info-text">
-            <span>학교</span>
-            <strong id="studentSchool">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad5" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><path d="M24 9 5 18l19 9 19-9-19-9z" fill="url(#wmBlueGrad5)"/><path d="M13 24v8c0 4 5 7 11 7s11-3 11-7v-8l-11 5-11-5z" fill="url(#wmBlueGrad5)" opacity=".92"/><path d="M39 20v10" stroke="url(#wmBlueGrad5)" stroke-width="4" stroke-linecap="round"/><circle cx="39" cy="33" r="3" fill="url(#wmBlueGrad5)"/></svg></span>
-          <div class="wm-info-text">
-            <span>학년</span>
-            <strong id="studentGrade">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad6" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><circle cx="18" cy="17" r="7" fill="url(#wmBlueGrad6)"/><circle cx="32" cy="19" r="6" fill="url(#wmBlueGrad6)" opacity=".72"/><path d="M6 39c1.6-8 6.4-12 12-12s10.4 4 12 12c.35 1.75-.9 3-2.6 3H8.6C6.9 42 5.65 40.75 6 39z" fill="url(#wmBlueGrad6)"/><path d="M28 41h12c1.5 0 2.6-1.2 2.25-2.7C40.8 31.8 37.1 29 32 29c-2.1 0-3.9.5-5.4 1.5 2.6 2.1 4.4 5.1 5.4 9.1.1.5-.05 1-.25 1.4z" fill="url(#wmBlueGrad6)" opacity=".72"/></svg></span>
-          <div class="wm-info-text">
-            <span>반명</span>
-            <strong id="studentClass">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad7" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><circle cx="24" cy="15" r="8" fill="url(#wmBlueGrad7)"/><path d="M9 39c1.8-9 8.2-14 15-14s13.2 5 15 14c.35 1.75-.95 3-2.7 3H11.7C9.95 42 8.65 40.75 9 39z" fill="url(#wmBlueGrad7)"/></svg></span>
-          <div class="wm-info-text">
-            <span>교사명</span>
-            <strong id="studentTeacher">-</strong>
-          </div>
-        </div>
-
-        <div class="student-info-item wm-student-visual-card">
-          <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad8" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><path d="M10 9h14c3 0 5 2 5 5v26c0-3-2-5-5-5H10V9z" fill="url(#wmBlueGrad8)"/><path d="M38 9H24c-3 0-5 2-5 5v26c0-3 2-5 5-5h14V9z" fill="url(#wmBlueGrad8)" opacity=".82"/><path d="M24 13v27" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/><path d="M13 16h8M13 22h8M27 16h8M27 22h8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".9"/></svg></span>
-          <div class="wm-info-text">
-            <span>현재 세트</span>
-            <strong id="studentCurrentSet">-</strong>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- 2. 레벨세트 학습맵 -->
-  <div id="wm-level-map-widget">
-
-    <div class="level-bar">
-
-      <button class="level-block level-current">
-        <span id="currentLevelLabel">-</span><br>
-        <strong id="levelPercent">0%</strong>
-      </button>
-
-    </div>
-
-    <div class="progress-area">
-
-      <div class="progress-top">
-        <span id="progressLevelLabel">LEVEL 진행률</span>
-        <strong id="mainProgressText">0%</strong>
-      </div>
-
-      <div class="progress-track">
-        <div id="progressFill" class="progress-fill"></div>
-      </div>
-
-    </div>
-
-    <div class="map-guide">
-      <span><i class="dot studying"></i>학습중</span>
-      <span><i class="dot complete1"></i>1회 완료</span>
-      <span><i class="dot complete2"></i>2회 완료</span>
-      <span><i class="dot complete3"></i>3회 완료</span>
-      <span><i class="dot leveldone"></i>레벨완료</span>
-      <span class="wm-sequential-guide"><span style="color:#16a34a;font-weight:700;">레벨완료기준</span>에 따라 <span style="color:#2563eb;font-weight:700;">세트순차완주</span> 방식으로 학습이 진행됩니다.</span>
-    </div>
-
-    <div id="setMap" class="set-map"></div>
-
-  </div>
-
-
-  <!-- 3. 하단 학습기록_DB 구조 -->
-  <div id="wm-learning-record-widget">
-
-    <div class="detail-box">
-
-      <div class="detail-header">
-        <h2>숙제검사 / 학습기록 자세히 보기</h2>
-        <button onclick="printRecords()">인쇄하기</button>
-      </div>
-
-      <div class="filter-box">
-
-        <input id="setKeyword" type="text" placeholder="세트 (예: 5-1-5)">
-        <input id="levelKeyword" type="text" placeholder="레벨 (예: 5 또는 5레벨)">
-
-        <select id="monthFilter">
-          <option value="">월 선택</option>
-          <option value="01">1월</option>
-          <option value="02">2월</option>
-          <option value="03">3월</option>
-          <option value="04">4월</option>
-          <option value="05">5월</option>
-          <option value="06">6월</option>
-          <option value="07">7월</option>
-          <option value="08">8월</option>
-          <option value="09">9월</option>
-          <option value="10">10월</option>
-          <option value="11">11월</option>
-          <option value="12">12월</option>
-        </select>
-
-        <select id="weekFilter">
-          <option value="">주차 선택</option>
-          <option value="1">1주차</option>
-          <option value="2">2주차</option>
-          <option value="3">3주차</option>
-          <option value="4">4주차</option>
-          <option value="5">5주차</option>
-        </select>
-
-        <input id="startDate" type="date">
-        <input id="endDate" type="date">
-
-        <button onclick="filterHomeworkRecords()">검색</button>
-        <button class="reset-btn" onclick="resetHomeworkFilters()">검색초기화</button>
-
-      </div>
-
-      <div class="record-summary">
-
-        <div>
-          <span>학습 세트</span>
-          <strong id="summaryTotalSet">0 SET</strong>
-        </div>
-
-        <div>
-          <span>완료 세트</span>
-          <strong id="summaryCompleteSet">0 SET</strong>
-        </div>
-
-        <div>
-          <span>진행률</span>
-          <strong id="summaryProgress">0%</strong>
-        </div>
-
-        <div>
-          <span>최근 점수</span>
-          <strong id="summaryRecentScore">-</strong>
-        </div>
-
-      </div>
-
-
-      <div id="learningDetailBox" class="learning-detail-box">
-        학습 블럭을 클릭하면 상세기록이 표시됩니다.
-      </div>
-
-      <table class="homework-table">
-
-        <thead>
-          <tr>
-            <th>학습날짜</th>
-            <th>Set_ID</th>
-            <th>점수</th>
-            <th>총시간</th>
-            <th>Step1</th>
-            <th>Step2</th>
-            <th>Step3</th>
-            <th>Step4</th>
-            <th>Step5</th>
-            <th>Test시간</th>
-            <th class="wm-score-head">영한<br>객관식</th>
-            <th class="wm-score-head">한영<br>객관식</th>
-            <th class="wm-score-head">영한<br>주관식</th>
-            <th class="wm-score-head">한영<br>주관식</th>
-            <th>완료</th>
-            <th>상태</th>
-            <th>기기</th>
-            <th>비고</th>
-          </tr>
-        </thead>
-
-        <tbody id="homeworkTableBody">
-          <tr>
-            <td colspan="18">아직 표시할 학습기록이 없습니다.</td>
-          </tr>
-        </tbody>
-
-      </table>
-
-      <div class="homework-scroll-bottom-fixed" id="homeworkScrollBottomFixed">
-        <div class="homework-scroll-bottom-inner"></div>
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
-
-<!-- 4. 공통 CSS -->
 <style>
-html,
-body{
-  background:#ffcc00 !important;
-}
-
-#wm-map-root,
-#wm-student-info-widget,
-#wm-level-map-widget,
-#wm-learning-record-widget{
-  font-family:Pretendard, Arial, sans-serif;
-  color:#111;
-}
-
-#wm-map-root{
-  max-width:1280px;
-  margin:0 auto;
-  padding-left:16px;
-  padding-right:16px;
-  padding-bottom:44px;
-  box-sizing:border-box;
-}
-
-body.wm-homework-fixed-scroll-ready{
-  padding-bottom:44px;
-}
-
-.detail-box,
-.progress-area,
-.map-guide,
-.set-map{
-  background:#dbeafe;
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.06);
-}
-
-.set-map{
-  background:#fff;
-}
-
-.wm-map-loading-block{
-  min-height:260px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  border-radius:14px;
-  background:#EFF6FD;
-  color:#111;
-  font-size:20px;
-  font-weight:900;
-  line-height:1.6;
-  cursor:wait;
-  user-select:none;
-}
-
-.wm-map-loading-spinner{
-  width:42px;
-  height:42px;
-  border:5px solid #bfdbfe;
-  border-top-color:#2563eb;
-  border-radius:50%;
-  margin-bottom:16px;
-  animation:wmMapSpin 1s linear infinite;
-}
-
-.wm-map-loading-sub{
-  margin-top:8px;
-  font-size:14px;
-  font-weight:800;
-  color:#555;
-}
-
-@keyframes wmMapSpin{
-  to{transform:rotate(360deg);}
-}
-
-body.wm-map-loading-active .set-map,
-body.wm-map-loading-active #wm-learning-record-widget{
-  pointer-events:none;
-}
-
-.set-block.wm-map-disabled{
-  pointer-events:none;
-  opacity:.72;
-  cursor:wait;
-}
-
-#wm-learning-record-widget .detail-box{
-  background:#fff;
-}
-
-.detail-box{
-  overflow-x:hidden;
-}
-
-.main-title{
-  text-align:center !important;
-  font-size:40px !important;
-  font-weight:900 !important;
-  margin-bottom:18px !important;
-}
-
-.student-top-card{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-bottom:14px;
-  padding-left:12px;
-  padding-right:12px;
-  box-sizing:border-box;
-}
-
-.student-info-row{
-  display:grid;
-  gap: 10px;
-}
-
-.student-info-row-main{
-  grid-template-columns: 25fr 25fr 25fr 25fr;
-}
-
-.student-info-row-sub{
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-}
-
-.student-info-item{
-  background:#fff;
-  border-radius:12px;
-  padding:10px 14px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.06);
-  min-width:0;
-}
-
-.wm-student-visual-card{
-  min-height:66px;
-  display:flex;
-  align-items:center;
-  gap:16px;
-  background:linear-gradient(135deg,#ffffff 0%,#ffffff 58%,#f8fbff 100%);
-  border:1px solid rgba(255,255,255,0.85);
-  border-radius:14px;
-  box-shadow:0 6px 18px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.04);
-  box-sizing:border-box;
-}
-
-.wm-info-icon{
-  width:42px;
-  min-width:42px;
-  height:42px;
-  display:flex !important;
-  align-items:center;
-  justify-content:center;
-  margin:0 !important;
-  font-size:30px !important;
-  line-height:1 !important;
-  filter:drop-shadow(0 2px 3px rgba(37,99,235,0.22));
-}
-
-.wm-info-svg{
-  width:42px;
-  height:42px;
-  display:block;
-}
-
-.wm-info-text{
-  min-width:0;
-}
-
-.student-top-card span:not(.wm-info-icon):not(.wm-logout-icon){
-  display:block;
-  font-size:13px;
-  color:#333;
-  margin-bottom:6px;
-  font-weight:500;
-}
-
-.student-top-card strong{
-  display:block;
-  font-size:22px;
-  font-weight:900;
-  color:#080808;
-  letter-spacing:-0.02em;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-.logout-card{
-  cursor:pointer;
-  user-select:none;
-}
-
-.wm-logout-visual-card{
-  justify-content:center;
-  padding:10px 14px;
-}
-
-.wm-logout-button{
-  width:100%;
-  min-height:42px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  border:1.5px solid #ff3b3b;
-  border-radius:8px;
-  background:#fff;
-  color:#ff1717;
-  box-sizing:border-box;
-}
-
-.wm-logout-button strong{
-  display:inline-block;
-  color:#ff1717;
-  font-size:18px;
-  font-weight:900;
-  line-height:1;
-}
-
-.wm-logout-icon{
-  display:inline-flex !important;
-  align-items:center;
-  margin:0 !important;
-  color:#ff1717 !important;
-  font-size:28px !important;
-  font-weight:900 !important;
-  line-height:1 !important;
-}
-
-.logout-card:focus{
-  outline:2px solid #93c5fd;
-  outline-offset:2px;
-}
-
-.level-bar{
-  display:flex;
-  gap:8px;
-  margin-bottom:14px;
-  padding-left:12px;
-}
-
-.level-block{
-  width:86px;
-  height:46px;
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-
-.level-current{
-  background:linear-gradient(135deg,#0066cc,#004a99);
-}
-
-.level-done{
-  background:linear-gradient(135deg,#16a34a,#0f7a32);
-}
-
-.level-history-active{
-  outline:3px solid rgba(37,99,235,.35);
-  outline-offset:2px;
-}
-.progress-area{
-  background:#EFF6FD !important;
-  margin-left:12px;
-  margin-right:12px;
-}
-
-.progress-top{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:8px;
-}
-
-.progress-top strong{
-  font-size:22px;
-  color:#0066cc;
-}
-
-.progress-track{
-  height:12px;
-  background:#fff;
-  border-radius:999px;
-  overflow:hidden;
-}
-
-.progress-fill{
-  height:100%;
-  width:0%;
-  background:linear-gradient(90deg,#0066cc,#4aa3ff);
-}
-
-.map-guide{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-  font-size:12px;
-  font-weight:700;
-  background:#EFF6FD !important;
-  margin-left:12px;
-  margin-right:12px;
-}
-
-.wm-sequential-guide{
-  margin-left:18px;
-  color:#111;
-  font-weight:800;
-}
-
-.dot{
-  width:11px;
-  height:11px;
-  border-radius:50%;
-  display:inline-block;
-}
-
-.dot.locked{background:#e8e8e8;}
-.dot.studying{background:#ffd84d;}
-.dot.complete1{background:#0066cc;}
-.dot.complete2{background:#f28c28;}
-.dot.complete3{background:#7b4fd6;}
-.dot.leveldone{background:#16a34a;}
-
-.set-map{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-.set-row{
-  display:grid;
-  grid-template-columns:repeat(10,1fr);
-  gap:8px;
-}
-
-.set-row-short{
-  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-}
-
-.set-block{
-  height:80px;
-  border:none;
-  border-radius:12px;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-
-.set-locked{
-  background:#EFF6FD;
-  color:#000;
-}
-
-.set-locked .lock-icon{
-  font-size:2em;
-  line-height:1;
-}
-
-.set-locked small{
-  font-size:inherit;
-  color:#000;
-}
-
-.set-current{
-  background:linear-gradient(135deg,#ffe680,#f3c500);
-  color:#3a2a00;
-}
-
-.set-complete-1{
-  background:linear-gradient(135deg,#0066cc,#004a99);
-}
-
-.set-complete-2{
-  background:linear-gradient(135deg,#f28c28,#d96f00);
-}
-
-.set-complete-3{
-  background:linear-gradient(135deg,#7b4fd6,#5630aa);
-}
-
-.set-leveldone{
-  background:linear-gradient(135deg,#16a34a,#0f7a32);
-}
-
-.detail-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:14px;
-}
-
-.detail-header h2{
-  margin:0;
-  font-size:18px;
-}
-
-.detail-header button,
-.filter-box button{
-  padding:10px 14px;
-  border:none;
-  border-radius:10px;
-  background:#0066cc;
-  color:#fff;
-  font-weight:800;
-  cursor:pointer;
-}
-
-.filter-box{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto auto;
-  gap:8px;
-  margin-bottom:14px;
-}
-
-.filter-box input,
-.filter-box select{
-  padding:10px;
-  border:1px solid #ddd;
-  border-radius:10px;
-  font-size:13px;
-}
-
-.reset-btn{
-  background:#777 !important;
-}
-
-.record-summary{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  margin-bottom:14px;
-}
-
-.record-summary div{
-  background:#f8f8f8;
-  border-radius:12px;
-  padding:12px;
-}
-
-.record-summary span{
-  display:block;
-  font-size:11px;
-  color:#666;
-  margin-bottom:5px;
-}
-
-.record-summary strong{
-  font-size:18px;
-  font-weight:900;
-}
-
-.learning-block-area{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  margin-bottom:14px;
-}
-
-.learning-detail-box{
-  background:#f8f8f8;
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:13px;
-}
-
-.learning-detail-box.wm-mode-banner-box{
-  display:flex;
-  align-items:center;
-}
-
-.wm-learning-mode-banner{
-  width:100%;
-  min-height:46px;
-  box-sizing:border-box;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  flex-wrap:wrap;
-  gap:0;
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  padding:12px 20px;
-  margin-bottom:0;
-  font-size:15px;
-  font-weight:700;
-  line-height:1;
-  color:#111;
-  box-shadow:0 3px 12px rgba(0,0,0,0.05);
-}
-
-.wm-learning-mode-banner span{
-  display:inline-flex;
-  align-items:center;
-  line-height:1;
-}
-
-.wm-learning-mode-banner .wm-mode-value{
-  color:#dc2626;
-  font-size:inherit;
-  font-weight:900;
-}
-
-.wm-learning-mode-banner .wm-mode-sub{
-  color:#555;
-  font-size:13px;
-  font-weight:600;
-}
-
-.wm-learning-mode-banner .wm-banner-sep{
-  display:inline-flex;
-  align-items:center;
-  margin:0 12px;
-  color:#777;
-  font-weight:700;
-}
-
-
-.homework-scroll-bottom-fixed{
-  /* WM_HOMEWORK_BOTTOM_FIXED_BAR_FIRST_VIEW_FIX_V1
-     초기 화면에서도 스크롤 이벤트를 기다리지 않고 fixed 상태로 고정합니다. */
-  position:fixed !important;
-  left:18px !important;
-  right:18px !important;
-  bottom:12px !important;
-  z-index:9998 !important;
-  display:block !important;
-  visibility:visible !important;
-  opacity:1 !important;
-  overflow-x:auto;
-  overflow-y:hidden;
-  height:22px;
-  background:#fff;
-  border:1px solid #93c5fd;
-  border-radius:999px;
-  box-shadow:0 4px 14px rgba(0,0,0,0.16);
-  -webkit-overflow-scrolling:touch;
-}
-
-
-.homework-scroll-bottom-inner{
-  width:1500px;
-  height:1px;
-}
-
-.homework-table{
-  width:100%;
-  min-width:1180px;
-  border-collapse:collapse;
-}
-
-.homework-table th,
-.homework-table td{
-  border:1px solid #ddd;
-  padding:9px;
-  text-align:center;
-  font-size:13px;
-}
-
-.homework-table th{
-  background:#f3f3f3;
-}
- .homework-table th:nth-child(1), .homework-table td:nth-child(1){min-width:82px;}
-.homework-table th:nth-child(2), .homework-table td:nth-child(2){min-width:72px;}
-.homework-table th:nth-child(3), .homework-table td:nth-child(3){min-width:44px;}
-.homework-table th:nth-child(n+4):nth-child(-n+10),
-.homework-table td:nth-child(n+4):nth-child(-n+10){min-width:68px;white-space:nowrap;}
-.homework-table th:nth-child(n+11):nth-child(-n+14){min-width:48px;font-size:10px;line-height:1.1;letter-spacing:-0.04em;padding-left:4px;padding-right:4px;}
-.homework-table td:nth-child(n+11):nth-child(-n+14){min-width:48px;font-size:13px;line-height:1.2;padding-left:4px;padding-right:4px;white-space:nowrap;}
-.homework-table th:nth-child(15), .homework-table td:nth-child(15){min-width:42px;max-width:48px;white-space:nowrap;}
-.homework-table th:nth-child(16), .homework-table td:nth-child(16){min-width:36px;}
-.homework-table th:nth-child(17), .homework-table td:nth-child(17){min-width:42px;}
-.homework-table th:nth-child(18), .homework-table td:nth-child(18){min-width:32px;}
-.homework-table .wm-score-head{font-size:10px;line-height:1.1;letter-spacing:-0.04em;}
-
-.score{
-  color:#d60000;
-  font-weight:900;
-}
-
-.time{
-  color:#0066cc;
-  font-weight:900;
-}
-
-@media(max-width:768px){
-
-  .main-title{
-    font-size:40px !important;
+  html,
+  body{
+    margin:0;
+    min-height:100%;
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
   }
 
-  .homework-scroll-bottom-fixed{
-    left:10px;
-    right:10px;
-    bottom:8px;
-    height:26px;
+  html:fullscreen,
+  body:fullscreen{
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
   }
 
-  .student-info-row,
-  .student-info-row-main,
-  .student-info-row-sub{
-    grid-template-columns:1fr;
-    gap:8px;
+
+
+  /* WM_FULLSCREEN_BLACK_BG_FINAL_FIX_V1
+     Fullscreen 진입 시 브라우저 기본 ::backdrop 검정 배경을 차단하고,
+     실제 fullscreen 대상인 #wordmate-app 자체에 밝은 배경을 적용합니다. */
+  #wordmate-app:fullscreen,
+  #wordmate-app:-webkit-full-screen{
+    width:100vw;
+    min-height:100vh;
+    max-width:none;
+    margin:0;
+    padding:30px 16px;
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
+    overflow:auto;
   }
 
-  .filter-box{
-    grid-template-columns:1fr;
+  #wordmate-app:fullscreen::backdrop,
+  #wordmate-app:-webkit-full-screen::backdrop,
+  html:fullscreen::backdrop,
+  body:fullscreen::backdrop,
+  *:fullscreen::backdrop{
+    background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%) !important;
   }
 
-  .record-summary{
-    grid-template-columns:repeat(2,1fr);
+  #wordmate-app:fullscreen .wm-card,
+  #wordmate-app:-webkit-full-screen .wm-card{
+    width:100%;
+    max-width:760px;
+    margin:auto;
   }
 
-  .learning-block-area{
-    grid-template-columns:repeat(2,1fr);
+  #wordmate-app{max-width:760px;margin:30px auto;font-family:Arial,sans-serif;}
+
+  .wm-card{
+    position:relative;
+    overflow:hidden;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:18px;
+    padding:28px;
+    text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
   }
 
-  .homework-table{
+  .wm-card > *{position:relative;z-index:1;}
+  .wm-set-badge{
+    position:absolute;
+    top:28px;
+    left:28px;
+    z-index:3;
+    color:#dc2626;
+    font-size:18px;
+    font-weight:900;
+    line-height:1;
+    letter-spacing:-0.02em;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  @media(max-width:480px){
+    .wm-set-badge{
+      top:20px;
+      left:18px;
+      font-size:14px;
+    }
+  }
+
+
+  .wm-card::after{
+    content:"";
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:64px;
+    height:64px;
+    background-image:url("https://cdn.imweb.me/upload/S20260309094cd4587c32d/a48173e72e34e.png");
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:contain;
+    opacity:.96;
+    z-index:2;
+    pointer-events:none;
+  }
+
+  .wm-title{
+    font-size:25px;
+    font-weight:bold;
+    margin-bottom:18px;
+    text-align:center;
+    padding-left:74px;
+    padding-right:74px;
+  }
+
+  .wm-wrong-retry-main{
+    display:block;
+    font-size:28px;
+    font-weight:bold;
+    line-height:1.25;
+  }
+
+  .wm-wrong-retry-sub{
+    display:block;
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+    margin-top:6px;
+  }
+
+
+  @media(max-width:480px){
+    .wm-card{padding:24px 18px;}
+    .wm-card::after{width:54px;height:54px;top:12px;right:12px;}
+    .wm-title{padding-left:60px;padding-right:60px;}
+  }
+
+  .wm-word{font-size:42px;font-weight:bold;margin:14px 0 10px;letter-spacing:0;}
+  .wm-pos{font-size:15px;color:#666;margin-bottom:14px;}
+  .wm-silhouette{color:#d9d9d9;}
+  .wm-meaning{font-size:28px;margin:20px 0;}
+  .wm-small{font-size:15px;color:#666;margin-top:10px;}
+  .wm-memory-count{font-size:18px;color:#2563eb;font-weight:900;margin:10px 0 10px;}
+  .wm-alert{color:#dc2626;font-size:16px;margin-top:12px;font-weight:bold;}
+
+  .wm-btn{
+    width:100%;
+    padding:14px;
+    margin-top:14px;
+    border:none;
+    border-radius:12px;
+    background:#2563eb;
+    color:white;
+    font-size:17px;
+    cursor:pointer;
+  }
+
+  .wm-option{background:#f3f4f6;color:#111;}
+  .wm-option:hover{background:#2563eb;color:white;}
+  .wm-correct{background:#16a34a!important;color:white!important;}
+  .wm-wrong{background:#dc2626!important;color:white!important;}
+
+  .audio-btn{
+    width:auto;
+    min-width:120px;
+    padding:10px 18px;
+    margin:8px auto 8px;
+    border:none;
+    border-radius:999px;
+    background:#111;
+    color:#fff;
+    font-size:15px;
+    cursor:pointer;
+  }
+
+  .word-progress,
+  .memory-progress{
+    display:flex;
+    justify-content:center;
+    gap:7px;
+    flex-wrap:wrap;
+    margin:10px auto 18px;
+  }
+
+  .word-dot,
+  .memory-dot{
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:2px solid #d1d5db;
+    background:#fff;
+    color:#9ca3af;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:900;
+    transition:all .2s ease;
+  }
+
+  .word-dot.done{background:#2563eb;color:#fff;border-color:#2563eb;}
+  .word-dot.current{transform:scale(1.16);box-shadow:0 0 0 4px rgba(37,99,235,.16);}
+  .memory-dot.done{color:#fff;border-color:transparent;}
+  .memory-dot.current{transform:scale(1.16);box-shadow:0 0 0 4px rgba(37,99,235,.16);}
+  .memory-dot.level-100{background:#bfdbfe;}
+  .memory-dot.level-70{background:#93c5fd;}
+  .memory-dot.level-30{background:#60a5fa;}
+  .memory-dot.level-0{background:#2563eb;}
+
+  .memory-stage-guide{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 auto 14px;font-size:12px;color:#555;}
+  .stage-chip{padding:5px 9px;border-radius:999px;font-weight:bold;background:#f3f4f6;color:#1d4ed8;}
+
+  .memory-input,
+  .test-input{
+    width:100%;
+    padding:14px;
+    font-size:22px;
+    text-align:center;
+    border-radius:10px;
+    border:1px solid #ccc;
+    margin-top:20px;
+    box-sizing:border-box;
+  }
+
+  .test-question{text-align:left;border:1px solid #eee;border-radius:14px;padding:16px;margin-top:14px;background:#fafafa;outline:none;}
+  .test-question:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15);}
+  .test-q-title{font-size:18px;font-weight:bold;margin-bottom:10px;}
+  .test-option{display:block;margin:10px 0;font-size:16px;}
+  .timer{font-size:20px;font-weight:bold;color:#dc2626;margin-bottom:15px;}
+
+  .score-area{position:relative;margin:20px 0 10px;min-height:90px;}
+  .score-big{font-size:50px;font-weight:900;color:#dc2626;line-height:1;text-align:center;}
+  .score-side-info{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;line-height:1.7;color:#333;text-align:right;white-space:nowrap;}
+
+  .result-list{margin-top:28px;text-align:left;}
+  .result-item{display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:center;background:#fff;border:1px solid #eee;border-radius:16px;padding:14px;margin-bottom:12px;}
+  .result-num-wrap{position:relative;width:62px;height:62px;display:flex;align-items:center;justify-content:center;}
+  .result-num{font-size:18px;font-weight:bold;color:#555;text-align:center;z-index:2;}
+  .mark-circle{position:absolute;width:48px;height:42px;border:4px solid #dc2626;border-radius:48% 52% 46% 54%;transform:rotate(-13deg);left:5px;top:8px;z-index:1;}
+  .mark-slash{position:absolute;width:54px;height:5px;background:#dc2626;border-radius:999px;transform:rotate(-35deg);left:4px;top:30px;z-index:3;}
+
+  .q-blue{color:#2563eb;font-weight:bold;}
+  .a-black{color:#111;}
+  .a-red{color:#dc2626;font-weight:bold;}
+
+  .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
+  .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
+
+  @media(max-width:480px){
+    .final-title{font-size:20px;}
+    .final-score-box{font-size:20px;}
+  }
+
+  .final-result-info{
+    text-align:center;
+    font-size:13px;
+    line-height:1.7;
+    color:#333;
+    margin-top:18px;
+    margin-bottom:24px;
+  }
+
+  .final-save-row{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:34px;
+    margin:4px auto 24px;
+  }
+
+  .final-save-text{
+    text-align:left;
+    font-size:20px;
+    line-height:1.7;
+    color:#333;
+    font-weight:500;
     white-space:nowrap;
   }
 
+  .final-save-icon{
+    width:54px;
+    height:54px;
+    transform:translateY(10px);
+    flex:0 0 auto;
+  }
+
+  .final-save-spinner{
+    border-radius:50%;
+    border:7px solid #dbeafe;
+    border-top-color:#2563eb;
+    border-right-color:#2563eb;
+    animation:wmSpin .8s linear infinite;
+    box-sizing:border-box;
+  }
+
+  .final-save-check{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:48px;
+    line-height:1;
+    animation:none;
+  }
+
+  .button-row{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:nowrap;
+    margin-top:8px;
+  }
+
+  .button-row .wm-btn{
+    width:150px;
+    max-width:150px;
+    flex:0 0 150px;
+    padding-left:0;
+    padding-right:0;
+  }
+
+  .wm-exit-btn{
+    position:fixed;
+    top:14px;
+    right:14px;
+    z-index:9999;
+    width:auto;
+    min-width:44px;
+    height:44px;
+    padding:0 14px;
+    border:none;
+    border-radius:999px;
+    background:#111;
+    color:#fff;
+    font-size:15px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
+
+  .wm-exit-modal{
+    position:fixed;
+    inset:0;
+    z-index:10000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.45);
+    padding:20px;
+    box-sizing:border-box;
+  }
+
+  .wm-exit-box{
+    width:100%;
+    max-width:360px;
+    background:#fff;
+    border-radius:18px;
+    padding:24px;
+    text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+  }
+
+  .wm-exit-title{font-size:22px;font-weight:900;margin-bottom:12px;color:#111;}
+  .wm-exit-text{font-size:15px;line-height:1.6;color:#444;margin-bottom:18px;}
+  .wm-exit-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .wm-exit-actions button{flex:1;min-width:130px;padding:13px;border:none;border-radius:12px;font-size:16px;font-weight:900;cursor:pointer;}
+  .wm-continue-btn{background:#2563eb;color:#fff;}
+  .wm-leave-btn{background:#f3f4f6;color:#111;}
+
+  .wm-learning-guide{
+    text-align:center;
+    color:#2563eb;
+    font-size:20px;
+    font-weight:800;
+    line-height:1.45;
+    margin:0 0 16px;
+  }
+
+  .wm-test-guide{
+    text-align:center;
+    color:#2563eb;
+    font-size:18px;
+    font-weight:700;
+    line-height:1.45;
+    margin:10px 0 14px;
+  }
+
+  @media(max-width:480px){
+    .final-save-row{
+      gap:16px;
+      margin-top:2px;
+      margin-bottom:22px;
+    }
+
+    .final-save-text{
+      font-size:15px;
+      line-height:1.65;
+    }
+
+    .final-save-icon{
+      width:42px;
+      height:42px;
+      transform:translateY(8px);
+    }
+
+    .final-save-spinner{
+      border-width:6px;
+    }
+
+    .final-save-check{
+      font-size:38px;
+    }
+
+    .button-row{
+      gap:6px;
+      width:100%;
+    }
+
+    .button-row .wm-btn{
+      width:auto;
+      max-width:none;
+      flex:1 1 0;
+      min-width:0;
+      padding-left:0;
+      padding-right:0;
+      font-size:17px;
+    }
+  }
+
+
+@keyframes wmSpin{
+  to{transform:rotate(360deg);}
 }
 </style>
 
-
-<!-- 5. 공통 JS -->
 <script>
-/* TEST/REAL URL은 파일 최상단 WM_CONFIG 자동 선택값을 사용합니다. */
-const WM_TEST_LOGIN_PAGE_URL = WM_LOGIN_URL;
-const WM_TEST_MAP_PAGE_URL = WM_MAP_URL;
-const WM_TEST_STUDY_PAGE_URL = WM_STUDY_URL;
-const WM_TEST_API_URL = WM_APPS_SCRIPT_URL;
 
-const WM_LEVEL_CONFIG = {
-  3: [10, 10, 2],
-  4: [10, 10, 2],
-  5: [10, 10, 3],
-  6: [10, 10, 3],
-  7: [10, 10, 10, 10],
-  8: [10, 10, 10, 10],
-  9: [10, 10, 10, 10],
-  10: [10, 10, 10, 10, 10],
-  11: [10, 10, 10, 10, 10],
-  12: [10, 10, 10, 10, 10],
-  13: [10, 10, 10, 10, 10]
-};
+function getInitialSetIdFromUrl(){
+  const params = new URLSearchParams(window.location.search || '');
+  const value = String(
+    params.get('set_id') ||
+    params.get('setId') ||
+    params.get('Set_ID') ||
+    params.get('currentSetId') ||
+    'WM5-1-1'
+  ).trim().toUpperCase();
 
-let currentLevelNumber = 4;
-let totalSets = 22;
-let setData = [];
-let wmLearningRecords = [];
-let wmCurrentStudent = null;
-let wmStudentProfile = null;
-let wmLastLearningMapData = null;
-let wmServerLevelHistoryLevels = [];
-let wmHistoryCompletedLevel = 0;
-let wmHistoryCurrentLevel = 0;
-let wmViewingCompletedHistoryLevel = false;
-let wmMapLoadingTimer = null;
-let wmMapLoadingStartAt = 0;
-let wmMapDataReady = false;
-
-function wmGetApiBaseUrl(){
-  const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
-  if(injectedUrl){
-    return injectedUrl.split('?')[0];
+  if(/^WM\d+-\d+-\d+$/.test(value)){
+    return value;
   }
 
+  return 'WM5-1-1';
+}
+
+const WM_INJECTED_INITIAL_SET_ID = "__WM_INITIAL_SET_ID__";
+const INITIAL_currentSetId = (
+  WM_INJECTED_INITIAL_SET_ID && WM_INJECTED_INITIAL_SET_ID.indexOf("__WM_") !== 0
+) ? WM_INJECTED_INITIAL_SET_ID : getInitialSetIdFromUrl();
+const STUDENT_NAME = getInitialStudentName();
+const WM_STUDENT_PROFILE = getInitialStudentProfile();
+const BASE_TEST_TIME = 300;
+const WM_SAVE_API_URL = getSaveApiUrl();
+const WM_PROGRESS_API_URL = getProgressApiUrl();
+const WM_LMS_RETURN_URL = "";
+
+const WM_STUDENT_ID = getInitialStudentId();
+const WM_SESSION_TOKEN = getInitialSessionToken();
+const WM_INITIAL_LEARNING_MODE = getInitialLearningMode();
+const WM_DEFAULT_STUDY_MODE = {
+  S4실루엣단계: '전체',
+  S6테스트모드: WM_INITIAL_LEARNING_MODE || '기본전체',
+  레벨완료조건: '2회',
+  레벨회차추가: 0,
+  applyScope: 'NEXT_SET'
+};
+let WM_ACTIVE_STUDY_MODE = {...WM_DEFAULT_STUDY_MODE};
+let WM_ACTIVE_STUDY_MODE_SET_ID = '';
+let WM_ACTIVE_LEARNING_ASSIGN = '';
+
+function wmReadServerStudyMode(){
   try{
-    const storedUrl = String(sessionStorage.getItem('WM_APPS_SCRIPT_URL') || '').trim();
-    if(storedUrl){
-      return storedUrl.split('?')[0];
+    if(window.WM_STUDY_MODE_FROM_SERVER && typeof window.WM_STUDY_MODE_FROM_SERVER === 'object'){
+      return window.WM_STUDY_MODE_FROM_SERVER;
     }
   }catch(err){}
-
-  const currentUrl = String(window.location.href || '').split('?')[0];
-  if(currentUrl.indexOf('/exec') !== -1){
-    return currentUrl;
-  }
-
-  return WM_APPS_SCRIPT_URL;
+  return null;
 }
 
-function wmGetUrlParam(name){
-  const params = new URLSearchParams(window.location.search || '');
-  return String(params.get(name) || '').trim();
-}
-
-function wmSafeJsonParse(value){
+function wmReadServerLearningAssign(){
   try{
-    return JSON.parse(value);
+    return String(window.WM_LEARNING_ASSIGN_FROM_SERVER || '').trim();
   }catch(err){
-    return null;
+    return '';
   }
 }
-
-function wmReadStudentFromStorage(){
-  const keys = [
-    'wmStudent',
-    'wm_student',
-    'wmStudentInfo',
-    'wmLoginStudent',
-    'wmLoggedInStudent',
-    'student',
-    'studentInfo',
-    'loggedInStudent'
-  ];
-
-  const stores = [];
-
-  try{ stores.push(window.localStorage); }catch(err){}
-  try{ stores.push(window.sessionStorage); }catch(err){}
-
-  for(const store of stores){
-    for(const key of keys){
-      const raw = store.getItem(key);
-      if(!raw) continue;
-
-      const parsed = wmSafeJsonParse(raw);
-      const data = parsed && parsed.student ? parsed.student : parsed;
-
-      if(data && typeof data === 'object'){
-        const studentId = String(data.학생ID || data.studentId || data.id || '').trim().toUpperCase();
-        if(studentId){
-          return {
-            학생ID: studentId,
-            학생이름: String(data.학생이름 || data.studentName || data.name || '').trim(),
-            학교: String(data.학교 || data.school || '').trim(),
-            학년: String(data.학년 || data.grade || '').trim(),
-            Class: String(data.Class || data.className || data.class || data['반'] || '').trim(),
-            교사명: String(data.교사명 || data.teacherName || '').trim(),
-            학습배정: String(data.학습배정 || data.learningAssign || data.level || '').trim(),
-            현재세트: wmNormalizeCurrentSetIdForMap_(data.현재세트 || data.currentSet || data.setId || data.set_id || '') || String(data.현재세트 || data.currentSet || data.setId || data.set_id || '').trim(),
-            현재세션: String(data.현재세션 || data.sessionToken || data.wmSessionToken || '').trim(),
-            sessionToken: String(data.sessionToken || data.현재세션 || data.wmSessionToken || '').trim()
-          };
-        }
-      }
-    }
+function getInitialSessionToken(){
+  const injected = "__WM_SESSION_TOKEN__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim();
   }
-
-  return null;
-}
-
-function wmReadStudentFromRootData(){
-  const root = document.getElementById('wm-map-root');
-  if(!root || !root.dataset) return null;
-
-  const student = {
-    학생ID: String(root.dataset.studentId || '').trim().toUpperCase(),
-    학생이름: String(root.dataset.studentName || '').trim(),
-    학습배정: String(root.dataset.learningAssign || '').trim(),
-    현재세트: wmNormalizeCurrentSetIdForMap_(root.dataset.currentSet || '') || String(root.dataset.currentSet || '').trim(),
-    현재세션: String(root.dataset.sessionToken || root.dataset.currentSession || '').trim(),
-    sessionToken: String(root.dataset.sessionToken || root.dataset.currentSession || '').trim()
-  };
-
-  if(/^[0-9]+$/.test(student.학습배정)){
-    student.학습배정 = student.학습배정 + '레벨';
-  }
-
-  if(!student.학습배정){
-    student.학습배정 = '4레벨';
-  }
-
-  if(student.학생ID || student.학생이름){
-    return student;
-  }
-
-  return null;
-}
-
-function wmNormalizeStudentObject(data){
-  if(!data || typeof data !== 'object') return null;
-
-  const student = {
-    학생ID: String(data.학생ID || data.studentId || data.studentID || data.sid || data.id || '').trim().toUpperCase(),
-    학생이름: String(data.학생이름 || data.studentName || data.name || data.wmStudentName || '').trim(),
-    학교: String(data.학교 || data.school || '').trim(),
-    학년: String(data.학년 || data.grade || '').trim(),
-    Class: String(data.Class || data.className || data.class || data['반'] || '').trim(),
-    교사명: String(data.교사명 || data.teacherName || '').trim(),
-    학습배정: String(data.학습배정 || data.learningAssign || data.level || data.wmLearningAssign || '').trim(),
-    S4실루엣단계: String(data.S4실루엣단계 || data.s4 || data.silhouetteStep || '').trim(),
-    S6테스트모드: String(data.S6테스트모드 || data.s6 || data.testMode || '').trim(),
-    레벨완료조건: String(data.레벨완료조건 || data.levelCompleteCondition || '').trim(),
-    레벨회차추가: String(data.레벨회차추가 || data.extraRounds || '').trim(),
-    학습모드: (data.학습모드 && typeof data.학습모드 === 'object') ? data.학습모드 : null,
-    현재세트: wmNormalizeCurrentSetIdForMap_(data.현재세트 || data.currentSet || data.setId || data.set_id || '') || String(data.현재세트 || data.currentSet || data.setId || data.set_id || '').trim(),
-    현재세션: String(data.현재세션 || data.sessionToken || data.wmSessionToken || '').trim(),
-    sessionToken: String(data.sessionToken || data.현재세션 || data.wmSessionToken || '').trim()
-  };
-
-  if(/^[0-9]+$/.test(student.학습배정)){
-    student.학습배정 = student.학습배정 + '레벨';
-  }
-
-  if(!student.학습배정){
-    student.학습배정 = '4레벨';
-  }
-
-  if(student.학생ID || student.학생이름){
-    return student;
-  }
-
-  return null;
-}
-
-
-/* WM_STUDENT_NAME_EMPTY_OVERWRITE_GUARD_V1
-   서버 응답(studentProfile)에 빈 학생이름/빈 값이 들어와도
-   로그인 또는 URL로 이미 확보한 학생정보를 지우지 않도록 병합합니다. */
-function wmMergeStudentPreserveValues_(base, incoming){
-  const result = Object.assign({}, base || {});
-  const next = wmNormalizeStudentObject(incoming || {}) || {};
-
-  Object.keys(next).forEach(function(key){
-    const value = next[key];
-    if(value === undefined || value === null) return;
-
-    const textValue = String(value).trim();
-
-    /* 학생이름은 빈값/기본표시값으로 기존 이름을 절대 덮어쓰지 않습니다. */
-    if(key === '학생이름'){
-      if(textValue && textValue !== '-'){
-        result[key] = textValue;
-      }
-      return;
-    }
-
-    /* 다른 학생 기본정보도 빈값으로 기존 값을 지우지 않습니다. */
-    if(textValue){
-      result[key] = value;
-    }
-  });
-
-  return wmNormalizeStudentObject(result) || result;
-}
-
-function wmResolveStudentInfo(){
-  /* WM_MAP_URL_STUDENT_FULL_MERGE_SPEED_FIX_V1
-     Vercel Map은 URL 파라미터가 가장 빠른 1차 캐시입니다.
-     root data-*가 일부 값만 가지고 있어도 학교/학년/반/교사명/currentSet을 URL·저장소와 병합합니다. */
-  const rootStudent = wmNormalizeStudentObject(wmReadStudentFromRootData()) || {};
-  const storedStudent = wmReadStudentFromStorage() || {};
-
-  const serverCandidates = [
-    window.WM_MAP_SERVER_STUDENT,
-    window.WM_LOGGED_IN_STUDENT,
-    window.WM_CURRENT_STUDENT
-  ];
-
-  let serverStudent = {};
-  for(const candidate of serverCandidates){
-    const normalized = wmNormalizeStudentObject(candidate);
-    if(normalized && (normalized.학생이름 || normalized.학생ID)){
-      serverStudent = normalized;
-      break;
-    }
-  }
-
-  const urlStudentId = wmGetUrlParam('studentId') || wmGetUrlParam('studentID') || wmGetUrlParam('sid') || wmGetUrlParam('wmStudentId');
-  const urlStudentName = wmGetUrlParam('studentName') || wmGetUrlParam('name') || wmGetUrlParam('wmStudentName') || wmGetUrlParam('wmName');
-  const urlSchool = wmGetUrlParam('school') || wmGetUrlParam('wmSchool');
-  const urlGrade = wmGetUrlParam('grade') || wmGetUrlParam('wmGrade');
-  const urlClass = wmGetUrlParam('className') || wmGetUrlParam('class') || wmGetUrlParam('Class') || wmGetUrlParam('wmClassName');
-  const urlTeacher = wmGetUrlParam('teacherName') || wmGetUrlParam('teacher') || wmGetUrlParam('wmTeacherName');
-  const urlLevel = wmGetUrlParam('level') || wmGetUrlParam('learningAssign') || wmGetUrlParam('wmLearningAssign');
-  const urlSet = wmGetUrlParam('currentSet') || wmGetUrlParam('setId') || wmGetUrlParam('set_id') || wmGetUrlParam('wmCurrentSet');
-  const urlSessionToken = wmGetUrlParam('sessionToken') || wmGetUrlParam('wmSessionToken') || wmGetUrlParam('WM_SESSION_TOKEN');
-
-  const student = wmNormalizeStudentObject({
-    학생ID: urlStudentId || rootStudent.학생ID || serverStudent.학생ID || storedStudent.학생ID || '',
-    학생이름: urlStudentName || rootStudent.학생이름 || serverStudent.학생이름 || storedStudent.학생이름 || '',
-    학교: urlSchool || rootStudent.학교 || serverStudent.학교 || storedStudent.학교 || '',
-    학년: urlGrade || rootStudent.학년 || serverStudent.학년 || storedStudent.학년 || '',
-    Class: urlClass || rootStudent.Class || serverStudent.Class || storedStudent.Class || '',
-    교사명: urlTeacher || rootStudent.교사명 || serverStudent.교사명 || storedStudent.교사명 || '',
-    학습배정: urlLevel || rootStudent.학습배정 || serverStudent.학습배정 || storedStudent.학습배정 || '4레벨',
-    현재세트: urlSet || rootStudent.현재세트 || serverStudent.현재세트 || storedStudent.현재세트 || '',
-    현재세션: urlSessionToken || rootStudent.현재세션 || serverStudent.현재세션 || storedStudent.현재세션 || storedStudent.sessionToken || '',
-    sessionToken: urlSessionToken || rootStudent.sessionToken || serverStudent.sessionToken || storedStudent.sessionToken || storedStudent.현재세션 || ''
-  });
-
-  return student || {
-    학생ID: '',
-    학생이름: '',
-    학습배정: '4레벨',
-    현재세트: ''
-  };
-}
-
-
-/* WM_SINGLE_DEVICE_MAP_SESSION_GUARD_V1
-   다른 기기에서 새로 로그인된 경우 현재 학습맵 접속을 종료합니다. */
-let wmSessionExpiredShown = false;
-let wmSessionCheckTimer = null;
-
-function wmGetCurrentSessionToken(){
-  const candidates = [
-    window.WM_SESSION_TOKEN,
-    wmCurrentStudent && (wmCurrentStudent.sessionToken || wmCurrentStudent.현재세션),
-    wmGetUrlParam('sessionToken'),
-    wmGetUrlParam('wmSessionToken')
-  ];
-
-  try{ candidates.push(sessionStorage.getItem('WM_SESSION_TOKEN')); }catch(err){}
-  try{ candidates.push(localStorage.getItem('WM_SESSION_TOKEN')); }catch(err){}
 
   try{
-    const raw = sessionStorage.getItem('wmLoggedInStudent') || localStorage.getItem('wmLoggedInStudent') || '';
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("sessionToken") || params.get("wmSessionToken") || params.get("WM_SESSION_TOKEN") || "").trim();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const direct = String(sessionStorage.getItem("WM_SESSION_TOKEN") || localStorage.getItem("WM_SESSION_TOKEN") || "").trim();
+    if(direct) return direct;
+  }catch(err){}
+
+  try{
+    const raw = sessionStorage.getItem("wmLoggedInStudent") || localStorage.getItem("wmLoggedInStudent") || "";
     if(raw){
       const parsed = JSON.parse(raw);
       const data = parsed && parsed.student ? parsed.student : parsed;
-      candidates.push(data.sessionToken || data.현재세션 || data.wmSessionToken || '');
+      const value = String(data.sessionToken || data.현재세션 || data.wmSessionToken || "").trim();
+      if(value) return value;
     }
   }catch(err){}
 
-  for(const value of candidates){
-    const text = String(value || '').trim();
-    if(text) return text;
+  return "";
+}
+function getInitialLearningMode(){
+  try{
+    const serverMode = wmReadServerStudyMode();
+    if(serverMode && typeof serverMode === 'object'){
+      return String(serverMode.S6테스트모드 || serverMode.s6 || serverMode.testMode || '').trim() || '기본전체';
+    }
+  }catch(err){}
+
+  try{
+    const raw =
+      sessionStorage.getItem("wmLoggedInStudent") ||
+      localStorage.getItem("wmLoggedInStudent") ||
+      "";
+
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const storedMode = data.학습모드 || data.learningMode || data.learningModeObject || null;
+
+      if(storedMode && typeof storedMode === 'object'){
+        return String(storedMode.S6테스트모드 || storedMode.s6 || storedMode.testMode || '').trim() || '기본전체';
+      }
+
+      const mode = String(storedMode || data.S6테스트모드 || data.s6 || "").trim();
+      if(mode) return mode;
+    }
+  }catch(err){}
+
+  return "기본전체";
+}
+
+function getInitialStudentId(){
+  const injected = "__WM_STUDENT_ID__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim().toUpperCase();
   }
-  return '';
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("studentId") || params.get("studentID") || params.get("sid") || "").trim().toUpperCase();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const raw =
+      localStorage.getItem("wmStudent") ||
+      localStorage.getItem("wmLoginStudent") ||
+      sessionStorage.getItem("wmStudent") ||
+      sessionStorage.getItem("wmLoggedInStudent") ||
+      localStorage.getItem("wmLoggedInStudent") ||
+      "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const value = String(data.학생ID || data.studentId || data.studentID || data.id || "").trim().toUpperCase();
+      if(value) return value;
+    }
+  }catch(err){}
+
+  return "";
 }
 
-function wmBuildLoginUrl(){
-  return WM_TEST_LOGIN_PAGE_URL;
+function getInitialStudentName(){
+  const injected = "__WM_STUDENT_NAME__";
+  if(injected && injected.indexOf("__WM_") !== 0){
+    return String(injected || "").trim();
+  }
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    const value = String(params.get("studentName") || params.get("name") || "").trim();
+    if(value) return value;
+  }catch(err){}
+
+  try{
+    const raw = localStorage.getItem("wmStudent") || localStorage.getItem("wmLoginStudent") || sessionStorage.getItem("wmStudent") || "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      const value = String(data.학생이름 || data.studentName || data.name || "").trim();
+      if(value) return value;
+    }
+  }catch(err){}
+
+  return "학생";
 }
 
-function wmClearLoginStorage(){
+function getInitialStudentProfile(){
+  /* WM_STUDY_STUDENT_PROFILE_PAYLOAD_V1
+     저장 payload에 학생관리_DB 기본 컬럼명을 함께 실어 보냅니다.
+     최종 보강 기준은 Code.gs의 1.학생관리_DB 조회이며, 여기서는 URL/저장소 값이 있을 때만 보조 전달합니다. */
+  const profile = {
+    school: "",
+    grade: "",
+    className: "",
+    teacherName: ""
+  };
+
+  try{
+    const params = new URLSearchParams(window.location.search || "");
+    profile.school = String(params.get("school") || params.get("학교") || "").trim();
+    profile.grade = String(params.get("grade") || params.get("학년") || "").trim();
+    profile.className = String(params.get("className") || params.get("Class") || params.get("class") || params.get("반") || "").trim();
+    profile.teacherName = String(params.get("teacherName") || params.get("교사명") || "").trim();
+  }catch(err){}
+
+  try{
+    const raw = localStorage.getItem("wmStudent") || localStorage.getItem("wmLoginStudent") || sessionStorage.getItem("wmStudent") || sessionStorage.getItem("wmLoggedInStudent") || "";
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const data = parsed && parsed.student ? parsed.student : parsed;
+      profile.school = profile.school || String(data.학교 || data.school || "").trim();
+      profile.grade = profile.grade || String(data.학년 || data.grade || "").trim();
+      profile.className = profile.className || String(data.Class || data.className || data.class || data.반 || "").trim();
+      profile.teacherName = profile.teacherName || String(data.교사명 || data.teacherName || "").trim();
+    }
+  }catch(err){}
+
+  return profile;
+}
+
+function getSaveApiUrl(){
+  /* WM_STUDY_SAVE_EXEC_URL_FIX_V2
+     HtmlService iframe 안의 window.location.href는 /exec가 아닐 수 있으므로
+     저장 API는 반드시 서버 배포 /exec 상수(API_URL)를 기준으로 호출합니다. */
+  return API_URL + "?action=saveLearningRecordV2";
+}
+
+function getProgressApiUrl(){
+  /* WM_STUDY_PROGRESS_EXEC_URL_FIX_V2
+     복귀 조회도 저장과 동일하게 실제 Apps Script /exec 상수(API_URL)를 기준으로 호출합니다. */
+  return API_URL + "?action=getLearningProgress";
+}
+
+
+
+/* WM_STUDY_STABLE_FLOW_260612_V1 */
+/* WM_SINGLE_DEVICE_STUDY_SESSION_GUARD_V1
+   학습 중 다른 기기에서 새 로그인되면 현재 학습 접속을 종료합니다. */
+let wmStudySessionExpiredShown = false;
+let wmStudySessionCheckTimer = null;
+
+function wmStudyClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
   try{ localStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
   try{ sessionStorage.removeItem('wmLoggedInStudent'); }catch(err){}
   try{ localStorage.removeItem('wmLoggedInStudent'); }catch(err){}
 }
 
-function wmShowSessionExpiredModal(){
-  if(wmSessionExpiredShown) return;
-  wmSessionExpiredShown = true;
-  if(wmSessionCheckTimer){
-    clearInterval(wmSessionCheckTimer);
-    wmSessionCheckTimer = null;
-  }
+function wmStudyGoLoginAfterSessionExpired(){
+  wmStudyClearLoginStorage();
+  window.top.location.href = WM_LOGIN_URL;
+}
 
-  let modal = document.getElementById('wmSessionExpiredModal');
+function wmStudyShowSessionExpiredModal(){
+  if(wmStudySessionExpiredShown) return;
+  wmStudySessionExpiredShown = true;
+  if(wmStudySessionCheckTimer){
+    clearInterval(wmStudySessionCheckTimer);
+    wmStudySessionCheckTimer = null;
+  }
+  try{ clearInterval(testTimer); }catch(err){}
+  try{ stopWordAudio(); }catch(err){}
+
+  let modal = document.getElementById('wmStudySessionExpiredModal');
   if(!modal){
     modal = document.createElement('div');
-    modal.id = 'wmSessionExpiredModal';
+    modal.id = 'wmStudySessionExpiredModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:20px;box-sizing:border-box;';
-    modal.innerHTML = '<div style="width:100%;max-width:360px;background:#fff;border-radius:18px;padding:24px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.2);font-family:Pretendard,Arial,sans-serif;"><div style="font-size:22px;font-weight:900;margin-bottom:12px;color:#111;">다른 기기에서 로그인되었습니다.</div><div style="font-size:15px;line-height:1.6;color:#444;margin-bottom:18px;">현재 접속은 종료됩니다.</div><button type="button" onclick="wmGoLoginAfterSessionExpired()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:13px;font-weight:900;cursor:pointer;">예</button></div>';
+    modal.innerHTML = '<div style="width:100%;max-width:360px;background:#fff;border-radius:18px;padding:24px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.2);font-family:Arial,sans-serif;"><div style="font-size:22px;font-weight:900;margin-bottom:12px;color:#111;">로그아웃되었습니다.</div><div style="font-size:15px;line-height:1.6;color:#444;margin-bottom:18px;">다른 기기에서 새로 로그인되어 현재 접속이 종료되었습니다.</div><button type="button" onclick="wmStudyGoLoginAfterSessionExpired()" style="width:100%;padding:13px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-size:16px;font-weight:900;cursor:pointer;">확인</button></div>';
     document.body.appendChild(modal);
   }else{
     modal.style.display = 'flex';
   }
 }
 
-function wmGoLoginAfterSessionExpired(){
-  wmClearLoginStorage();
-  window.top.location.href = wmBuildLoginUrl();
-}
-
-async function wmCheckCurrentSession(){
-  const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
-  const sessionToken = wmGetCurrentSessionToken();
-
-  if(!studentId || !sessionToken){
-    return true;
+async function wmStudyCheckCurrentSession(){
+  /* WM_STUDY_SESSION_GUARD_STRICT_FIX_V2_20260611
+     학생ID 또는 sessionToken이 없으면 세션검사를 통과시키지 않습니다.
+     이전 코드의 return true 때문에 토큰 누락 상태에서 자동로그아웃이 무력화될 수 있었습니다. */
+  if(!WM_STUDENT_ID || !WM_SESSION_TOKEN){
+    wmStudyShowSessionExpiredModal();
+    return false;
   }
 
   try{
-    const url = wmGetApiBaseUrl()
+    const url = API_URL
       + '?action=checkStudentSession'
-      + '&studentId=' + encodeURIComponent(studentId)
-      + '&sessionToken=' + encodeURIComponent(sessionToken)
+      + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
+      + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
       + '&t=' + Date.now();
 
     const res = await fetch(url);
     const data = await res.json();
 
-    if(data && data.success && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
-      wmShowSessionExpiredModal();
+    if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
+      wmStudyShowSessionExpiredModal();
       return false;
     }
   }catch(err){
@@ -1337,1712 +854,2051 @@ async function wmCheckCurrentSession(){
   return true;
 }
 
-function wmStartSessionWatcher(){
-  if(wmSessionCheckTimer) clearInterval(wmSessionCheckTimer);
-  wmCheckCurrentSession();
-  wmSessionCheckTimer = setInterval(function(){
-    wmCheckCurrentSession();
+function wmStudyStartSessionWatcher(){
+  if(wmStudySessionCheckTimer) clearInterval(wmStudySessionCheckTimer);
+  wmStudyCheckCurrentSession();
+  wmStudySessionCheckTimer = setInterval(function(){
+    wmStudyCheckCurrentSession();
   }, 5000);
 }
 
-function wmRenderInstantMapFromStudentCache_(){
-  /* WM_MAP_INSTANT_CURRENTSET_RENDER_V1
-     현재진행_DB 응답 전이라도 URL/currentSet 캐시로 세트 버튼을 먼저 생성해 1분 로딩 화면을 제거합니다. */
-  const student = wmCurrentStudent || {};
-  const currentSet = wmNormalizeCurrentSetIdForMap_(student.현재세트 || '');
-  let level = currentSet ? wmExtractLevelNumberFromSetId_(currentSet) : 0;
-  if(!level){
-    const match = String(student.학습배정 || '').match(/(3|4|5|6|7|8|9|10|11|12|13)/);
-    level = match ? Number(match[1]) : currentLevelNumber;
-  }
-  if(!level || !WM_LEVEL_CONFIG[level]) return false;
-
-  currentLevelNumber = level;
-  totalSets = wmBuildLevelSetData(currentLevelNumber).length;
-  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
-  const currentIndex = currentSet ? sequence.indexOf(currentSet) : -1;
-
-  setData = sequence.map(function(setId, index){
-    if(currentIndex >= 0 && index < currentIndex){
-      return {set:setId,status:'complete',progress:100,repeatCount:1,officialRound:1,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
-    }
-    if((currentIndex >= 0 && index === currentIndex) || (currentIndex < 0 && index === 0)){
-      return {set:setId,status:'current',progress:0,repeatCount:0,officialRound:0,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
-    }
-    return {set:setId,status:'locked',progress:0,repeatCount:0,officialRound:0,targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),levelComplete:false,score:'-',latestDate:''};
-  });
-
-  wmMapDataReady = true;
-  wmStopMapLoadingState_();
-  wmApplyStudentLearningMap(student, { skipMapRender:true });
-  renderSetMap();
-
-  const estimatedProgress = currentIndex >= 0 ? Math.round((currentIndex / Math.max(1, sequence.length)) * 100) : 0;
-  setText('levelPercent', estimatedProgress + '%');
-  setText('mainProgressText', estimatedProgress + '%');
-  const fill = document.getElementById('progressFill');
-  if(fill) fill.style.width = estimatedProgress + '%';
-  setText('summaryTotalSet', totalSets + ' SET');
-  setText('summaryCompleteSet', currentIndex >= 0 ? currentIndex + ' SET' : '0 SET');
-  setText('summaryProgress', estimatedProgress + '%');
-  setText('summaryRecentScore', '-');
-  renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-  wmShowMapMessage('현재진행_DB 캐시 동기화 중입니다. 세트 버튼은 즉시 사용할 수 있습니다.');
-  return true;
-}
-
-function wmInitLearningMap(){
-  wmMapDataReady = false;
-  wmCurrentStudent = wmResolveStudentInfo();
-
-  wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
-  wmShowMapLoadingState_();
-  wmRenderInstantMapFromStudentCache_();
-
-  if(wmCurrentStudent.학생ID && !wmCurrentStudent.학생이름 && window.google && google.script && google.script.run){
-    google.script.run
-      .withSuccessHandler(function(profile){
-        const normalized = wmNormalizeStudentObject(profile);
-        if(normalized && (normalized.학생이름 || normalized.학생ID)){
-          wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent, normalized);
-          wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
-        }
-      })
-      .getStudentMapProfile(wmCurrentStudent.학생ID);
-  }
-
-  if(!wmCurrentStudent.학생ID){
-    wmShowMapMessage('학생ID를 찾을 수 없습니다. 학습맵 URL에 ?studentId=S4821 형태로 학생ID를 붙이거나, 로그인 후 학습맵을 열어주세요.');
-    renderHomeworkTable([]);
-    return;
-  }
-
-  wmCheckCurrentSession().then(function(valid){
-    if(!valid) return;
-    wmFetchLearningMap(wmCurrentStudent.학생ID);
-    wmStartSessionWatcher();
-  });
-}
-
-function wmShowMapLoadingState_(){
-  const map = document.getElementById('setMap');
-  document.body.classList.add('wm-map-loading-active');
-  if(!wmMapLoadingStartAt){
-    wmMapLoadingStartAt = Date.now();
-  }
-  if(map){
-    const seconds = Math.max(0, Math.floor((Date.now() - wmMapLoadingStartAt) / 1000));
-    map.innerHTML = '<div class="wm-map-loading-block" aria-live="polite">'
-      + '<div class="wm-map-loading-spinner" aria-hidden="true"></div>'
-      + '<div>학습맵을 불러오는 중입니다.</div>'
-      + '<div class="wm-map-loading-sub">DB 확인 중입니다. 세트 버튼은 로딩 완료 후 활성화됩니다. (' + seconds + '초)</div>'
-      + '</div>';
-  }
-  setText('summaryTotalSet', '-');
-  setText('summaryCompleteSet', '-');
-  setText('summaryProgress', '-');
-  setText('summaryRecentScore', '-');
-  if(!wmMapLoadingTimer){
-    wmMapLoadingTimer = setInterval(function(){
-      if(!wmMapDataReady){
-        wmShowMapLoadingState_();
-      }
-    }, 1000);
-  }
-}
-
-function wmStopMapLoadingState_(){
-  document.body.classList.remove('wm-map-loading-active');
-  wmMapLoadingStartAt = 0;
-  if(wmMapLoadingTimer){
-    clearInterval(wmMapLoadingTimer);
-    wmMapLoadingTimer = null;
-  }
+function getSimpleDeviceInfo(){
+  const ua = String(navigator.userAgent || '').toLowerCase();
+  if(/ipad|tablet|sm-t|galaxy tab|nexus 7|nexus 9|kindle|silk/.test(ua)) return "Tap";
+  if(/mobile|iphone|android|phone|ipod/.test(ua)) return "Mobile";
+  return "PC";
 }
 
 
+let currentSetId = INITIAL_currentSetId;
+let currentSetName = makeSetName(currentSetId);
+/* WM_STUDY_COMPLETED_SET_SAVE_LOCK_V1_20260611
+   완료 화면 진입 시점의 Set_ID를 고정하여, 다음학습 이동 과정에서
+   완료 저장 Set_ID가 다음 세트로 밀려 저장되는 것을 방지합니다. */
+let WM_COMPLETED_SAVE_SET_ID = "";
+let WM_COMPLETED_SAVE_SET_NAME = "";
+let finalSavePromise = null;
+let WM_RECORD_SESSION_ID = ''; // 공식 학습기록ID는 Code.gs가 R+YY+MM+3자리 순번으로 생성합니다.
+let wmStepSaveChain = Promise.resolve();
+let wmStepSaveLastError = null;
 
-/* WM_MAP_CURRENT_PROGRESS_CACHE_ONLY_V1
-   학습맵 첫 화면은 학습기록_DB 전체 계산을 기다리지 않고 현재진행_DB 캐시값으로 즉시 표시합니다. */
-function wmPickFirstValue_(){
-  for(let i=0; i<arguments.length; i++){
-    const value = arguments[i];
-    if(value !== undefined && value !== null && String(value).trim() !== '') return value;
-  }
-  return '';
+let originalWords = [];
+
+const app = document.getElementById("wordmate-app");
+const wordAudio = document.getElementById("wordAudio");
+
+let stage = 0, index = 0;
+let currentWords = [];
+let step2Wrong = [], step3Wrong = [], memoryWrong = [];
+let isStep2Review = false, isStep3Review = false, isMemoryReview = false;
+let memoryPhase = 0, memoryCount = 0, memoryLocked = false, afterMemoryAction = null;
+let testIndex = 0, testWords = [], testTimer = null, timeLeft = BASE_TEST_TIME, isRetest = false;
+let firstTestScores = [], firstWrongWords = [], currentTestResults = [], currentTestWrongs = [];
+let wmFirstTestTotalSeconds = 0;
+let wmActiveFirstTestStartTime = 0;
+let activeTestQuestionIndex = null;
+let learningStartTime = null;
+let wmCurrentStepStartTime = null;
+let completedSteps = [];
+let latestSavedPayload = null;
+let wmResumeProgress = null;
+let wmProgressLoaded = false;
+
+let audioTimer = null;
+let audioGapTimer = null;
+let audioRepeatCount = 0;
+let audioMaxRepeat = Infinity;
+let currentAudioItem = null;
+let isDbReady = false;
+let isDbLoading = false;
+let dbLoadError = "";
+
+const WM_FULL_MEMORY_STEPS = [
+  { type:"100", count:3, label:"전체보기" },
+  { type:"70", count:2, label:"힌트기억" },
+  { type:"30", count:2, label:"부분기억" },
+  { type:"0", count:3, label:"스스로쓰기" }
+];
+
+function getSetParts(setId){
+  const match = String(setId || "").match(/^WM(\d+)-(\d+)-(\d+)$/);
+  if(!match) return null;
+  return { level:Number(match[1]), part:Number(match[2]), set:Number(match[3]) };
 }
 
-function wmParseRecent30Records_(value){
-  if(Array.isArray(value)) return value;
-  if(!value) return [];
-  if(typeof value === 'string'){
-    try{
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    }catch(err){
-      return [];
-    }
-  }
+function makeSetName(setId){
+  const parts = getSetParts(setId);
+  if(!parts) return "Basic 5-1-1";
+  return `Basic ${parts.level}-${parts.part}-${parts.set}`;
+}
+
+function wmSetBadgeHtml(){
+  const parts = getSetParts(currentSetId);
+  const label = parts ? `WM Basic ${parts.level}-${parts.part}-${parts.set}` : `WM ${makeSetName(currentSetId)}`;
+  return `<div class="wm-set-badge">${label}</div>`;
+}
+
+function wmGetLevelPartSetCounts(level){
+  const n = Number(level || 0);
+
+  if(n === 3) return [10, 10, 2];
+  if(n === 4) return [10, 10, 2];
+  if(n === 5) return [10, 10, 3];
+  if(n === 6) return [10, 10, 3];
+
+  if(n >= 7 && n <= 9) return [10, 10, 10, 10];
+  if(n >= 10 && n <= 13) return [10, 10, 10, 10, 10];
+
   return [];
 }
 
-function wmFindCurrentProgressCache_(data){
-  if(!data || typeof data !== 'object') return null;
+function getNextSetId(setId){
+  const parts = getSetParts(setId);
+  if(!parts) return "";
 
-  const candidates = [
-    data.currentProgress,
-    data.currentProgressRow,
-    data.progressCache,
-    data.mapCache,
-    data.cache,
-    data.currentRow,
-    data.current,
-    data.현재진행,
-    data.현재진행_DB,
-    data.studentProgress,
-    data.studentProfile,
-    data.profile,
-    data
-  ];
+  let level = parts.level;
+  let part = parts.part;
+  let set = parts.set + 1;
 
-  for(const candidate of candidates){
-    if(!candidate || typeof candidate !== 'object') continue;
-    const studentId = wmPickFirstValue_(candidate.학생ID, candidate.studentId, data.studentId);
-    const currentSet = wmPickFirstValue_(candidate.기록Set_ID, candidate.현재세트, candidate.Set_ID, candidate.setId, candidate.currentSet, candidate.set_id);
-    const currentLevel = wmPickFirstValue_(candidate.현재레벨, candidate.currentLevel, candidate.level);
-    const totalSetCount = wmPickFirstValue_(candidate.전체세트수, candidate.totalSetCount, candidate.totalSets);
-    const completedSetCount = wmPickFirstValue_(candidate.완료세트수, candidate.completedSetCount, candidate.completeSetCount);
+  let partCounts = wmGetLevelPartSetCounts(level);
+  let maxSet = Number(partCounts[part - 1] || 0);
 
-    if(studentId || currentSet || currentLevel || totalSetCount || completedSetCount){
-      return candidate;
-    }
+  if(!partCounts.length || !maxSet) return "";
+
+  if(set > maxSet){
+    set = 1;
+    part++;
   }
 
-  return null;
+  if(part > partCounts.length){
+    level++;
+    if(level > 13) return "";
+    part = 1;
+    set = 1;
+  }
+
+  return `WM${level}-${part}-${set}`;
 }
 
-function wmNormalizeCurrentProgressCache_(data){
-  const cache = wmFindCurrentProgressCache_(data);
-  if(!cache) return null;
-
-  const recent30 = wmParseRecent30Records_(wmPickFirstValue_(
-    cache.최근30건JSON,
-    cache.recent30JSON,
-    cache.recent30Records,
-    cache.records30,
-    data && data.recent30Records,
-    data && data.records30
-  ));
-
-  const currentSet = wmNormalizeCurrentSetIdForMap_(wmPickFirstValue_(
-    cache.기록Set_ID,
-    cache.현재세트,
-    cache.Set_ID,
-    cache.setId,
-    cache.currentSet,
-    cache.set_id
-  ));
-
-  let currentLevel = Number(wmPickFirstValue_(cache.현재레벨, cache.currentLevel, cache.level, 0));
-  if(!currentLevel && currentSet){
-    currentLevel = wmExtractLevelNumberFromSetId_(currentSet);
-  }
-
-  const totalSetCount = Number(wmPickFirstValue_(cache.전체세트수, cache.totalSetCount, cache.totalSets, 0));
-  const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, 0));
-  const levelProgress = Number(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, 0));
-  const setProgress = Number(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, 0));
-  const recentScore = wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, '');
-
-  return {
-    raw: cache,
-    currentSet: currentSet,
-    currentLevel: currentLevel,
-    totalSetCount: Number.isFinite(totalSetCount) ? totalSetCount : 0,
-    completedSetCount: Number.isFinite(completedSetCount) ? completedSetCount : 0,
-    levelProgress: Number.isFinite(levelProgress) ? levelProgress : 0,
-    setProgress: Number.isFinite(setProgress) ? setProgress : 0,
-    recentScore: recentScore,
-    recent30Records: recent30
-  };
-}
-
-function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
-  if(!cacheData) return false;
-
-  const profileSource = Object.assign({}, cacheData.raw || {}, (data && (data.studentProfile || data.profile)) || {});
-  wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, profileSource);
-  wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, wmStudentProfile || {});
-
-  if(cacheData.currentSet){
-    wmCurrentStudent.현재세트 = cacheData.currentSet;
-    wmStudentProfile.현재세트 = cacheData.currentSet;
-  }
-
-  if(cacheData.currentLevel && WM_LEVEL_CONFIG[cacheData.currentLevel]){
-    wmCurrentStudent.학습배정 = cacheData.currentLevel + '레벨';
-    wmStudentProfile.학습배정 = cacheData.currentLevel + '레벨';
-    currentLevelNumber = cacheData.currentLevel;
-  }
-
-  wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
-
-  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
-  const currentIndex = cacheData.currentSet ? sequence.indexOf(cacheData.currentSet) : -1;
-  const completedCount = Math.max(0, Math.min(sequence.length, Math.floor(cacheData.completedSetCount || 0)));
-
-  setData = sequence.map(function(setId, index){
-    const statusInfo = ((data && data.setStatusMap) || {})[setId] || ((data && data.setStatusMap) || {})['WM' + setId] || {};
-    const officialRound = Number(statusInfo.officialRound || statusInfo.repeatCount || 0);
-
-    if(index < completedCount){
-      return {
-        set:setId,
-        status:'complete',
-        progress:100,
-        repeatCount: Math.max(1, officialRound || 1),
-        officialRound: Math.max(1, officialRound || 1),
-        targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-        levelComplete:false,
-        score: String(statusInfo.latestScore || cacheData.recentScore || '-').trim() || '-',
-        latestDate: String(statusInfo.latestDate || '').trim()
-      };
-    }
-
-    if((currentIndex >= 0 && index === currentIndex) || (currentIndex < 0 && index === completedCount)){
-      return {
-        set:setId,
-        status:'current',
-        progress: Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0))),
-        repeatCount:0,
-        officialRound:0,
-        targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-        levelComplete:false,
-        score:'-',
-        latestDate:''
-      };
-    }
-
-    return {
-      set:setId,
-      status:'locked',
-      progress:0,
-      repeatCount:0,
-      officialRound:0,
-      targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-      levelComplete:false,
-      score:'-',
-      latestDate:''
-    };
-  });
-
-  totalSets = cacheData.totalSetCount || sequence.length;
-  wmLearningRecords = wmSortLearningRecordsDesc_(cacheData.recent30Records || []).slice(0, 30);
-  wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
-
-  wmMapDataReady = true;
-  wmStopMapLoadingState_();
-  renderSetMap();
-
-  const safeLevelProgress = Math.max(0, Math.min(100, Math.floor(cacheData.levelProgress || 0)));
-  setText('levelPercent', safeLevelProgress + '%');
-  setText('mainProgressText', safeLevelProgress + '%');
-  const fill = document.getElementById('progressFill');
-  if(fill) fill.style.width = safeLevelProgress + '%';
-
-  setText('summaryTotalSet', (cacheData.totalSetCount || sequence.length) + ' SET');
-  setText('summaryCompleteSet', completedCount + ' SET');
-  setText('summaryProgress', safeLevelProgress + '%');
-  setText('summaryRecentScore', cacheData.recentScore ? cacheData.recentScore + '점' : '-');
-
-  renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmShowLearningModeBanner();
-  return true;
-}
-
-function wmHandleLearningMapResponse(data){
-  if(!data || data.success !== true){
-    wmStopMapLoadingState_();
-    wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
-    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-    return;
-  }
-
-  const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
-  if(currentProgressCache && wmApplyLearningMapFromCurrentProgressCache_(currentProgressCache, data)){
-    return;
-  }
-
-  wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, data.studentProfile || data.profile || {});
-
-  if(wmStudentProfile){
-    wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, wmStudentProfile);
-    wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
-  }
-
-  /* WM_MAP_CURRENT_PROGRESS_ONLY_V1
-     속도개선: Map은 현재진행_DB만 사용합니다.
-     학습기록_DB 기반 상태 계산은 수행하지 않습니다. */
-  wmLearningRecords = Array.isArray(data.records) ? wmSortLearningRecordsDesc_(data.records).slice(0,30) : [];
-  wmServerLevelHistoryLevels = [];
-
-  renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmShowLearningModeBanner();
-}
-
-function wmFetchLearningMap(studentId){
-  wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
-
-  /* WM_GET_LEARNING_MAP_GOOGLE_SCRIPT_RUN_V1
-     HtmlService 안에서는 fetch가 CORS/redirect 때문에 Failed to fetch가 날 수 있으므로
-     우선 google.script.run으로 서버 함수를 직접 호출하고, 외부/로컬 확인 때만 fetch fallback을 사용합니다. */
-  if(window.google && google.script && google.script.run){
-    google.script.run
-      .withSuccessHandler(function(data){
-        wmHandleLearningMapResponse(data);
-      })
-      .withFailureHandler(function(err){
-        google.script.run
-          .withSuccessHandler(function(data){
-            wmHandleLearningMapResponse(data);
-          })
-          .withFailureHandler(function(fallbackErr){
-            wmStopMapLoadingState_();
-            wmShowMapMessage('getLearningMap 호출 중 오류가 발생했습니다: ' + String(fallbackErr && fallbackErr.message ? fallbackErr.message : fallbackErr));
-            renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-          })
-          .getLearningMapData(studentId);
-      })
-      .getLearningMapCacheData(studentId);
-    return;
-  }
-
-  const url = wmGetApiBaseUrl()
-    + '?mode=getLearningMapCache'
-    + '&action=getLearningMapCache'
-    + '&studentId=' + encodeURIComponent(studentId)
-    + '&t=' + Date.now();
-
-  fetch(url)
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      if(data && data.success === true){
-        wmHandleLearningMapResponse(data);
-        return;
-      }
-      const fallbackUrl = wmGetApiBaseUrl()
-        + '?action=getLearningMapData'
-        + '&studentId=' + encodeURIComponent(studentId)
-        + '&t=' + Date.now();
-      return fetch(fallbackUrl).then(function(res){ return res.json(); }).then(function(fallbackData){
-        wmHandleLearningMapResponse(fallbackData);
-      });
-    })
-    .catch(function(err){
-      wmMapDataReady = true;
-      wmStopMapLoadingState_();
-      wmShowMapMessage('현재진행_DB 캐시 응답 지연: URL/currentSet 기준 맵을 먼저 표시했습니다.');
-      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-    });
-}
-
-function wmShowMapMessage(message){
-  const box = document.getElementById('learningDetailBox');
-  if(box){
-    box.classList.remove('wm-mode-banner-box');
-    box.innerText = message;
-  }
-}
-
-function wmLearningAssignDisplay_(value){
+function wmNormalizeS4Mode(value){
   const text = String(value || '').trim();
-  const m = text.match(/(3|4|5|6|7|8|9|10|11|12|13)/);
-  const n = m ? Number(m[1]) : 4;
-  const labelMap = {
-    3:'3(초3)', 4:'4(초4)', 5:'5(초5)', 6:'6(초6)',
-    7:'7(중1)', 8:'8(중2)', 9:'9(중3)',
-    10:'10(고1)', 11:'11(고2)', 12:'12(고3)', 13:'13(수능)'
+  if(text === '0' || text === '0단계') return '0단계';
+  if(text === '1' || text === '1단계') return '1단계';
+  if(text === '2' || text === '2단계') return '2단계';
+  if(text === '3' || text === '3단계') return '3단계';
+  return '전체';
+}
+
+function wmNormalizeS6Mode(value){
+  const text = String(value || '').trim();
+  if(text === '객관식' || text === '객관식2' || text === '객관식(2개)') return '객관식(2개)';
+  if(text === '객관식+영한') return '객관식+영한';
+  if(text === '객관식+한영') return '객관식+한영';
+  return '기본전체';
+}
+
+function wmNormalizeStudyMode(mode){
+  let src = mode || {};
+
+  if(typeof src === 'string'){
+    src = { S6테스트모드: src };
+  }
+
+  const normalized = {
+    S4실루엣단계: wmNormalizeS4Mode(src.S4실루엣단계 || src.s4 || src.silhouetteStep),
+    S6테스트모드: wmNormalizeS6Mode(src.S6테스트모드 || src.s6 || src.testMode || src.학습모드 || WM_INITIAL_LEARNING_MODE),
+    레벨완료조건: String(src.레벨완료조건 || src.levelCompleteCondition || '2회').trim() || '2회',
+    레벨회차추가: Number(src.레벨회차추가 || src.extraRounds || 0) || 0,
+    applyScope: 'NEXT_SET'
   };
-  if(/[()（）]/.test(text)) return text;
-  return labelMap[n] || text || '4(초4)';
-}
 
-function wmNormalizeModeForBanner_(student){
-  const s = student || {};
-  const mode = (s.학습모드 && typeof s.학습모드 === 'object') ? s.학습모드 : {};
-  const s4 = String(s.S4실루엣단계 || mode.S4실루엣단계 || mode.s4 || '전체').trim() || '전체';
-  const s6 = String(s.S6테스트모드 || mode.S6테스트모드 || mode.s6 || mode.testMode || '기본전체').trim() || '기본전체';
-  const complete = String(s.레벨완료조건 || mode.레벨완료조건 || mode.levelCompleteCondition || '2회').trim() || '2회';
-  const extraRaw = String(s.레벨회차추가 || mode.레벨회차추가 || mode.extraRounds || '').trim();
-  const extra = Number(extraRaw || 0) || 0;
-
-  return {
-    learningAssign: wmLearningAssignDisplay_(s.학습배정 || s.learningAssign || ''),
-    s4: s4,
-    s6: s6,
-    complete: extra > 0 ? complete + '(+' + extra + '회)' : complete
-  };
-}
-
-function wmGetCurrentLevelDisplayForBanner_(){
-  const labelMap = {
-    3:'3(초3)', 4:'4(초4)', 5:'5(초5)', 6:'6(초6)',
-    7:'7(중1)', 8:'8(중2)', 9:'9(중3)',
-    10:'10(고1)', 11:'11(고2)', 12:'12(고3)', 13:'13(수능)'
-  };
-  return labelMap[currentLevelNumber] || (String(currentLevelNumber || 4) + '레벨');
-}
-
-function wmGetLevelCompleteColorGuide_(completeText){
-  const text = String(completeText || '').trim();
-  if(text.indexOf('1회') !== -1 || text === '1') return '(🔵 파랑 기준)';
-  if(text.indexOf('2회') !== -1 || text === '2') return '(🟠 주황 기준)';
-  if(text.indexOf('3회') !== -1 || text === '3') return '(🟣 보라 기준)';
-  return '(🟣 보라 기준)';
-}
-
-function wmBuildLearningModeBannerHtml_(student){
-  const mode = wmNormalizeModeForBanner_(student || wmStudentProfile || wmCurrentStudent || {});
-  const levelGuide = wmGetLevelCompleteColorGuide_(mode.complete);
-  const sep = ' <span class="wm-banner-sep" aria-hidden="true">│</span> ';
-  return '<div class="wm-learning-mode-banner" style="justify-content:center;text-align:center;">'
-    + '현재레벨: <span class="wm-mode-value">' + escapeHtml(wmGetCurrentLevelDisplayForBanner_()) + '</span>'
-    + sep + 'S4실루엣: <span class="wm-mode-value">' + escapeHtml(mode.s4) + '</span>'
-    + sep + '테스트: <span class="wm-mode-value">' + escapeHtml(mode.s6) + '</span>'
-    + sep + '레벨완료: <span class="wm-mode-value">' + escapeHtml(mode.complete) + '</span> <span class="wm-mode-sub">' + escapeHtml(levelGuide) + '</span>'
-    + sep
-    + '<span class="wm-mode-sub">'
-    + '<span style="color:#16a34a;font-weight:700;">[레벨완료기준]</span>'
-    + '에 따른 '
-    + '<span style="color:#2563eb;font-weight:700;">[세트순차완주]</span>'
-    + ' 학습 적용'
-    + '</span>'
-    + '</div>';
-}
-
-function wmShowLearningModeBanner(){
-  const box = document.getElementById('learningDetailBox');
-  if(box){
-    box.classList.add('wm-mode-banner-box');
-    box.innerHTML = wmBuildLearningModeBannerHtml_(wmStudentProfile || wmCurrentStudent || {});
-  }
-}
-
-function wmNormalizeCurrentSetIdForMap_(setId){
-  /* WM_MAP_CURRENT_SET_NORMALIZE_20260617_V1
-     2004-1-4처럼 잘못 들어온 현재세트도 화면 계산 전 4-1-4로 정규화합니다. */
-  const text = String(setId || '').trim().toUpperCase().replace(/^WM/, '');
-  const match = text.match(/^(\d+)-(\d+)-(\d+)$/);
-  if(!match) return '';
-
-  const rawLevel = Number(match[1]);
-  const part = Number(match[2]);
-  const set = Number(match[3]);
-
-  if(WM_LEVEL_CONFIG[rawLevel]){
-    return rawLevel + '-' + part + '-' + set;
-  }
-
-  const tail2 = rawLevel % 100;
-  const tail1 = rawLevel % 10;
-  if(WM_LEVEL_CONFIG[tail2]){
-    return tail2 + '-' + part + '-' + set;
-  }
-  if(WM_LEVEL_CONFIG[tail1]){
-    return tail1 + '-' + part + '-' + set;
-  }
-
-  return '';
-}
-
-function wmExtractLevelNumberFromSetId_(setId){
-  const normalized = wmNormalizeCurrentSetIdForMap_(setId);
-  const match = normalized.match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
-  return match ? Number(match[1]) : 0;
-}
-
-function wmApplyStudentLearningMap(student, options){
-  const s = student || {};
-  const levelText = String(s.학습배정 || '').trim();
-  const parsedAssignLevel = parseInt(levelText.replace(/[^0-9]/g, ''), 10);
-  const parsedCurrentSetLevel = wmExtractLevelNumberFromSetId_(s.현재세트 || s.currentSet || s.setId || s.set_id || '');
-
-  /* WM_MAP_CURRENT_LEVEL_FROM_CURRENT_SET_FIX_V1
-     레벨업 직후 학생관리_DB의 학습배정/학습모드는 직전 최종 설정을 유지하더라도,
-     학습맵에 표시할 현재 레벨은 현재세트(예: 5-1-1)를 우선합니다.
-     이렇게 해야 4레벨 완료 후 5-1-1로 넘어간 학생에게 4레벨 맵이 다시 표시되지 않습니다. */
-  const displayLevel = WM_LEVEL_CONFIG[parsedCurrentSetLevel]
-    ? parsedCurrentSetLevel
-    : (WM_LEVEL_CONFIG[parsedAssignLevel] ? parsedAssignLevel : 4);
-
-  currentLevelNumber = displayLevel;
-
-  setText('studentName', s.학생이름 || '-');
-  setText('studentId', s.학생ID || '-');
-  setText('studentSchool', s.학교 || '-');
-  setText('studentGrade', s.학년 || '-');
-  setText('studentClass', s.Class || s['반'] || '-');
-  setText('studentTeacher', s.교사명 || '-');
-  setText('studentCurrentSet', s.현재세트 || s.currentSet || s.setId || s.set_id || '-');
-  wmUpdateStudentLevelHeaderLabel_();
-  setText('currentLevelLabel', currentLevelNumber + ' LEVEL');
-  setText('progressLevelLabel', currentLevelNumber + ' LEVEL 진행률');
-
-  if(options && options.skipMapRender){
-    return;
-  }
-
-  setData = wmBuildLevelSetData(currentLevelNumber);
-  totalSets = setData.length;
-
-  renderSetMap();
-}
-
-function wmBuildLevelSetData(levelNumber){
-  const partConfig = WM_LEVEL_CONFIG[levelNumber] || WM_LEVEL_CONFIG[4];
-  const data = [];
-
-  for(let part=1; part<=partConfig.length; part++){
-    const maxSet = partConfig[part - 1];
-
-    for(let set=1; set<=maxSet; set++){
-      data.push({
-        set: levelNumber + '-' + part + '-' + set,
-        status:'locked',
-        progress:0,
-        repeatCount:0,
-        score:'-'
-      });
-    }
-  }
-
-  if(data[0]){
-    data[0].status = 'current';
-    data[0].progress = 0;
-  }
-
-  return data;
-}
-
-
-function wmGetLevelCompleteConditionForMap_(){
-  const source = wmStudentProfile || wmCurrentStudent || {};
-  const mode = (source.학습모드 && typeof source.학습모드 === 'object') ? source.학습모드 : {};
-  const raw = String(source.레벨완료조건 || mode.레벨완료조건 || mode.levelCompleteCondition || '2회').trim();
-
-  if(raw === '1' || raw === '1회') return '1회';
-  if(raw === '2' || raw === '2회') return '2회';
-  if(raw === '3' || raw === '3회') return '3회';
-  if(raw === '추가' || raw === '추가회차') return '추가';
-
-  return '2회';
-}
-
-function wmGetLevelTargetRoundLimitForMap_(){
-  const condition = wmGetLevelCompleteConditionForMap_();
-
-  if(condition === '1회') return 1;
-  if(condition === '2회') return 2;
-  if(condition === '3회') return 3;
-
-  /* '추가'는 레벨완료조건 안의 운영 선택값입니다.
-     색상은 3회 완료까지만 표시하므로 화면 표시 상한은 3으로 둡니다. */
-  if(condition === '추가') return 3;
-
-  return 2;
-}
-
-function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap){
-  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){
-    return String(item.set || '').trim();
-  });
-  const targetLimit = wmGetLevelTargetRoundLimitForMap_();
-  const officialRoundMap = {};
-
-  function normalizeSetIdForMap_(value){
-    return String(value || '').trim().toUpperCase().replace(/^WM/, '');
-  }
-
-  function parseCompleteRound_(value){
-    const text = String(value || '').trim();
-    let match = text.match(/(\d+)\s*회차/);
-    if(!match) match = text.match(/^(\d+)$/);
-    const n = match ? Number(match[1]) : 0;
-    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
-  }
-
-  function isCompletedRecord_(record){
-    const status = String(
-      (record && (record.완료상태 || record.status || record.completeStatus)) || ''
-    ).trim();
-    return status === '완료' || status.toUpperCase() === 'COMPLETE' || status.toUpperCase() === 'COMPLETED';
-  }
-
-  sequence.forEach(function(setId){
-    officialRoundMap[setId] = 0;
-  });
-
-  if(setStatusMap && typeof setStatusMap === 'object'){
-    Object.keys(setStatusMap).forEach(function(key){
-      const plain = normalizeSetIdForMap_(key);
-      if(!plain || officialRoundMap[plain] === undefined) return;
-      const item = setStatusMap[key] || {};
-      const explicitRound = parseCompleteRound_(item.완료 || item.completeRound || item.officialRoundText);
-      const numericRound = Number(item.officialRound || 0);
-      const fallbackRound = Number.isFinite(numericRound) && numericRound > 0 ? Math.floor(numericRound) : explicitRound;
-      if(fallbackRound > officialRoundMap[plain]){
-        officialRoundMap[plain] = fallbackRound;
-      }
-    });
-  }
-
-  if(Array.isArray(records)){
-    records.forEach(function(record){
-      if(!isCompletedRecord_(record)) return;
-      const plain = normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id));
-      if(!plain || officialRoundMap[plain] === undefined) return;
-
-      /* 완료 컬럼이 비어 있는 기존 완료 기록은 1회차로만 인정합니다.
-         1회차 전체 순차완주 전에는 화면에서 2회 완료가 절대 뜨지 않게 하는 핵심 안전장치입니다. */
-      const explicitRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound));
-      const safeRound = explicitRound > 0 ? explicitRound : 1;
-
-      if(safeRound > officialRoundMap[plain]){
-        officialRoundMap[plain] = safeRound;
-      }
-    });
-  }
-
-  const levelComplete = sequence.length > 0 && sequence.every(function(setId){
-    return Number(officialRoundMap[setId] || 0) >= targetLimit;
-  });
-
-  return {
-    targetLimit: targetLimit,
-    repeatMap: officialRoundMap,
-    officialRoundMap: officialRoundMap,
-    levelComplete: levelComplete
-  };
-}
-
-function wmGetDisplayRoundForBlock_(item){
-  const targetLimit = wmGetLevelTargetRoundLimitForMap_();
-  const officialRound = Number(item && item.officialRound ? item.officialRound : 0);
-  const safeRound = Math.max(0, Math.min(targetLimit, officialRound));
-
-  if(safeRound > 0) return safeRound;
-
-  if(item && item.status === 'complete'){
-    return 1;
-  }
-
-  return 0;
-}
-
-
-
-
-function wmNormalizeRecordSetIdForLevel_(value){
-  return String(value || '').trim().toUpperCase().replace(/^WM/, '');
-}
-
-function wmRecordLevelNumber_(record){
-  const candidates = [
-    record && record.Set_ID,
-    record && record.setId,
-    record && record.set_id,
-    record && record.SetID,
-    record && record['Set ID'],
-    record && record['세트ID'],
-    record && record['현재세트']
-  ];
-
-  for(const value of candidates){
-    const setId = wmNormalizeRecordSetIdForLevel_(value);
-    const match = setId.match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
-    if(match) return Number(match[1]);
-  }
-
-  return 0;
-}
-
-function wmGetHomeworkRecordsForActiveLevel_(){
-  /* WM_HOMEWORK_ACTIVE_LEVEL_FILTER_RESTORE_20260617_V1
-     하단 숙제검사/학습기록 DB는 현재 선택된 히스토리 레벨 기준으로 표시합니다.
-     - 4 LEVEL 완료 클릭: 4레벨 기록만 표시
-     - 5 LEVEL 현재 클릭: 5레벨 기록만 표시
-     - 단, 현재레벨 기록이 아직 없으면 DB를 비우지 않고 최근 기록 10줄을 표시합니다.
-       완료레벨 클릭 시에는 다른 레벨 기록을 섞지 않습니다. */
-  const records = Array.isArray(wmLearningRecords) ? wmLearningRecords : [];
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  const activeLevel = Number(currentLevelNumber || 0);
-
-  if(!activeLevel || !WM_LEVEL_CONFIG[activeLevel]){
-    return sortedRecords.slice(0, 10);
-  }
-
-  const levelRecords = sortedRecords.filter(function(record){
-    return Number(wmRecordLevelNumber_(record) || 0) === activeLevel;
-  });
-
-  if(levelRecords.length > 0){
-    return levelRecords;
-  }
-
-  if(!wmViewingCompletedHistoryLevel){
-    return sortedRecords.slice(0, 10);
-  }
-
-  return [];
-}
-
-function wmRenderHomeworkForActiveLevel_(){
-  renderHomeworkTable(wmGetHomeworkRecordsForActiveLevel_(), wmStudentProfile || wmCurrentStudent);
-}
-
-function wmUpdateStudentLevelHeaderLabel_(){
-  const isCompletedView = !!wmViewingCompletedHistoryLevel;
-  setText('studentLevelLabel', isCompletedView ? '완료 레벨' : '현재 레벨');
-  setText('studentLevel', currentLevelNumber + '레벨');
-  setText('currentLevelLabel', currentLevelNumber + ' LEVEL');
-  setText('progressLevelLabel', currentLevelNumber + ' LEVEL 진행률');
-}
-
-function wmRenderLevelHistoryBoard_(completedLevel, currentLevel){
-  const bar = document.querySelector('.level-bar');
-  if(!bar) return;
-
-  completedLevel = Number(completedLevel || 0);
-  currentLevel = Number(currentLevel || 0);
-
-  if(!completedLevel || !currentLevel || completedLevel === currentLevel){
-    bar.innerHTML = '<button class="level-block level-current"><span id="currentLevelLabel">' + currentLevelNumber + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
-    return;
-  }
-
-  wmHistoryCompletedLevel = completedLevel;
-  wmHistoryCurrentLevel = currentLevel;
-  wmSaveLevelHistoryList_([completedLevel, currentLevel]);
-
-  const completedActive = currentLevelNumber === completedLevel;
-  const currentActive = currentLevelNumber === currentLevel;
-
-  bar.innerHTML = ''
-    + '<button class="level-block level-done' + (completedActive ? ' level-history-active' : '') + '" type="button" onclick="wmSwitchHistoryLevel_(' + completedLevel + ', true)">'
-    + '<span>' + completedLevel + ' LEVEL</span><br><strong>완료</strong></button>'
-    + '<button class="level-block level-current' + (currentActive ? ' level-history-active' : '') + '" type="button" onclick="wmSwitchHistoryLevel_(' + currentLevel + ', false)">'
-    + '<span id="currentLevelLabel">' + currentLevel + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
-}
-
-
-/* WM_MAP_RECORD_LEVEL_HISTORY_BOARD_FIX_20260617_V5
-   히스토리 보드는 현재 응답 records만 믿지 않고, 같은 학생의 직전 히스토리 레벨 목록을 session/localStorage에 보존합니다.
-   5레벨 학습 후 Map 복귀 응답이 5레벨 기록만 내려와도, 이전에 표시되던 4레벨 버튼을 삭제하지 않습니다. */
-function wmGetHistoryStorageKey_(){
-  const studentId = String(
-    (wmCurrentStudent && wmCurrentStudent.학생ID) ||
-    (wmStudentProfile && wmStudentProfile.학생ID) ||
-    wmGetUrlParam('studentId') ||
-    wmGetUrlParam('studentID') ||
-    'UNKNOWN'
-  ).trim().toUpperCase();
-  return 'WM_LEVEL_HISTORY_LIST_' + studentId;
-}
-
-function wmLoadLevelHistoryList_(){
-  const key = wmGetHistoryStorageKey_();
-  const rawValues = [];
-
-  try{ rawValues.push(sessionStorage.getItem(key)); }catch(err){}
-  try{ rawValues.push(localStorage.getItem(key)); }catch(err){}
-
-  for(const raw of rawValues){
-    if(!raw) continue;
-    try{
-      const parsed = JSON.parse(raw);
-      if(Array.isArray(parsed)){
-        return parsed
-          .map(function(level){ return Number(level || 0); })
-          .filter(function(level){ return !!WM_LEVEL_CONFIG[level]; });
-      }
-    }catch(err){}
-  }
-
-  return [];
-}
-
-function wmSaveLevelHistoryList_(levels){
-  const normalized = [];
-  const seen = {};
-
-  (Array.isArray(levels) ? levels : []).forEach(function(level){
-    const n = Number(level || 0);
-    if(!WM_LEVEL_CONFIG[n] || seen[n]) return;
-    seen[n] = true;
-    normalized.push(n);
-  });
-
-  normalized.sort(function(a,b){ return a-b; });
-  if(!normalized.length) return normalized;
-
-  const key = wmGetHistoryStorageKey_();
-  const raw = JSON.stringify(normalized);
-  try{ sessionStorage.setItem(key, raw); }catch(err){}
-  try{ localStorage.setItem(key, raw); }catch(err){}
+  normalized.목표회차 = wmGetTargetRoundsFromMode(normalized);
   return normalized;
 }
 
-function wmGetStudentStartLevelForHistory_(){
-  const sources = [
-    wmStudentProfile && (wmStudentProfile.학습배정 || wmStudentProfile.learningAssign),
-    wmCurrentStudent && (wmCurrentStudent.학습배정 || wmCurrentStudent.learningAssign),
-    wmGetUrlParam('learningAssign'),
-    wmGetUrlParam('level'),
-    wmGetUrlParam('wmLearningAssign')
-  ];
+function wmGetTargetRoundsFromMode(mode){
+  const condition = String((mode && mode.레벨완료조건) || '2회').trim();
+  let base = 2;
+  if(condition === '1' || condition === '1회') base = 1;
+  else if(condition === '2' || condition === '2회') base = 2;
+  else if(condition === '3' || condition === '3회') base = 3;
+  else if(condition === '추가' || condition === '추가회차') base = 2;
 
-  for(const value of sources){
-    const match = String(value || '').match(/(3|4|5|6|7|8|9|10|11|12|13)/);
-    if(match && WM_LEVEL_CONFIG[Number(match[1])]){
-      return Number(match[1]);
+  const extra = Math.max(0, Math.floor(Number((mode && mode.레벨회차추가) || 0) || 0));
+  return Math.max(1, Math.min(6, base + extra));
+}
+
+function wmStudyModeCacheKey(setId){
+  return 'wordmate_learning_mode_' + String(WM_STUDENT_ID || 'UNKNOWN').trim().toUpperCase() + '_' + String(setId || '').trim().toUpperCase();
+}
+
+function wmReadCachedStudyMode(setId){
+  try{
+    const raw = localStorage.getItem(wmStudyModeCacheKey(setId)) || '';
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return wmNormalizeStudyMode(parsed);
+  }catch(err){
+    return null;
+  }
+}
+
+function wmCacheStudyMode(setId, mode){
+  try{
+    localStorage.setItem(wmStudyModeCacheKey(setId), JSON.stringify(wmNormalizeStudyMode(mode)));
+  }catch(err){}
+}
+
+async function wmFetchStudentLearningMode(){
+  const serverMode = wmReadServerStudyMode();
+  if(serverMode){
+    WM_ACTIVE_LEARNING_ASSIGN = wmReadServerLearningAssign();
+    return wmNormalizeStudyMode(serverMode);
+  }
+
+  if(!WM_STUDENT_ID) return wmNormalizeStudyMode(WM_DEFAULT_STUDY_MODE);
+
+  try{
+    const res = await fetch(
+      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&ts=' + Date.now(),
+      { method:'GET', cache:'no-store' }
+    );
+    const data = await res.json();
+    if(data && data.success && data.learningMode){
+      WM_ACTIVE_LEARNING_ASSIGN = String(data.learningAssign || (data.modeColumns && data.modeColumns.학습배정) || '').trim();
+      return wmNormalizeStudyMode(data.learningMode);
     }
+  }catch(err){
+    console.warn('Word Mate learning mode load failed', err);
   }
 
-  return 3;
+  const cached = wmReadCachedStudyMode(currentSetId);
+  if(cached) return cached;
+
+  return wmNormalizeStudyMode(WM_DEFAULT_STUDY_MODE);
 }
 
-function wmGetRecordLevelListForHistory_(records){
-  const levelMap = {};
-  const list = [];
-  const startLevel = wmGetStudentStartLevelForHistory_();
+async function wmPrepareStudyModeForCurrentSet(){
+  /* WM_STUDENT_DB_MODE_APPLY_20260616_V1
+     학생관리_DB의 학습배정/S4/S6/레벨완료조건/레벨회차추가를 우선 적용합니다.
+     이전 캐시가 있더라도 먼저 서버 DB 값을 다시 읽고, 실패할 때만 캐시를 사용합니다. */
+  const mode = await wmFetchStudentLearningMode();
+  WM_ACTIVE_STUDY_MODE = mode;
+  WM_ACTIVE_STUDY_MODE_SET_ID = currentSetId;
+  wmCacheStudyMode(currentSetId, mode);
+  return WM_ACTIVE_STUDY_MODE;
+}
 
-  function addLevel(level){
-    const n = Number(level || 0);
-    if(!WM_LEVEL_CONFIG[n] || levelMap[n]) return;
+function getActiveS4Mode(){
+  return wmNormalizeS4Mode(WM_ACTIVE_STUDY_MODE && WM_ACTIVE_STUDY_MODE.S4실루엣단계);
+}
 
-    /* WM_HISTORY_START_LEVEL_FILTER_20260617_V3
-       학생 시작레벨보다 낮은 레벨은 히스토리 버튼에 표시하지 않습니다.
-       예: 4레벨 시작 학생은 records에 3레벨 잔여/오염 기록이 있어도 3 LEVEL을 숨깁니다.
-       실제 3레벨부터 시작한 학생은 startLevel이 3이므로 3 LEVEL이 정상 표시됩니다. */
-    if(n < startLevel) return;
+function getActiveS6Mode(){
+  return wmNormalizeS6Mode(WM_ACTIVE_STUDY_MODE && WM_ACTIVE_STUDY_MODE.S6테스트모드);
+}
 
-    levelMap[n] = true;
-    list.push(n);
+function getActiveMemorySteps(){
+  const mode = getActiveS4Mode();
+  if(mode === '0단계') return [];
+  if(mode === '1단계') return WM_FULL_MEMORY_STEPS.slice(0,1);
+  if(mode === '2단계') return WM_FULL_MEMORY_STEPS.slice(0,2);
+  if(mode === '3단계') return WM_FULL_MEMORY_STEPS.slice(0,3);
+  return WM_FULL_MEMORY_STEPS;
+}
+
+function getActiveMemoryTotalRounds(){
+  return getActiveMemorySteps().reduce((sum, step)=>sum + Number(step.count || 0), 0);
+}
+
+function showStudyConfirmModal(message, onConfirm){
+  let modal = document.getElementById("wmStudyConfirmModal");
+  if(!modal){
+    modal = document.createElement("div");
+    modal.id = "wmStudyConfirmModal";
+    modal.className = "wm-exit-modal";
+    document.body.appendChild(modal);
   }
 
-  if(Array.isArray(records)){
-    records.forEach(function(record){
-      addLevel(wmRecordLevelNumber_(record));
-    });
-  }
-
-  addLevel(currentLevelNumber);
-
-  list.sort(function(a,b){ return a-b; });
-  return list;
-}
-
-function wmRenderRecordLevelHistoryBoard_(records){
-  const bar = document.querySelector('.level-bar');
-  if(!bar) return;
-
-  let levels = wmGetRecordLevelListForHistory_(records);
-
-  if(levels.length <= 1){
-    const onlyLevel = levels.length ? levels[0] : currentLevelNumber;
-    bar.innerHTML = '<button class="level-block level-current"><span id="currentLevelLabel">' + onlyLevel + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
-    return;
-  }
-
-  const latestLevel = Math.max.apply(null, levels);
-  bar.innerHTML = levels.map(function(level){
-    const isActive = Number(currentLevelNumber || 0) === Number(level || 0);
-    const isCurrentLevel = Number(level || 0) === Number(latestLevel || 0);
-    const completedView = !isCurrentLevel;
-    const cls = isCurrentLevel ? 'level-current' : 'level-done';
-    const activeCls = isActive ? ' level-history-active' : '';
-    const strongId = isActive ? ' id="levelPercent"' : '';
-    const label = isActive ? '0%' : (isCurrentLevel ? '현재' : '완료');
-
-    return '<button class="level-block ' + cls + activeCls + '" type="button" onclick="wmSwitchHistoryLevel_(' + level + ', ' + (completedView ? 'true' : 'false') + ')">'
-      + '<span' + (isActive ? ' id="currentLevelLabel"' : '') + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
-  }).join('');
-
-  wmHistoryCompletedLevel = levels.length >= 2 ? levels[0] : 0;
-  wmHistoryCurrentLevel = latestLevel;
-}
-
-function wmSwitchHistoryLevel_(levelNumber, completedView){
-  levelNumber = Number(levelNumber || 0);
-  if(!WM_LEVEL_CONFIG[levelNumber] || !wmLastLearningMapData) return;
-
-  currentLevelNumber = levelNumber;
-  wmViewingCompletedHistoryLevel = !!completedView;
-  wmUpdateStudentLevelHeaderLabel_();
-  wmApplyLearningMapStatus(Object.assign({}, wmLastLearningMapData, {
-    __forceLevel: true,
-    __forceLevelDone: !!completedView
-  }));
-  wmRenderHomeworkForActiveLevel_();
-  updateRecentScore(wmGetHomeworkRecordsForActiveLevel_());
-  wmShowLearningModeBanner();
-}
-
-function wmApplyLearningMapStatus(mapData){
-  mapData = mapData || {};
-  if(!mapData.__forceLevel){
-    wmLastLearningMapData = {
-      completedSetIds: mapData.completedSetIds || [],
-      setStatusMap: mapData.setStatusMap || {},
-      records: Array.isArray(mapData.records) ? mapData.records : [],
-      levelHistoryLevels: Array.isArray(mapData.levelHistoryLevels) ? mapData.levelHistoryLevels.slice() : []
+  modal.innerHTML = `<div class="wm-exit-box"><div class="wm-exit-text" style="font-size:17px;font-weight:800;color:#111;line-height:1.75;margin-bottom:18px;">${message}</div><div class="wm-exit-actions"><button class="wm-continue-btn" type="button" id="wmStudyConfirmOkBtn">확인</button></div></div>`;
+  modal.style.display = "flex";
+  const okBtn = document.getElementById("wmStudyConfirmOkBtn");
+  if(okBtn){
+    okBtn.onclick = function(){
+      modal.style.display = "none";
+      if(typeof onConfirm === "function") onConfirm();
     };
   }
-
-  const completedSetIds = mapData.completedSetIds || [];
-  const setStatusMap = mapData.setStatusMap || {};
-  const records = Array.isArray(mapData.records) ? mapData.records : [];
-  if(Array.isArray(mapData.levelHistoryLevels)){
-    wmServerLevelHistoryLevels = mapData.levelHistoryLevels.slice();
-  }
-  const forceLevelDone = !!mapData.__forceLevelDone;
-
-  function normalizeSetIdForMap_(value){
-    return String(value || '').trim().toUpperCase().replace(/^WM/, '');
-  }
-
-  function isCompletedRecord_(record){
-    const status = String(
-      (record && (record.완료상태 || record.status || record.completeStatus)) || ''
-    ).trim();
-    return status === '완료' || status.toUpperCase() === 'COMPLETE' || status.toUpperCase() === 'COMPLETED';
-  }
-
-  const completedSet = new Set();
-
-  completedSetIds.forEach(function(id){
-    const plain = normalizeSetIdForMap_(id);
-    if(plain){
-      completedSet.add(plain);
-      completedSet.add('WM' + plain);
-    }
-  });
-
-  records.forEach(function(record){
-    if(!isCompletedRecord_(record)) return;
-    const plain = normalizeSetIdForMap_(record.Set_ID || record.setId || record.set_id);
-    if(plain){
-      completedSet.add(plain);
-      completedSet.add('WM' + plain);
-    }
-  });
-
-  function getStatusInfoForSet(setId){
-    const raw = String(setId || '').trim();
-    const wm = raw.indexOf('WM') === 0 ? raw : 'WM' + raw;
-    const noWm = raw.replace(/^WM/, '');
-    return setStatusMap[raw] || setStatusMap[wm] || setStatusMap[noWm] || {};
-  }
-
-  function getRecordInfoForSet(setId){
-    const wanted = normalizeSetIdForMap_(setId);
-    const matched = records
-      .filter(function(record){
-        return normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) === wanted;
-      })
-      .sort(function(a, b){
-        return wmGetLearningRecordSortTime_(b && b.학습날짜) - wmGetLearningRecordSortTime_(a && a.학습날짜);
-      });
-
-    return matched[0] || {};
-  }
-
-  function getRepeatCountFromRecords(setId){
-    const wanted = normalizeSetIdForMap_(setId);
-    return records.filter(function(record){
-      return normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) === wanted && isCompletedRecord_(record);
-    }).length;
-  }
-
-  function getProgressFromStatus(statusInfo){
-    const directProgress = Number(
-      statusInfo.progressPercent ||
-      statusInfo.progress ||
-      statusInfo.inProgressPercent ||
-      0
-    );
-
-    if(directProgress > 0){
-      return Math.min(99, Math.floor(directProgress));
-    }
-
-    const completedStepCount = Number(
-      statusInfo.completedStepCount ||
-      statusInfo.completedStepsCount ||
-      statusInfo.stepCount ||
-      statusInfo.doneStepCount ||
-      0
-    );
-
-    if(completedStepCount > 0){
-      return Math.min(99, Math.floor((completedStepCount / 6) * 100));
-    }
-
-    return 0;
-  }
-
-  /* WM_MAP_DB_BASED_SEQUENTIAL_COLOR_RULE_V1
-     세트블럭 색상/문구는 실제 repeatCount가 아니라
-     학생관리_DB의 레벨완료조건 + 세트순차완주 공식회차를 기준으로 표시합니다. */
-  const sequentialState = wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap);
-
-  /* WM_MAP_LEVEL_HISTORY_AUTO_SWITCH_V1
-     현재 레벨이 레벨완료 상태가 되면 상단 History 보드에 완료 레벨과 다음 레벨을 나란히 표시하고,
-     기본 화면은 다음 레벨 학습맵으로 전환합니다. 완료 레벨 버튼을 누르면 해당 레벨 히스토리를 다시 볼 수 있습니다. */
-  if(!mapData.__forceLevel && sequentialState.levelComplete && currentLevelNumber < 13){
-    const completedLevel = currentLevelNumber;
-    const nextLevel = currentLevelNumber + 1;
-    wmRenderLevelHistoryBoard_(completedLevel, nextLevel);
-    currentLevelNumber = nextLevel;
-    wmViewingCompletedHistoryLevel = false;
-    wmUpdateStudentLevelHeaderLabel_();
-    wmApplyLearningMapStatus(Object.assign({}, wmLastLearningMapData, { __forceLevel: true }));
-    return;
-  }
-
-  if(wmHistoryCompletedLevel && wmHistoryCurrentLevel){
-    wmRenderLevelHistoryBoard_(wmHistoryCompletedLevel, wmHistoryCurrentLevel);
-  }
-
-  /* WM_MAP_RECORD_PROGRESS_SYNC_V1
-     하단 학습기록_DB에 완료 기록이 있으면 상단 블럭/진행률도 같은 기록을 반영합니다.
-     완료 기록은 순차 current 배정 여부와 무관하게 완료 블럭으로 표시하고,
-     첫 미완료 세트 1개만 학습중(current)으로 둡니다. */
-  let currentAssigned = false;
-
-  setData = wmBuildLevelSetData(currentLevelNumber).map(function(item){
-    const statusInfo = getStatusInfoForSet(item.set);
-    const recordInfo = getRecordInfoForSet(item.set);
-    const isComplete = completedSet.has(item.set) || completedSet.has('WM' + item.set);
-    const recordRepeatCount = getRepeatCountFromRecords(item.set);
-    const repeatCount = Math.max(1, Number(statusInfo.repeatCount || 0), recordRepeatCount);
-
-    if(isComplete){
-      return {
-        set:item.set,
-        status:'complete',
-        progress:100,
-        repeatCount: repeatCount,
-        officialRound: Number((sequentialState.officialRoundMap || {})[item.set] || 0),
-        targetRoundLimit: Number(sequentialState.targetLimit || 1),
-        levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-        score: String(statusInfo.latestScore || recordInfo.한영주관식 || recordInfo.점수 || '-').trim() || '-',
-        latestDate: String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
-      };
-    }
-
-    if(!currentAssigned){
-      currentAssigned = true;
-      return {
-        set:item.set,
-        status:'current',
-        progress:getProgressFromStatus(statusInfo),
-        repeatCount:0,
-        officialRound:0,
-        targetRoundLimit: Number(sequentialState.targetLimit || 1),
-        levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-        score:'-',
-        latestDate: String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
-      };
-    }
-
-    return {
-      set:item.set,
-      status:'locked',
-      progress:0,
-      repeatCount:0,
-      officialRound:0,
-      targetRoundLimit: Number(sequentialState.targetLimit || 1),
-      levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-      score:'-',
-      latestDate:''
-    };
-  });
-
-  wmRenderRecordLevelHistoryBoard_(records);
-  wmMapDataReady = true;
-  wmStopMapLoadingState_();
-  renderSetMap();
 }
 
-function renderSetMap(){
-  const map=document.getElementById('setMap');
-  if(!map) return;
-
-  if(!wmMapDataReady){
-    wmShowMapLoadingState_();
-    return;
-  }
-
-  const partConfig = WM_LEVEL_CONFIG[currentLevelNumber] || WM_LEVEL_CONFIG[4];
-  const rows = [];
-
-  for(let part=partConfig.length; part>=1; part--){
-    const maxSet = partConfig[part - 1];
-    const rowItems = [];
-
-    for(let set=1; set<=maxSet; set++){
-      const found = setData.find(function(item){
-        return item.set === currentLevelNumber + '-' + part + '-' + set;
-      });
-      if(found){
-        rowItems.push(found);
+function renderStep4SkippedNotice(nextAction){
+  showStudyConfirmModal(
+    "이번 Set에서는<br>Step 4 쓰기학습이 생략되고<br>Step 5 학습으로 넘어갑니다.",
+    function(){
+      if(typeof nextAction === "function"){
+        nextAction();
+        return;
       }
+      stage=6;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
     }
-
-    rows.push(rowItems);
-  }
-
-  map.innerHTML = rows.map(function(rowItems){
-    const shortClass = rowItems.length < 10 ? ' set-row-short' : '';
-    const shortStyle = rowItems.length < 10 ? ' style="grid-template-columns:repeat(' + rowItems.length + ',1fr);"' : '';
-
-    return `
-      <div class="set-row${shortClass}"${shortStyle}>
-        ${rowItems.map(function(item){
-          /* WM_MAP_REPEAT3_RESTUDY_UNLOCK_V1
-             3회 완료 세트도 복습 진입을 허용합니다.
-             잠금 세트만 상세보기/진입차단으로 처리합니다. */
-          const blockAction =
-            item.status === 'locked'
-              ? 'showSetDetail'
-              : 'startStudy';
-          return `
-            <button class="set-block ${getBlockClass(item)}" onclick="${blockAction}('${item.set}')">
-              ${getBlockContent(item)}
-            </button>
-          `;
-        }).join('')}
-      </div>
-    `;
-  }).join('');
-
-  updateProgress();
+  );
 }
 
-function getBlockClass(item){
-  if(item.status==='locked') return 'set-locked';
-  if(item.status==='current') return 'set-current';
+function getTestList(){
+  const mode = getActiveS6Mode();
 
-  if(item.levelComplete === true){
-    return 'set-leveldone';
+  if(mode === '객관식(2개)'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" }
+    ];
   }
 
-  const displayRound = wmGetDisplayRoundForBlock_(item);
+  if(mode === '객관식+영한'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 영한 TEST`, type:"write", direction:"eng-ko" }
+    ];
+  }
 
-  if(displayRound >= 3) return 'set-complete-3';
-  if(displayRound === 2) return 'set-complete-2';
-  return 'set-complete-1';
+  if(mode === '객관식+한영'){
+    return [
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+      { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 한영 TEST`, type:"write", direction:"ko-eng" }
+    ];
+  }
+
+  return [
+    { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 영한 TEST`, type:"choice", direction:"eng-ko" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>객관식 한영 TEST`, type:"choice", direction:"ko-eng" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 영한 TEST`, type:"write", direction:"eng-ko" },
+    { title:`영어잡는 Word Mate ${currentSetName}<br>주관식 한영 TEST`, type:"write", direction:"ko-eng" }
+  ];
 }
 
-function getBlockContent(item){
-  if(item.status==='locked'){
-    return `<span class="lock-icon">🌱</span><br><small>${item.set}</small>`;
-  }
-
-  if(item.status==='current'){
-    return `${item.progress || 0}%<br>${item.set}<br><small>학습중</small>`;
-  }
-
-  const scoreText = item.score && item.score !== '-' ? item.score + '점' : '완료';
-
-  if(item.levelComplete === true){
-    return `${scoreText}<br>${item.set}<br><small>레벨완료</small>`;
-  }
-
-  const displayRound = wmGetDisplayRoundForBlock_(item) || 1;
-  return `${scoreText}<br>${item.set}<br><small>${displayRound}회 완료</small>`;
+function getActiveTestGuideText(){
+  return getTestList().map(test=>{
+    if(test.type === 'choice' && test.direction === 'eng-ko') return '영한객관식';
+    if(test.type === 'choice' && test.direction === 'ko-eng') return '한영객관식';
+    if(test.type === 'write' && test.direction === 'eng-ko') return '영한주관식';
+    if(test.type === 'write' && test.direction === 'ko-eng') return '한영주관식';
+    return 'TEST';
+  }).join(' · ');
 }
 
-function updateProgress(){
-  /* WM_LEVEL_PROGRESS_RULE_20260608_V1
-     레벨 진행률 = 완료세트 ÷ 전체세트 × 100, 소수점 반올림.
-     현재 학습중 세트의 내부 진행률은 레벨 진행률에 더하지 않습니다.
-     상단(levelPercent/mainProgressText/studentLevel)과 하단(summaryProgress)은 동일값으로 표시합니다. */
-  const completeCount = setData.filter(function(item){
-    return item.status === 'complete';
-  }).length;
 
-  const percent = totalSets ? Math.round((completeCount / totalSets) * 100) : 0;
-
-  const activeLevelDone = setData.length > 0 && setData.every(function(item){ return item.levelComplete === true; });
-  const levelPercentText = activeLevelDone ? '완료' : (percent + '%');
-
-  setText('levelPercent', levelPercentText);
-  setText('mainProgressText', activeLevelDone ? '100%' : (percent + '%'));
-  setText('summaryProgress', activeLevelDone ? '100%' : (percent + '%'));
-  wmUpdateStudentLevelHeaderLabel_();
-  setText('summaryTotalSet', totalSets + ' SET');
-  setText('summaryCompleteSet', completeCount + ' SET');
-
-  const fill=document.getElementById('progressFill');
-  if(fill){
-    fill.style.width=percent + '%';
-  }
-}
-
-function wmGetLearningRecordSortTime_(value){
-  const text = String(value || '').trim();
-  if(!text) return 0;
-
-  const normalized = text.replace(/\./g, '-').replace(/\//g, '-');
-  const parsed = new Date(normalized);
-  if(!Number.isNaN(parsed.getTime())){
-    return parsed.getTime();
-  }
-
-  const match = text.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})(?:[^0-9]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-  if(match){
-    return new Date(
-      Number(match[1]),
-      Number(match[2]) - 1,
-      Number(match[3]),
-      Number(match[4] || 0),
-      Number(match[5] || 0),
-      Number(match[6] || 0)
-    ).getTime();
-  }
-
-  return 0;
-}
-
-function wmSortLearningRecordsDesc_(records){
-  if(!Array.isArray(records)) return [];
-  return records.slice().sort(function(a, b){
-    return wmGetLearningRecordSortTime_(b && b.학습날짜) - wmGetLearningRecordSortTime_(a && a.학습날짜);
-  });
-}
-
-function updateRecentScore(records){
-  /* WM_RECENT_SCORE_NON_EMPTY_V1
-     최근점수는 최근 학습기록 중 실제 점수값이 있는 첫 번째 기록을 표시합니다.
-     진행중 저장 행처럼 점수가 아직 비어 있는 기록은 건너뜁니다. */
-  if(!Array.isArray(records) || records.length === 0){
-    setText('summaryRecentScore', '-');
-    return;
-  }
-
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  for(const record of sortedRecords){
-    const score = String((record && (record.한영주관식 || record.점수)) || '').trim();
-    if(score){
-      setText('summaryRecentScore', score + '점');
-      return;
-    }
-  }
-
-  setText('summaryRecentScore', '-');
-}
-
-function renderHomeworkTable(records, profile){
-  const tbody = document.getElementById('homeworkTableBody');
-  if(!tbody) return;
-
-  if(!Array.isArray(records) || records.length === 0){
-    const baseProfile = wmBuildEmptyLearningRecordFromProfile(profile || wmStudentProfile || wmCurrentStudent);
-
-    if(baseProfile && (baseProfile.학생ID || baseProfile.학생이름)){
-      tbody.innerHTML = wmRenderHomeworkRow(baseProfile);
-    }else{
-      tbody.innerHTML = '<tr><td colspan="18">아직 표시할 학습기록이 없습니다.</td></tr>';
-    }
-    wmInitHomeworkTopScrollbar();
-    return;
-  }
-
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  tbody.innerHTML = sortedRecords.map(function(record){
-    return wmRenderHomeworkRow(record);
-  }).join('');
-  wmInitHomeworkTopScrollbar();
-}
-
-function wmBuildEmptyLearningRecordFromProfile(profile){
-  const p = wmNormalizeStudentObject(profile || {}) || {};
-  const currentSet = String(p.현재세트 || wmGetFirstSetIdForCurrentLevel() || '').trim();
-
+function getFinalOfficialTestScore(){
+  const scores = Array.isArray(firstTestScores) ? firstTestScores : [];
+  if(!scores.length) return null;
+  const last = scores[scores.length - 1] || {};
   return {
-    학습기록ID: '',
-    학습날짜: '',
-    학생ID: p.학생ID || '',
-    학생이름: p.학생이름 || '',
-    학교: p.학교 || p.school || '',
-    학년: p.학년 || p.grade || '',
-    Class: p.Class || p.className || p['반'] || '',
-    교사명: p.교사명 || p.teacherName || '',
-    Set_ID: currentSet,
-    점수: '',
-    총소요시간: '',
-    Step1_총시간: '',
-    Step2_총시간: '',
-    Step3_총시간: '',
-    Step4_총시간: '',
-    시험전학습: '',
-    Test_총시간: '',
-    영한객관식: '',
-    한영객관식: '',
-    영한주관식: '',
-    한영주관식: '',
-    완료: '',
-    완료상태: '학습전',
-    기기정보: '',
-    비고: '학생관리_DB 기본정보'
+    title: last.title || '',
+    type: last.type || '',
+    direction: last.direction || '',
+    score: Number(last.score || 0),
+    total: Number(last.total || 0),
+    percent: Number(last.percent || 0)
   };
 }
 
-function wmGetFirstSetIdForCurrentLevel(){
-  return currentLevelNumber + '-1-1';
+function getFinalOfficialScoreText(){
+  const finalScore = getFinalOfficialTestScore();
+  return finalScore ? String(finalScore.percent) : '';
 }
 
-function wmFormatScoreWithPoint_(value){
-  const text = String(value === undefined || value === null ? '' : value).trim();
-  if(!text) return '';
-  if(text === '-') return '';
-  return /점$/.test(text) ? text : text + '점';
+function todayString(){
+  const d = new Date();
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function wmRenderHomeworkRow(record){
-  return `
-    <tr>
-      <td>${escapeHtml(record.학습날짜 || '')}</td>
-      <td>${escapeHtml(record.Set_ID || '')}</td>
-      <td class="score">${escapeHtml(wmFormatScoreWithPoint_(record.한영주관식 || record.점수 || ''))}</td>
-      <td class="time">${escapeHtml(record.총소요시간 || '')}</td>
-      <td>${escapeHtml(record.Step1_총시간 || '')}</td>
-      <td>${escapeHtml(record.Step2_총시간 || '')}</td>
-      <td>${escapeHtml(record.Step3_총시간 || '')}</td>
-      <td>${escapeHtml(record.Step4_총시간 || '')}</td>
-      <td>${escapeHtml(record.시험전학습 || record.시험전재학습 || '')}</td>
-      <td class="time">${escapeHtml(record.Test_총시간 || '')}</td>
-      <td>${escapeHtml(wmFormatScoreWithPoint_(record.영한객관식))}</td>
-      <td>${escapeHtml(wmFormatScoreWithPoint_(record.한영객관식))}</td>
-      <td>${escapeHtml(wmFormatScoreWithPoint_(record.영한주관식))}</td>
-      <td>${escapeHtml(wmFormatScoreWithPoint_(record.한영주관식))}</td>
-      <td>${escapeHtml(record.완료 || '')}</td>
-      <td>${escapeHtml(record.완료상태 || '')}</td>
-      <td>${escapeHtml(record.기기정보 || '')}</td>
-      <td>${escapeHtml(record.비고 || '')}</td>
-    </tr>
-  `;
+function shuffle(array){return [...array].sort(()=>Math.random()-0.5);}
+
+function wrongRetryTitle(stepTitle,count){
+  return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재학습합니다.</span>`;
 }
 
-function wmInitHomeworkTopScrollbar(){
-  /* WM_HOMEWORK_BOTTOM_FIXED_SCROLLBAR_INIT_LOCK_V5
-     페이지 진입 직후부터 하단 가로 스크롤바가 fixed 상태로 보이도록
-     CSS fixed 강제 + 렌더링 직후/지연/로드/리사이즈/스크롤 시 폭을 동기화합니다. */
-  const bottomBar = document.getElementById('homeworkScrollBottomFixed');
-  const detailBox = document.querySelector('#wm-learning-record-widget .detail-box');
-  const table = document.querySelector('#wm-learning-record-widget .homework-table');
-  const inner = bottomBar ? bottomBar.querySelector('.homework-scroll-bottom-inner') : null;
-  if(!bottomBar || !detailBox || !table || !inner) return;
+function learningGuide(color = "blue"){
+  const guideColor = color === "red" ? "#dc2626" : "#2563eb";
+  return `<div class="wm-learning-guide" style="color:${guideColor};">언어의 빠른 정복을 위해<br>영어와 한글을 소리내어 따라하면서 학습하세요</div>`;
+}
 
-  function forceFixedBar(){
-    bottomBar.style.position = 'fixed';
-    bottomBar.style.left = '18px';
-    bottomBar.style.right = '18px';
-    bottomBar.style.bottom = '12px';
-    bottomBar.style.zIndex = '9998';
-    bottomBar.style.display = 'block';
-    bottomBar.style.visibility = 'visible';
-    bottomBar.style.opacity = '1';
+function testGuide(test){
+  if(test.type==="choice" && test.direction==="eng-ko") return `<div class="wm-test-guide">다음 영어에 맞는 우리말 뜻을 고르세요</div>`;
+  if(test.type==="choice" && test.direction==="ko-eng") return `<div class="wm-test-guide">다음 한글에 맞는 영어를 고르세요</div>`;
+  if(test.type==="write" && test.direction==="eng-ko") return `<div class="wm-test-guide">다음 영어를 보고 우리말의미를 쓰세요.</div>`;
+  if(test.type==="write" && test.direction==="ko-eng") return `<div class="wm-test-guide">다음 한글을 보고 영어로 쓰세요.</div>`;
+  return "";
+}
+
+
+function fixDriveAudioUrl(url){
+  const raw = String(url || "").trim();
+  if(!raw) return "";
+  const match = raw.match(/\/d\/([^/]+)/) || raw.match(/[?&]id=([^&]+)/);
+  if(match && match[1]){
+    return "https://drive.google.com/uc?export=download&id=" + match[1];
   }
+  return raw;
+}
 
-  function syncWidth(){
-    const tableWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 1760);
-    inner.style.width = tableWidth + 'px';
-    forceFixedBar();
-  }
+function normalizeDbWord(item){
+  return {
+    word: item.word || item.Word || "",
+    meaning: item.meaning || item.meaning_kr || item.Meaning_KR || "",
+    pos: item.pos || item.POS || "",
+    example_en: item.example_en || item.Example_EN || "",
+    example_kr: item.example_kr || item.Example_KR || "",
+    start: Number(item.start ?? item.Start_Time ?? item.start_time ?? item.START_TIME),
+    end: Number(item.end ?? item.End_Time ?? item.end_time ?? item.END_TIME)
+  };
+}
 
-  syncWidth();
+function renderDbLoading(){
+  app.innerHTML = `
+    <div class="wm-card">
+      ${wmSetBadgeHtml()}
+      <div class="wm-title">
+        영어잡는 Word Mate<br>
+        ${currentSetName}
+      </div>
 
-  if(window.requestAnimationFrame){
-    requestAnimationFrame(syncWidth);
-    requestAnimationFrame(function(){
-      requestAnimationFrame(syncWidth);
+      <div style="padding:30px 0 24px;text-align:center;">
+        <div class="wm-meaning" style="font-size:25px;margin:4px 0 24px;">
+          학습 데이터를 불러오는 중입니다.
+        </div>
+
+        <div style="
+          width:58px;
+          height:58px;
+          border:6px solid #e5e7eb;
+          border-top-color:#2563eb;
+          border-radius:50%;
+          margin:0 auto 22px;
+          animation:wmSpin .8s linear infinite;
+        "></div>
+
+        <div class="wm-small" style="font-size:15px;color:#555;line-height:1.6;">
+          잠시만 기다려 주세요.
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadSetFromDB(){
+  if(isDbLoading) return false;
+
+  isDbLoading = true;
+  dbLoadError = "";
+  renderDbLoading();
+
+  try{
+    const callbackName = "wmCallback_" + Date.now();
+    const data = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(result){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(result);
+      };
+
+      script = document.createElement("script");
+      script.src = API_URL
+        + "?action=getSetData"
+        + "&set_id=" + encodeURIComponent(currentSetId)
+        + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
+        + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&t=" + Date.now();
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("JSONP load error"));
+      };
+      document.body.appendChild(script);
+
+      setTimeout(()=>{
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("JSONP timeout"));
+      }, 10000);
     });
-  }
 
-  setTimeout(syncWidth, 50);
-  setTimeout(syncWidth, 300);
-  setTimeout(syncWidth, 800);
-  setTimeout(syncWidth, 1200);
+    if(data && (data.sessionExpired === true || data.sessionValid === false || data.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return false;
+    }
 
-  if(bottomBar.dataset.wmSynced !== '1'){
-    bottomBar.dataset.wmSynced = '1';
-    let syncing = false;
+    if(!data || !data.success || !Array.isArray(data.words)){
+      throw new Error((data && data.message) || "DB 응답 오류");
+    }
 
-    bottomBar.addEventListener('scroll', function(){
-      if(syncing) return;
-      syncing = true;
-      detailBox.scrollLeft = bottomBar.scrollLeft;
-      syncing = false;
-    });
+    const loadedWords = data.words.map(normalizeDbWord).filter(item=>item.word && item.meaning);
+    if(!loadedWords.length){
+      throw new Error("단어 데이터 없음");
+    }
 
-    detailBox.addEventListener('scroll', function(){
-      if(syncing) return;
-      syncing = true;
-      bottomBar.scrollLeft = detailBox.scrollLeft;
-      syncing = false;
-    });
+    const audioSource =
+      data.audio_url ||
+      data.Audio_URL ||
+      (data.audio && (data.audio.Audio_URL || data.audio.audio_url || data.audio.Drive_URL || data.audio.drive_url)) ||
+      (data.words && data.words[0] && (data.words[0].Audio_URL || data.words[0].audio_url || data.words[0].Drive_URL || data.words[0].drive_url)) ||
+      "";
 
-    window.addEventListener('resize', syncWidth);
-    window.addEventListener('load', syncWidth);
-    window.addEventListener('scroll', syncWidth, {passive:true});
+    const audioUrl = fixDriveAudioUrl(audioSource);
+    if(!audioUrl){
+      throw new Error("Audio_URL 없음");
+    }
+
+    originalWords = loadedWords;
+    currentWords = [...originalWords];
+    wordAudio.src = audioUrl;
+    wordAudio.load();
+
+    isDbReady = true;
+    isDbLoading = false;
+    return true;
+  }catch(error){
+    console.error(error);
+    isDbReady = false;
+    isDbLoading = false;
+    dbLoadError = error && error.message ? error.message : "DB 또는 음원 정보를 불러오지 못했습니다.";
+    app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">불러오기 실패</div><div class="wm-meaning">DB 또는 음원 정보를 확인하세요.</div><div class="wm-small">${dbLoadError}<br>currentSetId: ${currentSetId}</div><button class="wm-btn" onclick="startLearning()">다시 시도</button></div>`;
+    return false;
   }
 }
 
-function wmForceHomeworkBottomFixedBarOnFirstView(){
-  /* WM_HOMEWORK_BOTTOM_FIXED_FIRST_VIEW_CALL_V1
-     학습기록 데이터 렌더링 전에도 첫 화면에서 하단 고정바가 document 하단에 머물지 않도록
-     초기 진입 시점에 고정바 초기화를 선실행합니다. */
-  wmInitHomeworkTopScrollbar();
-
-  if(window.requestAnimationFrame){
-    requestAnimationFrame(wmInitHomeworkTopScrollbar);
-  }
-
-  setTimeout(wmInitHomeworkTopScrollbar, 0);
-  setTimeout(wmInitHomeworkTopScrollbar, 100);
-  setTimeout(wmInitHomeworkTopScrollbar, 500);
+function normalizeText(text){
+  return String(text).trim().toLowerCase().replace(/[,\s\/·ㆍ;|]+/g,"").replace(/[.?!'"“”‘’()[\]{}<>:：，。]/g,"");
 }
 
-async function startStudy(setId){
-  if(!wmMapDataReady){
-    alert('학습맵을 불러오는 중입니다. 잠시만 기다려 주세요.');
+function splitMeaningParts(text){return String(text).split(/[,\//·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
+function splitUserMeaningParts(text){return String(text).split(/[,\s\/·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
+
+function makeSubsets(arr){
+  const result = [];
+  const n = arr.length;
+  for(let mask = 1; mask < (1 << n); mask++){
+    const subset = [];
+    for(let i = 0; i < n; i++) if(mask & (1 << i)) subset.push(arr[i]);
+    result.push(subset);
+  }
+  return result;
+}
+
+function makePermutations(arr){
+  if(arr.length <= 1) return [arr];
+  const result = [];
+  arr.forEach((item, index)=>{
+    const rest = arr.slice(0,index).concat(arr.slice(index+1));
+    makePermutations(rest).forEach(perm=>result.push([item, ...perm]));
+  });
+  return result;
+}
+
+function isMeaningCorrect(input, meaning){
+  const correctParts = splitMeaningParts(meaning);
+  const answerSet = new Set(correctParts);
+  const userParts = splitUserMeaningParts(input);
+  const normalizedInput = normalizeText(input);
+  if(!normalizedInput) return false;
+  if(answerSet.has(normalizedInput)) return true;
+  if(userParts.length > 0 && userParts.every(part => answerSet.has(part))) return true;
+  const subsets = makeSubsets(correctParts);
+  for(const subset of subsets){
+    const permutations = makePermutations(subset);
+    for(const perm of permutations){
+      if(perm.join("") === normalizedInput) return true;
+    }
+  }
+  return false;
+}
+
+function getMemoryRoundNumber(){
+  const steps = getActiveMemorySteps();
+  let count = 0;
+  for(let i = 0; i < memoryPhase; i++) count += Number((steps[i] && steps[i].count) || 0);
+  count += memoryCount + 1;
+  return count;
+}
+
+function getMemoryLevelClass(round){
+  if(round <= 3) return "level-100";
+  if(round <= 5) return "level-70";
+  if(round <= 7) return "level-30";
+  return "level-0";
+}
+
+function renderWordProgress(current,total){
+  let html = `<div class="word-progress">`;
+  for(let i = 1; i <= total; i++){
+    const doneClass = i <= current ? "done" : "";
+    const currentClass = i === current ? "current" : "";
+    html += `<div class="word-dot ${doneClass} ${currentClass}">${i}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderMemoryProgress(){
+  const steps = getActiveMemorySteps();
+  const totalRounds = getActiveMemoryTotalRounds();
+  const currentRound = Math.min(getMemoryRoundNumber(), Math.max(1,totalRounds));
+  let html = `<div class="memory-progress">`;
+  for(let i = 1; i <= totalRounds; i++){
+    const doneClass = i <= currentRound ? "done" : "";
+    const currentClass = i === currentRound ? "current" : "";
+    const levelClass = i <= currentRound ? getMemoryLevelClass(i) : "";
+    html += `<div class="memory-dot ${doneClass} ${currentClass} ${levelClass}">${i}</div>`;
+  }
+  html += `</div><div class="memory-stage-guide">${steps.map((step, i)=>`<span class="stage-chip">${i+1}️⃣ ${step.label}</span>`).join('')}</div>`;
+  return html;
+}
+
+function stopWordAudio(){
+  clearInterval(audioTimer);
+  clearTimeout(audioGapTimer);
+  audioTimer = null;
+  audioGapTimer = null;
+  audioRepeatCount = 0;
+  currentAudioItem = null;
+  if(wordAudio) wordAudio.pause();
+}
+
+function waitForAudioReady(audio){
+  return new Promise((resolve, reject)=>{
+    if(!audio){ reject(new Error("audio element 없음")); return; }
+    if(audio.readyState >= 1){ resolve(); return; }
+
+    const timer = setTimeout(()=>{
+      cleanup();
+      reject(new Error("audio metadata timeout"));
+    }, 5000);
+
+    function cleanup(){
+      clearTimeout(timer);
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("canplay", onReady);
+      audio.removeEventListener("error", onError);
+    }
+
+    function onReady(){ cleanup(); resolve(); }
+    function onError(){ cleanup(); reject(new Error("audio load error")); }
+
+    audio.addEventListener("loadedmetadata", onReady, {once:true});
+    audio.addEventListener("canplay", onReady, {once:true});
+    audio.addEventListener("error", onError, {once:true});
+    audio.load();
+  });
+}
+
+async function playWordSegment(item, maxRepeat = 5){
+  if(!item) return;
+
+  const start = Number(item.start);
+  const end = Number(item.end);
+  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+  if(!wordAudio || !wordAudio.src) return;
+
+  stopWordAudio();
+
+  currentAudioItem = item;
+  audioRepeatCount = 0;
+  audioMaxRepeat = maxRepeat;
+  wordAudio.playbackRate = 1;
+
+  try{
+    await waitForAudioReady(wordAudio);
+  }catch(error){
+    console.error(error);
     return;
   }
 
-  const selectedSetId = String(setId || '').trim();
-  const selectedItem = setData.find(function(item){ return item.set === selectedSetId; });
+  async function playOneRound(){
+    if(!currentAudioItem) return;
 
-  if(selectedItem && selectedItem.status === 'locked'){
-    showSetDetail(selectedSetId);
-    return;
+    try{
+      wordAudio.pause();
+      wordAudio.currentTime = start;
+      await wordAudio.play();
+    }catch(error){
+      console.error(error);
+      return;
+    }
+
+    while(currentAudioItem && wordAudio.currentTime < end){
+      await new Promise(resolve => setTimeout(resolve, 80));
+    }
+
+    if(!currentAudioItem) return;
+    wordAudio.pause();
+    audioRepeatCount++;
+
+    if(audioRepeatCount >= audioMaxRepeat){
+      stopWordAudio();
+      return;
+    }
+
+    await new Promise(resolve=>{
+      audioGapTimer = setTimeout(resolve, 1000);
+    });
+
+    if(!currentAudioItem) return;
+    playOneRound();
   }
 
-  const sessionOk = await wmCheckCurrentSession();
-  if(!sessionOk) return;
-
-  /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_67_V1
-     Apps Script exec로 직접 이동하면 Google 안내 배너가 노출되므로
-     학습 시작도 아임웹 숨김 프레임페이지(/67)를 경유합니다. */
-  const framePageUrl = WM_STUDY_URL;
-
-  const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
-  const studentName = wmCurrentStudent && wmCurrentStudent.학생이름 ? String(wmCurrentStudent.학생이름).trim() : '';
-  const learningAssign = wmCurrentStudent && wmCurrentStudent.학습배정 ? String(wmCurrentStudent.학습배정).trim() : '';
-  const sessionToken = wmGetCurrentSessionToken();
-
-  const studyUrl =
-    framePageUrl
-    + '?mode=study'
-    + '&set_id=WM' + encodeURIComponent(selectedSetId)
-    + '&setId=' + encodeURIComponent(selectedSetId)
-    + '&currentSet=' + encodeURIComponent(selectedSetId)
-    + '&studentId=' + encodeURIComponent(studentId)
-    + '&studentID=' + encodeURIComponent(studentId)
-    + '&wmStudentId=' + encodeURIComponent(studentId)
-    + '&studentName=' + encodeURIComponent(studentName)
-    + '&name=' + encodeURIComponent(studentName)
-    + '&wmStudentName=' + encodeURIComponent(studentName)
-    + '&learningAssign=' + encodeURIComponent(learningAssign)
-    + '&wmLearningAssign=' + encodeURIComponent(learningAssign)
-    + '&sessionToken=' + encodeURIComponent(sessionToken)
-    + '&wmSessionToken=' + encodeURIComponent(sessionToken);
-
-  window.location.href = studyUrl;
+  playOneRound();
 }
 
-function showSetDetail(setId){
-  const box = document.getElementById('learningDetailBox');
-  if(!box) return;
-  box.classList.remove('wm-mode-banner-box');
 
-  const records = wmLearningRecords.filter(function(record){
-    return String(record.Set_ID || '').trim() === String(setId || '').trim();
+
+function getElapsedSeconds(){
+  if(!learningStartTime) return 0;
+  return Math.max(0, Math.round((Date.now()-learningStartTime)/1000));
+}
+
+function getCurrentStepElapsedSeconds(){
+  if(!wmCurrentStepStartTime) return getElapsedSeconds();
+  return Math.max(0, Math.round((Date.now()-wmCurrentStepStartTime)/1000));
+}
+
+function markStepCompleted(stepId, stepTitle){
+  if(completedSteps.some(step=>step.stepId===stepId)){
+    return Promise.resolve({ok:true, duplicate:true});
+  }
+  /* WM_STEP_SAVE_GUARANTEE_V1_20260615
+     Step 완료는 반드시 Step 단위로 저장합니다.
+     Step 전환/나가기는 저장 체인(wmStepSaveChain)이 끝난 뒤에만 진행합니다. */
+  const stepElapsedSeconds = (stepId === "test_all" && wmFirstTestTotalSeconds > 0)
+    ? Math.max(0, Math.round(wmFirstTestTotalSeconds))
+    : getCurrentStepElapsedSeconds();
+  completedSteps.push({
+    stepId,
+    stepTitle,
+    completedAt:new Date().toISOString(),
+    elapsedSeconds:stepElapsedSeconds
+  });
+  wmCurrentStepStartTime = Date.now();
+  return queueStepSave("step_completed");
+}
+
+function queueStepSave(status){
+  saveProgressSnapshot(status);
+
+  if(!WM_SAVE_API_URL){
+    return Promise.resolve({ok:true, localOnly:true});
+  }
+
+  /* WM_STEP_SAVE_BACKGROUND_QUEUE_V1_20260615
+     Step 완료 기록은 즉시 큐에 넣고 백그라운드에서 순서대로 저장합니다.
+     일반 Step 이동은 저장 완료를 기다리지 않아 화면이 멈춘 것처럼 보이지 않게 합니다.
+     단, 나가기/다음학습/최종이동 시점에는 wmWaitForStepSaves()로 저장 완료를 보장합니다. */
+  wmStepSaveChain = wmStepSaveChain
+    .catch(function(error){
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return null;
+    })
+    .then(function(){ return saveLearningRecord(status || "step_completed"); })
+    .then(function(result){
+      if(result && result.ok === false){
+        wmStepSaveLastError = result;
+      }else if(wmIsSaveSuccess(result)){
+        wmStepSaveLastError = null;
+      }
+      return result;
+    })
+    .catch(function(error){
+      console.warn("Word Mate step save failed", error);
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return wmStepSaveLastError;
+    });
+
+  return wmStepSaveChain;
+}
+
+function wmWaitForStepSaves(){
+  return wmStepSaveChain
+    .catch(function(error){
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return wmStepSaveLastError;
+    })
+    .then(function(result){
+      if(wmIsSaveSuccess(result)){
+        wmStepSaveLastError = null;
+        return result;
+      }
+      return wmStepSaveLastError || result || {ok:true};
+    });
+}
+
+function renderStepSaveWaiting(stepTitle){
+  app.innerHTML = `<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title">학습기록 저장 중</div>
+    <div class="wm-meaning" style="font-size:20px;line-height:1.8;margin-bottom:18px;">${stepTitle} 완료 기록을 저장하고 있습니다.</div>
+    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 다음 Step으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+  </div>`;
+  afterScreenRender();
+}
+
+function completeStepThen(stepId, stepTitle, nextAction){
+  /* WM_STEP_SAVE_IMMEDIATE_TRANSITION_V1_20260615
+     Step 완료 저장은 백그라운드 큐에 즉시 등록하고, 화면은 바로 다음 Step으로 이동합니다.
+     저장 완료 대기는 X/나가기/다음학습/최종이동 시점에만 처리합니다. */
+  markStepCompleted(stepId, stepTitle);
+  if(typeof nextAction === "function") nextAction();
+}
+
+function wmLastCompletedStepCode(){
+  const order = [
+    ["step1_flash_card", "STEP1"],
+    ["step2_choose_meaning", "STEP2"],
+    ["step3_choose_english", "STEP3"],
+    ["step4_memory", "STEP4"],
+    ["step6_last_flash_review", "STEP5"],
+    ["test_all", "TEST"]
+  ];
+  let last = "";
+  order.forEach(([stepId, code])=>{
+    if(completedSteps.some(step=>step.stepId===stepId)) last = code;
+  });
+  return last;
+}
+
+function wmCurrentProgressStepCode(status){
+  if(status === "completed") return "COMPLETE";
+  const last = wmLastCompletedStepCode();
+  if(last === "STEP1") return "STEP2";
+  if(last === "STEP2") return "STEP3";
+  if(last === "STEP3") return "STEP4";
+  if(last === "STEP4") return "STEP5";
+  if(last === "STEP5") return "TEST";
+  if(last === "TEST") return "COMPLETE";
+  return "STEP1";
+}
+
+function wmStageFromProgressStep(stepCode){
+  const code = String(stepCode || "").toUpperCase().trim();
+  if(code === "STEP2") return 2;
+  if(code === "STEP3") return 3;
+  if(code === "STEP4") return 4;
+  if(code === "STEP5") return 6;
+  if(code === "BEFORE_TEST") return 6;
+  if(code === "TEST") return 9;
+  return 1;
+}
+
+function wmNormalizeCompletedStepsFromProgress(progress){
+  const steps = Array.isArray(progress && progress.completedSteps) ? progress.completedSteps : [];
+  return steps.map(step=>({
+    stepId:String(step.stepId || "").trim(),
+    stepTitle:String(step.stepTitle || "").trim(),
+    completedAt:String(step.completedAt || new Date().toISOString()).trim(),
+    elapsedSeconds:Number(step.elapsedSeconds || 0),
+    elapsedText:String(step.elapsedText || step.timeText || "").trim()
+  })).filter(step=>step.stepId);
+}
+
+async function wmLoadLearningProgress(){
+  /* WM_STUDY_RESUME_FORCE_RELOAD_V1
+     복귀 적용 공식: 학습 시작 버튼을 누를 때마다 getLearningProgress를 다시 호출합니다.
+     이유: Step 저장은 정상인데, 같은 Study 화면에서 나갔다가 다시 시작할 때
+     기존 wmResumeProgress 캐시(null/STEP1)가 남으면 최신 DB Step을 못 읽고 STEP1로 돌아갑니다.
+     저장 로직은 건드리지 않고, 복귀 조회 캐시만 제거합니다. */
+  wmProgressLoaded = false;
+  wmResumeProgress = null;
+
+  if(!WM_PROGRESS_API_URL || !WM_STUDENT_ID || !currentSetId){
+    return null;
+  }
+
+  try{
+    const callbackName = "wmProgressCallback_" + Date.now();
+    const result = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(response){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(response);
+      };
+
+      script = document.createElement("script");
+      script.src = WM_PROGRESS_API_URL
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
+        + "&set_id=" + encodeURIComponent(currentSetId)
+        + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
+        + "&t=" + Date.now();
+
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("progress JSONP load error"));
+      };
+
+      document.body.appendChild(script);
+
+      setTimeout(function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("progress JSONP timeout"));
+      }, 12000);
+    });
+
+    if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return null;
+    }
+
+    if(result && result.success){
+      wmResumeProgress = result;
+      return result;
+    }
+  }catch(error){
+    console.warn("Word Mate progress load failed", error);
+  }
+
+  wmResumeProgress = null;
+  return null;
+}
+
+function wmApplyResumeProgress(progress){
+  if(!progress || !progress.success) return 1;
+
+  const progressStep = String(progress.currentProgressStep || "").toUpperCase().trim();
+
+  /* WM_RESUME_RECORD_ID_NEW_SESSION_INSERT_20260617_V1
+     이어학습 데이터는 사용하되, 이전 학습기록ID는 재사용하지 않습니다.
+     같은 화면 세션 안에서는 첫 저장 후 받은 WM_RECORD_SESSION_ID로 UPDATE하고,
+     학습 종료/재접속 후 이어학습하면 같은 Set_ID라도 새 행 INSERT가 되게 합니다. */
+  WM_RECORD_SESSION_ID = "";
+
+  if(progressStep === "COMPLETE"){
+    completedSteps = [];
+    return 1;
+  }
+
+  completedSteps = wmNormalizeCompletedStepsFromProgress(progress);
+
+  /* WM_STUDY_RESUME_STEP_APPLY_FIX_20260623_V2
+     completedSteps가 있으면 실제 완료 배열 기준으로 다음 Step을 계산하고,
+     completedSteps가 비어 있으면 서버 currentProgressStep 값을 그대로 적용합니다.
+     기존 코드는 completedSteps가 비어 있을 때 서버 STEP 값을 무시해서 무조건 Step1로 복귀했습니다. */
+  if(completedSteps.length){
+    const nextStep = wmCurrentProgressStepCode("step_completed");
+    return wmStageFromProgressStep(nextStep);
+  }
+
+  return wmStageFromProgressStep(progressStep);
+}
+
+
+function buildOfficialTimeSummary(){
+  /* WM_STUDY_OFFICIAL_TIME_SUMMARY_V2_20260608
+     총소요시간 공식값을 Study.html에서 직접 계산해 payload에 실어 보냅니다.
+     공식: Step1 + Step2 + Step3 + Step4 + 시험전재학습 + Test_총시간
+     payload.elapsedSeconds 또는 마지막 Step 시간은 총소요시간으로 쓰지 않습니다. */
+  const stepSeconds = {
+    step1_flash_card: 0,
+    step2_choose_meaning: 0,
+    step3_choose_english: 0,
+    step4_memory: 0,
+    step6_last_flash_review: 0,
+    test_all: 0
+  };
+
+  (Array.isArray(completedSteps) ? completedSteps : []).forEach(step=>{
+    if(!step || !Object.prototype.hasOwnProperty.call(stepSeconds, step.stepId)) return;
+    const seconds = Number(step.elapsedSeconds || 0);
+    if(Number.isFinite(seconds) && seconds > 0){
+      stepSeconds[step.stepId] = Math.max(0, Math.round(seconds));
+    }
   });
 
-  if(records.length === 0){
-    const item = setData.find(function(data){ return data.set === setId; });
-    if(item && item.status === 'current'){
-      box.innerText = setId + ' : 현재 학습중입니다.';
-    }else if(item && item.status === 'locked'){
-      box.innerText = setId + ' : 아직 잠금 상태입니다.';
-    }else{
-      box.innerText = setId + ' : 상세 학습기록이 없습니다.';
+  const totalSeconds =
+    stepSeconds.step1_flash_card +
+    stepSeconds.step2_choose_meaning +
+    stepSeconds.step3_choose_english +
+    stepSeconds.step4_memory +
+    stepSeconds.step6_last_flash_review +
+    stepSeconds.test_all;
+
+  return {
+    stepSeconds,
+    step1: stepSeconds.step1_flash_card,
+    step2: stepSeconds.step2_choose_meaning,
+    step3: stepSeconds.step3_choose_english,
+    step4: stepSeconds.step4_memory,
+    beforeTest: stepSeconds.step6_last_flash_review,
+    testTime: stepSeconds.test_all,
+    totalSeconds
+  };
+}
+
+function buildLearningPayload(status){
+  const saveSetId = (status === "completed" && WM_COMPLETED_SAVE_SET_ID) ? WM_COMPLETED_SAVE_SET_ID : currentSetId;
+  const saveSetName = (status === "completed" && WM_COMPLETED_SAVE_SET_NAME) ? WM_COMPLETED_SAVE_SET_NAME : makeSetName(saveSetId);
+  const nextSetId = getNextSetId(saveSetId);
+  return {
+    courseType:"BASIC",
+    setId:saveSetId,
+    setName:saveSetName,
+    nextSetId,
+    nextSetName:makeSetName(nextSetId),
+    studentId:WM_STUDENT_ID,
+    studentName:STUDENT_NAME,
+    sessionToken:WM_SESSION_TOKEN,
+    wmSessionToken:WM_SESSION_TOKEN,
+    현재세션:WM_SESSION_TOKEN,
+    school:WM_STUDENT_PROFILE.school || "",
+    grade:WM_STUDENT_PROFILE.grade || "",
+    className:WM_STUDENT_PROFILE.className || "",
+    teacherName:WM_STUDENT_PROFILE.teacherName || "",
+    learningAssign:WM_ACTIVE_LEARNING_ASSIGN || "",
+    학습배정:WM_ACTIVE_LEARNING_ASSIGN || "",
+    S4실루엣단계:WM_ACTIVE_STUDY_MODE.S4실루엣단계 || "",
+    S6테스트모드:WM_ACTIVE_STUDY_MODE.S6테스트모드 || "",
+    레벨완료조건:WM_ACTIVE_STUDY_MODE.레벨완료조건 || "",
+    레벨회차추가:WM_ACTIVE_STUDY_MODE.레벨회차추가 || 0,
+    목표회차:WM_ACTIVE_STUDY_MODE.목표회차 || wmGetTargetRoundsFromMode(WM_ACTIVE_STUDY_MODE),
+    userAgent:navigator.userAgent || "",
+    deviceInfo:getSimpleDeviceInfo(),
+    status,
+    완료저장요청: status === "completed",
+    completeRoundSaveRequest: status === "completed",
+    currentProgressStep: wmCurrentProgressStepCode(status),
+    lastCompletedStep: wmLastCompletedStepCode(),
+    recordSessionId: WM_RECORD_SESSION_ID,
+    completedSteps:[...completedSteps],
+    officialTimeSummary: buildOfficialTimeSummary(),
+    scores:[...firstTestScores],
+    finalScore:getFinalOfficialScoreText(),
+    finalTestScore:getFinalOfficialTestScore(),
+    scorePolicy:'LAST_TEST_SCORE',
+    wrongWords:firstWrongWords.map(w=>({word:w.word, meaning:w.meaning, pos:w.pos})),
+    elapsedSeconds:getElapsedSeconds(),
+    completedAt:new Date().toISOString()
+  };
+}
+
+function saveProgressSnapshot(status){
+  const payload=buildLearningPayload(status);
+  latestSavedPayload=payload;
+  try{
+    localStorage.setItem(`wordmate_${currentSetName}_latest_record`, JSON.stringify(payload));
+    localStorage.setItem(`wordmate_${STUDENT_NAME}_last_progress`, JSON.stringify({
+      studentName:STUDENT_NAME,
+      lastCompletedSetId:currentSetId,
+      nextSetId:payload.nextSetId,
+      nextSetName:payload.nextSetName,
+      updatedAt:payload.completedAt
+    }));
+  }catch(e){}
+  return payload;
+}
+
+function wmIsSaveSuccess(result){
+  /* WM_STUDY_SAVE_SUCCESS_OK_OR_SUCCESS_FIX_20260623_V1
+     저장 성공 판정은 래핑된 result.ok뿐 아니라 서버 원응답 result.success도 성공으로 인정합니다. */
+  if(!result) return false;
+  if(result.ok === true || result.success === true) return true;
+  const response = result.response || {};
+  return response.ok === true || response.success === true;
+}
+
+async function saveLearningRecord(status="completed"){
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return {ok:false, sessionExpired:true};
+
+  const payload=saveProgressSnapshot(status);
+
+  if(!WM_SAVE_API_URL){
+    return {ok:true, localOnly:true, payload};
+  }
+
+  try{
+    const callbackName = "wmSaveCallback_" + Date.now();
+
+    const result = await new Promise((resolve, reject)=>{
+      let finished = false;
+      let script = null;
+
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+        if(script && script.parentNode){ script.parentNode.removeChild(script); }
+      }
+
+      window[callbackName] = function(response){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(response);
+      };
+
+      script = document.createElement("script");
+      script.src =
+        WM_SAVE_API_URL
+        + "&callback=" + encodeURIComponent(callbackName)
+        + "&payload=" + encodeURIComponent(JSON.stringify(payload))
+        + "&t=" + Date.now();
+
+      script.onerror = function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("save JSONP load error"));
+      };
+
+      document.body.appendChild(script);
+
+      setTimeout(function(){
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(new Error("save JSONP timeout"));
+      }, 12000);
+    });
+
+    if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
+      wmStudyShowSessionExpiredModal();
+      return {ok:false, response:result, payload, sessionExpired:true};
     }
+
+    if(result && result.success && result.recordId){
+      WM_RECORD_SESSION_ID = String(result.recordId || '').trim();
+    }
+
+    return {ok:!!(result && result.success), response:result, payload};
+  }catch(error){
+    return {ok:false, error:String(error), payload};
+  }
+}
+
+function returnToLmsIfReady(){
+  if(WM_LMS_RETURN_URL){
+    window.location.href=WM_LMS_RETURN_URL;
+  }
+}
+
+function requestLearningFullscreen(){
+  const el=document.getElementById("wordmate-app") || document.documentElement;
+  if(document.fullscreenElement) return;
+  if(el.requestFullscreen){
+    el.requestFullscreen().catch(()=>{});
+  }else if(el.webkitRequestFullscreen){
+    el.webkitRequestFullscreen();
+  }
+}
+
+function exitLearningFullscreen(){
+  if(document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+function ensureExitControls(){
+  let btn=document.getElementById("wmExitButton");
+  if(stage>=1 && stage<=7){
+    if(!btn){
+      btn=document.createElement("button");
+      btn.id="wmExitButton";
+      btn.className="wm-exit-btn";
+      btn.type="button";
+      btn.textContent="✕";
+      btn.onclick=showExitModal;
+      document.body.appendChild(btn);
+    }
+  }else if(btn){
+    btn.remove();
+  }
+
+  if(!document.getElementById("wmExitModal")){
+    const modal=document.createElement("div");
+    modal.id="wmExitModal";
+    modal.className="wm-exit-modal";
+    modal.innerHTML=`<div class="wm-exit-box"><div class="wm-exit-title">학습을 종료하시겠습니까?</div><div class="wm-exit-text">완료된 Step 기준으로 저장됩니다.</div><div class="wm-exit-actions"><button class="wm-continue-btn" type="button" onclick="continueLearning()">취소</button><button class="wm-leave-btn" type="button" onclick="leaveLearning()">예</button></div></div>`;
+    document.body.appendChild(modal);
+  }
+}
+
+function showExitModal(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="flex";
+}
+
+function continueLearning(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="none";
+  requestLearningFullscreen();
+}
+
+function wmBuildReturnToMapUrl(){
+  const plainSetId = String(currentSetId || "").replace(/^WM/, "");
+  const params = new URLSearchParams();
+
+  params.set("mode", "map");
+
+  if(WM_STUDENT_ID){
+    params.set("studentId", WM_STUDENT_ID);
+    params.set("studentID", WM_STUDENT_ID);
+    params.set("wmStudentId", WM_STUDENT_ID);
+  }
+
+  if(WM_SESSION_TOKEN){
+    params.set("sessionToken", WM_SESSION_TOKEN);
+    params.set("wmSessionToken", WM_SESSION_TOKEN);
+  }
+
+  if(STUDENT_NAME){
+    params.set("studentName", STUDENT_NAME);
+    params.set("name", STUDENT_NAME);
+    params.set("wmStudentName", STUDENT_NAME);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.school){
+    params.set("school", WM_STUDENT_PROFILE.school);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.grade){
+    params.set("grade", WM_STUDENT_PROFILE.grade);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className){
+    params.set("className", WM_STUDENT_PROFILE.className);
+    params.set("Class", WM_STUDENT_PROFILE.className);
+  }
+
+  if(WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName){
+    params.set("teacherName", WM_STUDENT_PROFILE.teacherName);
+  }
+
+  if(plainSetId){
+    params.set("set_id", currentSetId);
+    params.set("setId", plainSetId);
+    params.set("currentSet", plainSetId);
+    params.set("wmCurrentSet", plainSetId);
+
+    /* WM_STUDY_RETURN_LEVEL_HISTORY_PARAMS_V1
+       Study에서 Map으로 복귀할 때 학습저장 여부와 무관하게 현재 레벨과 직전 레벨을 함께 전달합니다.
+       기존 wmStudentPayload는 유지하되, 히스토리 보드가 복귀 URL만 보고도 4→5 전환 이력을 잃지 않도록 보강합니다. */
+    const levelMatch = plainSetId.match(/^(3|4|5|6|7|8|9|10|11|12|13)-/);
+    const currentLevel = levelMatch ? Number(levelMatch[1]) : 0;
+    if(currentLevel){
+      const historyLevels = [];
+      if(currentLevel > 3) historyLevels.push(currentLevel - 1);
+      historyLevels.push(currentLevel);
+      params.set("levelHistoryLevels", historyLevels.join(","));
+      params.set("wmLevelHistoryLevels", historyLevels.join(","));
+    }
+  }
+
+  try{
+    const currentParams = new URLSearchParams(window.location.search || "");
+    const learningAssign = String(currentParams.get("learningAssign") || currentParams.get("level") || currentParams.get("wmLearningAssign") || "").trim();
+    if(learningAssign){
+      params.set("learningAssign", learningAssign);
+      params.set("level", learningAssign);
+      params.set("wmLearningAssign", learningAssign);
+    }
+
+    const payload = String(currentParams.get("wmStudentPayload") || "").trim();
+    if(payload){
+      params.set("wmStudentPayload", payload);
+    }
+  }catch(err){}
+
+  return WM_MAP_URL + "?" + params.toString();
+}
+
+function wmStudyRestoreMapLoginStorage(){
+  if(!WM_STUDENT_ID) return;
+
+  const studentData = {
+    학생ID: WM_STUDENT_ID,
+    studentId: WM_STUDENT_ID,
+    studentID: WM_STUDENT_ID,
+    id: WM_STUDENT_ID,
+    학생이름: STUDENT_NAME || "",
+    studentName: STUDENT_NAME || "",
+    name: STUDENT_NAME || "",
+    학교: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.school) || "",
+    학년: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.grade) || "",
+    Class: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className) || "",
+    className: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.className) || "",
+    교사명: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName) || "",
+    teacherName: (WM_STUDENT_PROFILE && WM_STUDENT_PROFILE.teacherName) || "",
+    sessionToken: WM_SESSION_TOKEN || "",
+    wmSessionToken: WM_SESSION_TOKEN || "",
+    현재세션: WM_SESSION_TOKEN || ""
+  };
+
+  const wrapped = JSON.stringify({ student: studentData });
+  const plain = JSON.stringify(studentData);
+
+  try{ sessionStorage.setItem("WM_SESSION_TOKEN", WM_SESSION_TOKEN || ""); }catch(err){}
+  try{ localStorage.setItem("WM_SESSION_TOKEN", WM_SESSION_TOKEN || ""); }catch(err){}
+  try{ sessionStorage.setItem("wmLoggedInStudent", wrapped); }catch(err){}
+  try{ localStorage.setItem("wmLoggedInStudent", wrapped); }catch(err){}
+  try{ sessionStorage.setItem("wmStudent", plain); }catch(err){}
+  try{ localStorage.setItem("wmStudent", plain); }catch(err){}
+  try{ sessionStorage.setItem("wmLoginStudent", plain); }catch(err){}
+  try{ localStorage.setItem("wmLoginStudent", plain); }catch(err){}
+}
+
+function wmStudyReturnToMap(){
+  const mapUrl = wmBuildReturnToMapUrl();
+  wmStudyRestoreMapLoginStorage();
+
+  try{
+    window.top.location.href = mapUrl;
+  }catch(err){
+    window.location.href = mapUrl;
+  }
+}
+
+async function leaveLearning(){
+  const modal=document.getElementById("wmExitModal");
+  if(modal) modal.style.display="none";
+
+  app.innerHTML = `<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title">학습기록 저장 확인 중</div>
+    <div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 기록을 확인하고 있습니다.</div>
+    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 학습맵으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+  </div>`;
+  afterScreenRender();
+
+  const result = await wmWaitForStepSaves();
+
+  if(result && result.ok === false){
+    const finalResult = await saveLearningRecord("completed");
+    if(!wmIsSaveSuccess(finalResult)){
+      app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
+      afterScreenRender();
+      return;
+    }
+  }
+
+  exitLearningFullscreen();
+  wmStudyReturnToMap();
+}
+
+function protectDirectTypingInputs(){
+  document.querySelectorAll(".memory-input, .test-input").forEach(input=>{
+    input.setAttribute("autocomplete","off");
+    input.setAttribute("autocorrect","off");
+    input.setAttribute("autocapitalize","off");
+    input.setAttribute("spellcheck","false");
+    input.addEventListener("paste",e=>e.preventDefault());
+    input.addEventListener("drop",e=>e.preventDefault());
+  });
+}
+
+function afterScreenRender(){
+  ensureExitControls();
+  protectDirectTypingInputs();
+}
+
+function render(){
+  stopWordAudio();
+  if(stage===0) renderStart();
+  if(stage===1) renderFlashCard();
+  if(stage===2) renderStep2();
+  if(stage===3) renderStep3();
+  if(stage===4) renderMemory();
+  if(stage===5) renderBeforeTest();
+  if(stage===6) renderOneMoreFlashCard();
+  if(stage===7) renderTest();
+  if(stage===8) renderFinalResult();
+  if(stage===9) renderStartTestOnly();
+  afterScreenRender();
+}
+
+function renderStart(){
+  app.innerHTML = `
+    <div class="wm-card">
+      ${wmSetBadgeHtml()}
+      <div class="wm-title">
+        영어잡는 Word Mate<br>
+        ${currentSetName}<br>
+        학습을 시작합니다
+      </div>
+
+      <div style="font-size:15px; line-height:1.6; color:#444; margin-top:10px;">
+        ✊ 지금부터 학습을 시작합니다
+      </div>
+
+      <div style="font-size:15px; line-height:1.75; color:#444; margin-top:14px;">
+        🧒📚<br>
+        가슴을 펴고 바른 자세로 앉아<br>
+        각 단어마다 <span style="color:#2563eb;font-weight:900;font-size:17px;">영어와 한글을 소리내어</span><br>
+        끝까지 읽으면서<br>
+        한 세트가 끝날 때까지 이동하지 않고 학습하세요
+      </div>
+
+      <div style="font-size:16px; line-height:1.75; color:#444; font-weight:700; margin-top:16px;">
+        ☀️ 지금 당신은<br>
+        단지 몇 단어를 공부하는 것이 아니라<br>
+        <span style="color:#dc2626;font-weight:900;font-size:19px;">'밝은 미래'</span>를 사고 있는 것입니다
+      </div>
+
+      <button id="wmStartBtn" class="wm-btn" onclick="startLearning()">학습 시작</button>
+    </div>`;
+}
+
+async function startLearning(){
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return;
+  wmStudyStartSessionWatcher();
+
+  if(!isDbReady || !originalWords.length){
+    const loaded = await loadSetFromDB();
+    if(!loaded) return;
+  }
+
+  await wmPrepareStudyModeForCurrentSet();
+
+  clearInterval(testTimer);
+  stopWordAudio();
+  requestLearningFullscreen();
+  learningStartTime=Date.now();
+  wmCurrentStepStartTime=learningStartTime;
+  latestSavedPayload=null;
+
+  const progress = await wmLoadLearningProgress();
+  const resumeStage = wmApplyResumeProgress(progress);
+
+  stage=resumeStage;
+  index=0;
+  currentWords=shuffle(originalWords);
+  step2Wrong=[];
+  step3Wrong=[];
+  memoryWrong=[];
+  isStep2Review=false;
+  isStep3Review=false;
+  isMemoryReview=false;
+  memoryPhase=0;
+  memoryCount=0;
+  memoryLocked=false;
+  afterMemoryAction=null;
+  testIndex=0;
+  testWords=[];
+  isRetest=false;
+  firstTestScores=[];
+  firstWrongWords=[];
+  currentTestResults=[];
+  currentTestWrongs=[];
+  activeTestQuestionIndex=null;
+  render();
+}
+
+function renderFlashCard(){
+  const item=currentWords[index];
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">Step 1 Flash Card</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><button class="wm-btn" onclick="nextFlashCard()">다음</button></div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function nextFlashCard(){
+  stopWordAudio();
+  index++;
+  if(index>=currentWords.length){
+    completeStepThen("step1_flash_card", "Step 1 Flash Card", function(){
+      stage=2;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
+    });
     return;
   }
-
-  box.innerHTML = records.map(function(record){
-    return `
-      <div>
-        <strong>${escapeHtml(record.Set_ID || '')}</strong>
-        / 날짜: ${escapeHtml(record.학습날짜 || '-')}
-        / 점수: ${escapeHtml(record.점수 || '-')}
-        / 총소요시간: ${escapeHtml(record.총소요시간 || '-')}
-        / 상태: ${escapeHtml(record.완료상태 || '-')}
-      </div>
-    `;
-  }).join('');
+  render();
 }
 
-function setText(id, text){
-  const el=document.getElementById(id);
-  if(el){
-    el.innerText=text;
+function renderStep2(){
+  const item=currentWords[index];
+  const options=makeChoiceOptions(item.meaning, originalWords.map(w=>w.meaning), 5);
+  const title=isStep2Review?wrongRetryTitle("Step 2 Choose meaning",currentWords.length):"Step 2 Choose meaning";
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function checkStep2(button,selected,correct,wordIndex){
+  stopWordAudio();
+  const buttons=document.querySelectorAll(".wm-option");
+  buttons.forEach(btn=>btn.disabled=true);
+  const item=currentWords[wordIndex];
+  if(selected===correct){button.classList.add("wm-correct");}
+  else{
+    button.classList.add("wm-wrong");
+    if(!step2Wrong.some(w=>w.word===item.word)) step2Wrong.push(item);
+    buttons.forEach(btn=>{if(btn.textContent.replace(/^\d+\.\s*/,"").trim()===correct) btn.classList.add("wm-correct");});
   }
+  setTimeout(nextStep2,900);
 }
 
-function escapeHtml(value){
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function nextStep2(){
+  index++;
+  if(index>=currentWords.length){
+    if(step2Wrong.length>0){currentWords=shuffle(step2Wrong);step2Wrong=[];index=0;isStep2Review=true;render();return;}
+    completeStepThen("step2_choose_meaning", "Step 2 Choose meaning", function(){
+      stage=3;
+      index=0;
+      currentWords=shuffle(originalWords);
+      isStep2Review=false;
+      render();
+    });
+    return;
+  }
+  render();
 }
 
-function escapeJs(value){
-  return String(value == null ? '' : value).replace(/'/g, "\\'");
+let WM_STEP3_OPTIONS = [];
+
+function renderStep3(){
+  const item=currentWords[index];
+  const options=makeChoiceOptions(item.word, originalWords.map(w=>w.word), 5);
+  WM_STEP3_OPTIONS = options;
+  const title=isStep3Review?wrongRetryTitle("Step 3 Choose English",currentWords.length):"Step 3 Choose English";
+
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-meaning">${item.meaning}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button type="button" class="wm-btn wm-option" data-option-index="${i}">${i+1}. ${option}</button>`).join("")}</div>`;
+
+  document.querySelectorAll(".wm-option").forEach(btn=>{
+    btn.onclick=function(){
+      checkStep3(this, Number(this.getAttribute("data-option-index")), index);
+    };
+  });
 }
 
-function wmLogout(){
-  const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
-  const sessionToken = wmGetCurrentSessionToken();
+function checkStep3(button,selectedIndex,wordIndex){
+  const buttons=document.querySelectorAll(".wm-option");
+  buttons.forEach(btn=>btn.disabled=true);
 
-  if(studentId && sessionToken){
-    try{
-      fetch(wmGetApiBaseUrl() + '?action=studentLogout&studentId=' + encodeURIComponent(studentId) + '&sessionToken=' + encodeURIComponent(sessionToken) + '&t=' + Date.now())
-        .finally(function(){
-          wmClearLoginStorage();
-          window.top.location.href = WM_TEST_LOGIN_PAGE_URL;
-        });
+  const item=currentWords[wordIndex];
+  const options=WM_STEP3_OPTIONS || [];
+  const selected=options[selectedIndex];
+  const correct=item.word;
+
+  if(selected===correct){
+    button.classList.add("wm-correct");
+  }else{
+    button.classList.add("wm-wrong");
+    if(!step3Wrong.some(w=>w.word===item.word)) step3Wrong.push(item);
+
+    buttons.forEach(btn=>{
+      const idx=Number(btn.getAttribute("data-option-index"));
+      if(options[idx]===correct) btn.classList.add("wm-correct");
+    });
+  }
+
+  setTimeout(nextStep3,900);
+}
+
+function nextStep3(){
+  index++;
+  if(index>=currentWords.length){
+    if(step3Wrong.length>0){currentWords=shuffle(step3Wrong);step3Wrong=[];index=0;isStep3Review=true;render();return;}
+    completeStepThen("step3_choose_english", "Step 3 Choose English", function(){
+      index=0;
+      currentWords=shuffle(originalWords);
+      isStep3Review=false;
+      memoryPhase=0;
+      memoryCount=0;
+      memoryLocked=false;
+      afterMemoryAction=null;
+      if(getActiveS4Mode() === '0단계'){
+        renderStep4SkippedNotice();
+        return;
+      }
+      stage=4;
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function createRandomSilhouette(word,percent){
+  const chars=word.split("");
+  const showCount=Math.max(1,Math.ceil(word.length*percent));
+  const visible=shuffle([...Array(word.length).keys()]).slice(0,showCount);
+  return chars.map((char,i)=>visible.includes(i)?char:"_").join("");
+}
+
+function getSilhouette(word,type){
+  if(type==="100") return word;
+  if(type==="70") return createRandomSilhouette(word,.7);
+  if(type==="30") return createRandomSilhouette(word,.3);
+  return "";
+}
+
+function renderMemory(){
+  memoryLocked=false;
+  const activeMemorySteps = getActiveMemorySteps();
+  if(!activeMemorySteps.length){
+    if(afterMemoryAction === "testRetake"){
+      afterMemoryAction = null;
+      startRetest();
       return;
-    }catch(err){}
+    }
+    renderStep4SkippedNotice();
+    return;
   }
-
-  wmClearLoginStorage();
-  window.top.location.href = WM_TEST_LOGIN_PAGE_URL;
+  const item=currentWords[index];
+  const currentStep=activeMemorySteps[memoryPhase] || activeMemorySteps[0];
+  const silhouette=getSilhouette(item.word,currentStep.type);
+  const title=isMemoryReview?wrongRetryTitle("Step 4 Memory",currentWords.length):"Step 4 Memory";
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div style="margin:8px 28px 18px;"><div style="color:#2563eb;font-size:16px;font-weight:800;margin-bottom:8px;text-align:center;">전체단어 ${index+1}/${currentWords.length} 학습, ${Math.round((index/currentWords.length)*100)}% 완료</div><div style="width:100%;height:14px;background:#dbeafe;border-radius:999px;overflow:hidden;"><div style="width:${(index/currentWords.length)*100}%;height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;"></div></div></div><div class="wm-memory-count">총${getActiveMemoryTotalRounds()}회 받아쓰기 ${getMemoryRoundNumber()} / ${getActiveMemoryTotalRounds()}</div>${renderMemoryProgress()}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word wm-silhouette">${silhouette}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><input id="memoryInput" class="memory-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div id="memoryMessage" class="wm-alert"></div><button class="wm-btn" onclick="checkMemory()">확인</button></div>`;
+  const input=document.getElementById("memoryInput");
+  setTimeout(()=>input.focus(),100);
+  input.addEventListener("keydown",e=>{if(e.key==="Enter") checkMemory();});
+  setTimeout(()=>playWordSegment(item, 5), 300);
 }
 
-function printRecords(){
-  window.print();
+function checkMemory(){
+  if(memoryLocked) return;
+  const item=currentWords[index];
+  const inputEl=document.getElementById("memoryInput");
+  const messageEl=document.getElementById("memoryMessage");
+  const input=normalizeText(inputEl.value);
+  const answer=normalizeText(item.word);
+  const currentStep=getActiveMemorySteps()[memoryPhase];
+  if(currentStep.type!=="0" && input!==answer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
+  if(currentStep.type==="0" && input!==answer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
+  memoryLocked=true;
+  nextMemory();
 }
 
-function wmInitHomeworkSearchEnterKey(){
-  const ids = ['setKeyword','levelKeyword','monthFilter','weekFilter','startDate','endDate'];
-  ids.forEach(function(id){
-    const el = document.getElementById(id);
-    if(!el || el.dataset.wmEnterSearchBound === '1') return;
-    el.dataset.wmEnterSearchBound = '1';
-    el.addEventListener('keydown', function(event){
-      if(event.key === 'Enter'){
-        event.preventDefault();
-        filterHomeworkRecords();
+function nextMemory(){
+  stopWordAudio();
+  memoryCount++;
+  const currentStep=getActiveMemorySteps()[memoryPhase];
+  if(memoryCount>=currentStep.count){memoryCount=0;memoryPhase++;}
+  if(memoryPhase>=getActiveMemorySteps().length){memoryPhase=0;index++;}
+  if(index>=currentWords.length){
+    if(memoryWrong.length>0){currentWords=shuffle(memoryWrong);memoryWrong=[];index=0;isMemoryReview=true;memoryPhase=0;memoryCount=0;render();return;}
+    if(afterMemoryAction==="testRetake"){afterMemoryAction=null;startRetest();return;}
+    completeStepThen("step4_memory", "Step 4 Memory", function(){
+      stage=6;
+      index=0;
+      currentWords=shuffle(originalWords);
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function renderBeforeTest(){
+  app.innerHTML=`<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title" style="font-size:23px;font-weight:500;margin-bottom:50px;color:#000;">이제 시험을 시작합니다.</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">${getActiveTestGuideText()}</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">시험이 진행됩니다.</div>
+    <button class="wm-btn" onclick="startTest()">Start Test</button>
+  </div>`;
+}
+
+function startOneMoreFlash(){stage=6;index=0;currentWords=shuffle(originalWords);render();}
+
+function renderOneMoreFlashCard(){
+  const item=currentWords[index];
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">Step 5 Last Flash Review</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><button class="wm-btn" onclick="nextOneMoreFlashCard()">다음</button></div>`;
+  setTimeout(()=>playWordSegment(item, 5), 300);
+}
+
+function nextOneMoreFlashCard(){
+  stopWordAudio();
+  index++;
+  if(index>=currentWords.length){
+    completeStepThen("step6_last_flash_review", "Step 5 Last Flash Review", function(){
+      stage=9;
+      render();
+    });
+    return;
+  }
+  render();
+}
+
+function renderStartTestOnly(){
+  app.innerHTML=`<div class="wm-card">
+    ${wmSetBadgeHtml()}
+    <div class="wm-title" style="font-size:23px;font-weight:500;color:#000;margin-bottom:40px;">
+      이제 시험을 시작합니다.
+    </div>
+
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">
+      ${getActiveTestGuideText()}
+    </div>
+
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">
+      시험이 진행됩니다.
+    </div>
+
+    <button class="wm-btn" onclick="startTest()">Start Test</button>
+  </div>`;
+}
+
+function startTest(){
+  stage=7;
+  testIndex=0;
+  testWords=shuffle(originalWords);
+  isRetest=false;
+  currentTestResults=[];
+  currentTestWrongs=[];
+  activeTestQuestionIndex=null;
+  render();
+}
+
+function renderTest(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  const test=getTestList()[testIndex];
+  timeLeft=getTestTime(testWords.length);
+  activeTestQuestionIndex=null;
+  const guideMessage = testGuide(test);
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea">${testWords.map((item,i)=>renderTestQuestion(test,item,i)).join("")}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
+  activateTestQuestionEvents();
+  addWritingEnterMove();
+  wmActiveFirstTestStartTime = isRetest ? 0 : Date.now();
+  startTimer();
+}
+
+function getTestTime(wordCount){return Math.max(30,Math.ceil(BASE_TEST_TIME*(wordCount/originalWords.length)));}
+
+function renderTestQuestion(test,item,i){
+  if(test.type==="choice"){
+    const answer=test.direction==="eng-ko"?item.meaning:item.word;
+    const pool=originalWords.map(w=>test.direction==="eng-ko"?w.meaning:w.word);
+    const options=makeChoiceOptions(answer,pool,5);
+    const question=test.direction==="eng-ko"?item.word:item.meaning;
+    return `<div class="test-question" tabindex="0" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div>${options.map((option,j)=>`<label class="test-option"><input type="radio" name="q${i}" value="${option}"> ${j+1}. ${option}</label>`).join("")}</div>`;
+  }
+  const question=test.direction==="eng-ko"?item.word:item.meaning;
+  return `<div class="test-question" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div><input class="test-input" id="q${i}" data-direction="${test.direction}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>`;
+}
+
+function activateTestQuestionEvents(){
+  const questions=document.querySelectorAll(".test-question");
+  questions.forEach(q=>{
+    q.addEventListener("focus",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
+    q.addEventListener("click",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
+    q.querySelectorAll("input[type='radio']").forEach(radio=>{
+      radio.addEventListener("change",()=>{
+        const qIndex=Number(q.dataset.qIndex);
+        activeTestQuestionIndex=qIndex;
+        const nextQuestion=document.querySelector(`.test-question[data-q-index="${qIndex+1}"]`);
+        if(nextQuestion) setTimeout(()=>nextQuestion.focus(),50);
+      });
+    });
+  });
+}
+
+function addWritingEnterMove(){
+  const inputs=document.querySelectorAll(".test-input");
+  inputs.forEach((input,i)=>{
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(inputs[i+1]) inputs[i+1].focus();
+        else submitTest();
       }
     });
   });
 }
 
-function filterHomeworkRecords(){
-  /* WM_HOMEWORK_ALL_LEVEL_FILTER_RESTORE_V2
-     검색은 현재레벨 화면에 보이는 행만이 아니라 전체 학습기록_DB(wmLearningRecords)를 대상으로 합니다.
-     따라서 완료레벨/현재레벨의 세트와 레벨을 모두 검색할 수 있습니다. */
-  const setKeyword = (document.getElementById('setKeyword')?.value || '').trim().toUpperCase().replace(/^WM/, '');
-  const levelKeywordRaw = (document.getElementById('levelKeyword')?.value || '').trim();
-  const levelMatch = levelKeywordRaw.match(/^(3|4|5|6|7|8|9|10|11|12|13)(?:\s*레벨)?$/);
-  const levelKeyword = levelMatch ? levelMatch[1] : '';
-  const month = (document.getElementById('monthFilter')?.value || '').trim();
-  const week = (document.getElementById('weekFilter')?.value || '').trim();
-  const startDate = (document.getElementById('startDate')?.value || '').trim();
-  const endDate = (document.getElementById('endDate')?.value || '').trim();
-  const hasFilter = !!(setKeyword || levelKeywordRaw || month || week || startDate || endDate);
+function makeChoiceOptions(answer,pool,count){
+  const answerText = String(answer || "").trim();
+  const seen = new Set([answerText]);
+  const others = [];
 
-  if(!hasFilter){
-    wmRenderHomeworkForActiveLevel_();
+  pool.forEach(item=>{
+    const value = String(item || "").trim();
+    if(!value || seen.has(value)) return;
+    seen.add(value);
+    others.push(value);
+  });
+
+  const picked = shuffle(others).slice(0, Math.max(0, count - 1));
+  return shuffle([answerText, ...picked]);
+}
+
+function startTimer(){
+  updateTimer();
+  testTimer=setInterval(()=>{
+    timeLeft--;
+    updateTimer();
+    if(timeLeft<=0){clearInterval(testTimer);submitTest();}
+  },1000);
+}
+
+function formatTime(sec){
+  const min=String(Math.floor(sec/60)).padStart(2,"0");
+  const s=String(sec%60).padStart(2,"0");
+  return `${min}:${s}`;
+}
+
+function updateTimer(){
+  const timerEl=document.getElementById("timer");
+  if(timerEl) timerEl.textContent=formatTime(timeLeft);
+}
+
+function wmCaptureFirstTestElapsedSeconds(){
+  if(isRetest || !wmActiveFirstTestStartTime) return;
+  const maxSeconds = getTestTime(testWords.length);
+  const elapsed = Math.max(0, Math.round((Date.now() - wmActiveFirstTestStartTime) / 1000));
+  wmFirstTestTotalSeconds += Math.min(maxSeconds, elapsed);
+  wmActiveFirstTestStartTime = 0;
+}
+
+function submitTest(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  wmCaptureFirstTestElapsedSeconds();
+  const test=getTestList()[testIndex];
+  let correctCount=0;
+  let wrongs=[];
+  currentTestResults=[];
+  currentTestWrongs=[];
+  testWords.forEach((item,i)=>{
+    let userAnswer="";
+    if(test.type==="choice"){
+      const checked=document.querySelector(`input[name="q${i}"]:checked`);
+      userAnswer=checked?checked.value:"";
+    }else{
+      const input=document.getElementById(`q${i}`);
+      userAnswer=input?input.value:"";
+    }
+    let isCorrect=false;
+    if(test.direction==="eng-ko") isCorrect=test.type==="choice" ? userAnswer===item.meaning : isMeaningCorrect(userAnswer,item.meaning);
+    if(test.direction==="ko-eng") isCorrect=normalizeText(userAnswer)===normalizeText(item.word);
+    const question=test.direction==="eng-ko"?item.word:item.meaning;
+    const correctAnswer=test.direction==="eng-ko"?item.meaning:item.word;
+    currentTestResults.push({item,question,correctAnswer,userAnswer,isCorrect});
+    if(isCorrect) correctCount++;
+    else{
+      wrongs.push(item);
+      if(!firstWrongWords.some(w=>w.word===item.word)) firstWrongWords.push(item);
+    }
+  });
+  currentTestWrongs=wrongs;
+  if(!isRetest){
+    firstTestScores.push({title:test.title,type:test.type,direction:test.direction,score:correctCount,total:testWords.length,percent:Math.round((correctCount/testWords.length)*100)});
+  }
+  renderTestResult(test,correctCount,testWords.length,wrongs);
+}
+
+function renderTestResult(test,score,total,wrongs){
+  const percent=Math.round((score/total)*100);
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list">${currentTestResults.map((r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`).join("")}</div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
+  afterScreenRender();
+}
+
+function continueAfterTestResult(){
+  const test=getTestList()[testIndex];
+  if(currentTestWrongs.length===0){goNextTest();return;}
+  testWords=[...currentTestWrongs];
+  if(test.type==="choice" || (test.type==="write" && test.direction==="eng-ko")){
+    isRetest=true;
+    app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><button class="wm-btn" onclick="startRetest()">재시험 보기</button></div>`;
+    afterScreenRender();
+    return;
+  }
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
+  afterScreenRender();
+}
+
+function startSubjectiveMemory(){
+  currentWords=shuffle(testWords);
+  memoryWrong=[];
+  isMemoryReview=true;
+  memoryPhase=0;
+  memoryCount=0;
+  index=0;
+  afterMemoryAction="testRetake";
+  stage=4;
+  render();
+}
+
+function startRetest(){isRetest=true;stage=7;render();}
+
+function goNextTest(){
+  testIndex++;
+  isRetest=false;
+  testWords=shuffle(originalWords);
+  if(testIndex>=getTestList().length){
+    completeStepThen("test_all", "All TEST", function(){
+      stage=8;
+      render();
+    });
+    return;
+  }
+  stage=7;
+  render();
+}
+
+function renderFinalResult(){
+  stopWordAudio();
+  const scoreText=firstTestScores.length ? firstTestScores.map(t=>`${t.percent}점`).join(" / ") : "점수 기록이 없습니다.";
+  WM_COMPLETED_SAVE_SET_ID = currentSetId;
+  WM_COMPLETED_SAVE_SET_NAME = currentSetName;
+  const nextSetId = getNextSetId(currentSetId);
+  const nextSetName = makeSetName(nextSetId);
+  app.innerHTML=`<div class="wm-card">
+      <div class="final-title">영어잡는 Word Mate<br>${currentSetName}<br>학습을 모두 마쳤습니다</div>
+      <div class="final-score-box">${scoreText}</div>
+
+      <div class="final-save-row">
+        <div class="final-save-text">
+          <div>날짜 : ${todayString()} &nbsp;&nbsp;&nbsp; 이름 : ${STUDENT_NAME}</div>
+          <div id="saveStatus">학습기록이 저장 중입니다.</div>
+          <div id="saveHelp" style="font-size:14px;line-height:1.55;color:#555;font-weight:500;margin-top:6px;">학습이 저장될 때까지 기다려주세요.<br>이탈 시 저장이 되지 않을 수 있습니다.</div>
+        </div>
+        <div id="saveIcon" class="final-save-icon final-save-spinner" aria-label="학습기록 저장 중"></div>
+      </div>
+
+      <div class="button-row">
+        <button class="wm-btn" onclick="restart()">재학습하기</button>
+        <button class="wm-btn" onclick="goNextLearning()">다음학습하기</button>
+        <button class="wm-btn" onclick="goFinalExit()">나가기</button>
+      </div>
+      <div class="wm-small" style="margin-top:14px;">다음 학습: ${nextSetName}</div>
+    </div>`;
+  finalSavePromise = wmWaitForStepSaves().then(function(result){
+    return saveLearningRecord("completed");
+  }).then(result=>{
+    const saveStatus=document.getElementById("saveStatus");
+    const saveIcon=document.getElementById("saveIcon");
+    if(saveStatus){
+      const saveOk = wmIsSaveSuccess(result);
+      saveStatus.textContent=saveOk ? "학습기록 저장이 완료되었습니다." : "학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    }
+    if(saveIcon){
+      const saveOk = wmIsSaveSuccess(result);
+      saveIcon.className = saveOk ? "final-save-icon final-save-check" : "final-save-icon final-save-check";
+      saveIcon.textContent = saveOk ? "✅" : "⚠️";
+      saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
+    }
+    if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
+      setTimeout(returnToLmsIfReady,700);
+    }
+    return result;
+  });
+}
+
+async function goFinalExit(){
+  stopWordAudio();
+  clearInterval(testTimer);
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
     return;
   }
 
-  function normalizeDateText(value){
-    const text = String(value || '').trim();
-    if(!text) return '';
-
-    const direct = text.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})/);
-    if(direct){
-      const yyyy = direct[1];
-      const mm = String(direct[2]).padStart(2, '0');
-      const dd = String(direct[3]).padStart(2, '0');
-      return yyyy + '-' + mm + '-' + dd;
-    }
-
-    return '';
-  }
-
-  function getWeekOfMonth(dateText){
-    if(!dateText) return '';
-    const parts = dateText.split('-');
-    if(parts.length < 3) return '';
-    const day = Number(parts[2] || 0);
-    if(!day) return '';
-    return String(Math.min(5, Math.ceil(day / 7)));
-  }
-
-  function normalizeSetId(value){
-    return String(value || '').trim().toUpperCase().replace(/^WM/, '');
-  }
-
-  function getLevelFromSetId(setId){
-    const match = normalizeSetId(setId).match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
-    return match ? match[1] : '';
-  }
-
-  const sourceRecords = wmSortLearningRecordsDesc_(Array.isArray(wmLearningRecords) ? wmLearningRecords : []);
-  const filteredRecords = sourceRecords.filter(function(record){
-    const dateText = normalizeDateText(record && record.학습날짜);
-    const setId = normalizeSetId(record && (record.Set_ID || record.setId || record.set_id || record.SetID || record['Set ID'] || record['세트ID'] || record['현재세트']));
-    const rowLevel = getLevelFromSetId(setId);
-    const rowMonth = dateText ? dateText.slice(5, 7) : '';
-    const rowWeek = getWeekOfMonth(dateText);
-
-    if(setKeyword && setId !== setKeyword) return false;
-    if(levelKeyword && rowLevel !== levelKeyword) return false;
-    if(levelKeywordRaw && !levelKeyword) return false;
-    if(month && rowMonth !== month) return false;
-    if(week && rowWeek !== week) return false;
-    if(startDate && dateText && dateText < startDate) return false;
-    if(endDate && dateText && dateText > endDate) return false;
-    if((startDate || endDate || month || week) && !dateText) return false;
-
-    return true;
-  });
-
-  renderHomeworkTable(filteredRecords, wmStudentProfile || wmCurrentStudent);
-}
-function resetHomeworkFilters(){
-  const ids = ['setKeyword','levelKeyword','monthFilter','weekFilter','startDate','endDate'];
-  ids.forEach(function(id){
-    const el = document.getElementById(id);
-    if(el){
-      el.value = '';
-    }
-  });
-
-  wmRenderHomeworkForActiveLevel_();
+  exitLearningFullscreen();
+  wmStudyReturnToMap();
 }
 
-wmForceHomeworkBottomFixedBarOnFirstView();
-wmInitHomeworkSearchEnterKey();
-wmInitLearningMap();
-wmForceHomeworkBottomFixedBarOnFirstView();
+async function goNextLearning(){
+  stopWordAudio();
+  clearInterval(testTimer);
+  const nextSetId = getNextSetId(currentSetId);
+  if(!nextSetId){
+    alert("다음 학습 세트 정보를 확인할 수 없습니다.");
+    return;
+  }
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    return;
+  }
+
+  /* WM_STUDY_NEXT_SET_STATE_RESET_FIX_V1_20260611
+     다음학습으로 넘어갈 때 이전 세트의 완료 Step/recordId/완료저장 고정값이
+     다음 세트에 남아 Step1을 건너뛰거나 16%로 시작되는 문제를 차단합니다. */
+  currentSetId = nextSetId;
+  currentSetName = makeSetName(currentSetId);
+  isDbReady = false;
+  originalWords = [];
+  currentWords = [];
+  completedSteps = [];
+  WM_RECORD_SESSION_ID = "";
+  wmResumeProgress = null;
+  wmProgressLoaded = false;
+  latestSavedPayload = null;
+  finalSavePromise = null;
+  wmStepSaveChain = Promise.resolve();
+  wmStepSaveLastError = null;
+  WM_COMPLETED_SAVE_SET_ID = "";
+  WM_COMPLETED_SAVE_SET_NAME = "";
+  WM_ACTIVE_STUDY_MODE_SET_ID = "";
+  await startLearning();
+}
+
+function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
+
+document.addEventListener("keydown",function(e){
+  if(!["1","2","3","4","5"].includes(e.key)) return;
+  const activeTag=document.activeElement && document.activeElement.tagName;
+  if(activeTag==="INPUT") return;
+  const options=document.querySelectorAll(".wm-option");
+  const idx=Number(e.key)-1;
+  if(options[idx] && !options[idx].disabled){options[idx].click();return;}
+  const test=getTestList()[testIndex];
+  if(stage===7 && test && test.type==="choice"){
+    if(activeTestQuestionIndex===null) return;
+    const question=document.querySelector(`.test-question[data-q-index="${activeTestQuestionIndex}"]`);
+    if(!question) return;
+    const radios=question.querySelectorAll("input[type='radio']");
+    if(radios[idx]){
+      radios[idx].checked=true;
+      radios[idx].dispatchEvent(new Event("change",{bubbles:true}));
+    }
+  }
+});
+
+renderStart();
 </script>
