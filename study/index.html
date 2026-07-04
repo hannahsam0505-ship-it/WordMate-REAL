@@ -913,6 +913,8 @@ let currentAudioItem = null;
 let isDbReady = false;
 let isDbLoading = false;
 let dbLoadError = "";
+let wmSetDataPreloadPromise = null;
+
 
 const WM_FULL_MEMORY_STEPS = [
   { type:"100", count:3, label:"전체보기" },
@@ -1289,12 +1291,26 @@ function renderDbLoading(){
     </div>`;
 }
 
-async function loadSetFromDB(){
-  if(isDbLoading) return false;
+async function loadSetFromDB(options){
+  const silent = !!(options && options.silent);
+
+  if(isDbReady && originalWords.length){
+    return true;
+  }
+
+  if(isDbLoading && wmSetDataPreloadPromise){
+    return wmSetDataPreloadPromise;
+  }
+
+  if(isDbLoading){
+    return false;
+  }
 
   isDbLoading = true;
   dbLoadError = "";
-  renderDbLoading();
+  if(!silent){
+    renderDbLoading();
+  }
 
   try{
     const callbackName = "wmCallback_" + Date.now();
@@ -1376,8 +1392,11 @@ async function loadSetFromDB(){
     console.error(error);
     isDbReady = false;
     isDbLoading = false;
+    wmSetDataPreloadPromise = null;
     dbLoadError = error && error.message ? error.message : "DB 또는 음원 정보를 불러오지 못했습니다.";
-    app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">불러오기 실패</div><div class="wm-meaning">DB 또는 음원 정보를 확인하세요.</div><div class="wm-small">${dbLoadError}<br>currentSetId: ${currentSetId}</div><button class="wm-btn" onclick="startLearning()">다시 시도</button></div>`;
+    if(!silent){
+      app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">불러오기 실패</div><div class="wm-meaning">DB 또는 음원 정보를 확인하세요.</div><div class="wm-small">${dbLoadError}<br>currentSetId: ${currentSetId}</div><button class="wm-btn" onclick="startLearning()">다시 시도</button></div>`;
+    }
     return false;
   }
 }
@@ -2240,6 +2259,18 @@ function render(){
   afterScreenRender();
 }
 
+function wmPreloadSetData(){
+  if(isDbReady || isDbLoading || !currentSetId){
+    return;
+  }
+
+  try{
+    wmSetDataPreloadPromise = loadSetFromDB({silent:true});
+  }catch(err){
+    wmSetDataPreloadPromise = null;
+  }
+}
+
 function renderStart(){
   app.innerHTML = `
     <div class="wm-card">
@@ -2270,6 +2301,8 @@ function renderStart(){
 
       <button id="wmStartBtn" class="wm-btn" onclick="startLearning()">학습 시작</button>
     </div>`;
+
+  setTimeout(wmPreloadSetData, 80);
 }
 
 async function startLearning(){
@@ -2278,11 +2311,12 @@ async function startLearning(){
   wmStudyStartSessionWatcher();
 
   if(!isDbReady || !originalWords.length){
-    const loaded = await loadSetFromDB();
+    renderDbLoading();
+    const loaded = await (wmSetDataPreloadPromise || loadSetFromDB({silent:false}));
     if(!loaded) return;
   }
 
-  await wmPrepareStudyModeForCurrentSet();
+  const modePromise = wmPrepareStudyModeForCurrentSet();
 
   clearInterval(testTimer);
   stopWordAudio();
@@ -2291,7 +2325,9 @@ async function startLearning(){
   wmCurrentStepStartTime=learningStartTime;
   latestSavedPayload=null;
 
-  const progress = await wmLoadLearningProgress();
+  const progressPromise = wmLoadLearningProgress();
+  await modePromise;
+  const progress = await progressPromise;
   const resumeStage = wmApplyResumeProgress(progress);
 
   stage=resumeStage;
@@ -2869,6 +2905,7 @@ async function goNextLearning(){
   WM_RECORD_SESSION_ID = "";
   wmResumeProgress = null;
   wmProgressLoaded = false;
+  wmSetDataPreloadPromise = null;
   latestSavedPayload = null;
   finalSavePromise = null;
   wmStepSaveChain = Promise.resolve();
@@ -2879,7 +2916,7 @@ async function goNextLearning(){
   await startLearning();
 }
 
-function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
+function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;wmSetDataPreloadPromise=null;stage=0;renderStart();afterScreenRender();}
 
 document.addEventListener("keydown",function(e){
   if(!["1","2","3","4","5"].includes(e.key)) return;
