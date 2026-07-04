@@ -1472,6 +1472,20 @@ function wmPickFirstValue_(){
   return '';
 }
 
+function wmParseProgressPercentNumber_(value){
+  /* WM_MAP_CURRENT_PROGRESS_DB_PERCENT_PARSE_V1
+     현재진행_DB의 세트진행률/레벨진행률 값은 33 또는 33% 모두 허용합니다.
+     Map에서는 다시 계산하지 않고 현재진행_DB 값을 숫자로 정규화해 그대로 표시합니다. */
+  if(value === undefined || value === null) return 0;
+  const text = String(value).trim();
+  if(!text) return 0;
+  const matched = text.match(/-?\d+(?:\.\d+)?/);
+  if(!matched) return 0;
+  const num = Number(matched[0]);
+  if(!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, Math.round(num)));
+}
+
 function wmParseRecent30Records_(value){
   if(Array.isArray(value)) return value;
   if(!value) return [];
@@ -1556,8 +1570,8 @@ function wmNormalizeCurrentProgressCache_(data){
 
   const totalSetCount = Number(wmPickFirstValue_(cache.전체세트수, cache.totalSetCount, cache.totalSets, officialProgress.전체세트수, officialProgress.totalSetCount, 0));
   const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
-  const levelProgress = Number(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
-  const setProgress = Number(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
+  const levelProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
+  const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
   const recentScore = wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, '');
 
   return {
@@ -1619,6 +1633,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
       return {
         set:setId,
         status:'current',
+        /* 현재진행_DB.세트진행률 그대로 표시: Step2 완료 33% 같은 값 */
         progress: Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0))),
         repeatCount:0,
         officialRound:0,
@@ -2372,7 +2387,7 @@ function wmApplyLearningMapStatus(mapData){
   }
 
   function getProgressFromStatus(statusInfo){
-    const directProgress = Number(
+    const directProgress = wmParseProgressPercentNumber_(
       statusInfo.progressPercent ||
       statusInfo.progress ||
       statusInfo.inProgressPercent ||
