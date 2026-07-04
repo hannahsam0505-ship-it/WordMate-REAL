@@ -33,16 +33,16 @@ const WM_ENV_CONFIG = {
   TEST: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
-    MAP_URL: 'https://new-word-mate.vercel.app',
-    STUDY_URL: 'https://new-word-mate.vercel.app/study',
-    LMS_URL: 'https://new-word-mate.vercel.app/lms'
+    MAP_URL: 'https://word-mate-test.vercel.app/map',
+    STUDY_URL: 'https://word-mate-test.vercel.app/study',
+    LMS_URL: 'https://word-mate-test.vercel.app/lms'
   },
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL: 'https://new-word-mate.vercel.app',
-    STUDY_URL: 'https://new-word-mate.vercel.app/study',
-    LMS_URL: 'https://new-word-mate.vercel.app/lms'
+    MAP_URL: 'https://word-mate-real.vercel.app/map',
+    STUDY_URL: 'https://word-mate-real.vercel.app/study',
+    LMS_URL: 'https://word-mate-real.vercel.app/lms'
   }
 };
 
@@ -773,7 +773,7 @@ function getSaveApiUrl(){
   /* WM_STUDY_SAVE_EXEC_URL_FIX_V2
      HtmlService iframe 안의 window.location.href는 /exec가 아닐 수 있으므로
      저장 API는 반드시 서버 배포 /exec 상수(API_URL)를 기준으로 호출합니다. */
-  return API_URL + "?action=saveLearningRecord";
+  return API_URL + "?action=saveLearningRecordV2";
 }
 
 function getProgressApiUrl(){
