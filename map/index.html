@@ -2860,7 +2860,7 @@ async function startStudy(setId){
     + '&sessionToken=' + encodeURIComponent(sessionToken)
     + '&wmSessionToken=' + encodeURIComponent(sessionToken);
 
-  window.location.href = studyUrl;
+  window.top.location.href = studyUrl;
 }
 
 function showSetDetail(setId){
