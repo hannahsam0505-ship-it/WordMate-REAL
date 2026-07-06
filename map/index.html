@@ -2374,21 +2374,35 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   const cacheHistory = (wmCurrentProgressHistoryCache && Array.isArray(wmCurrentProgressHistoryCache.levels) && wmCurrentProgressHistoryCache.levels.length)
     ? wmCurrentProgressHistoryCache
     : null;
-  let levels = cacheHistory ? wmCurrentProgressHistoryCache.levels.slice() : wmGetRecordLevelListForHistory_(records, latestLevel);
+
+  /* WM_LEVEL_HISTORY_ALL_STUDIED_LEVELS_20260706_V2
+     학습히스토리 버튼 개수는 현재진행_DB 캐시만 단독 사용하지 않고,
+     학습기록_DB records에 존재하는 모든 레벨 + 서버 히스토리 + 현재레벨을 병합합니다.
+     색상/회차는 기존 wmBuildSequentialDisplayRoundMapForMap_ 공식 엔진으로 판단합니다. */
+  let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
+  if(cacheHistory){
+    cacheHistory.levels.forEach(function(level){
+      if(!levels.some(function(item){ return Number(item || 0) === Number(level || 0); })){
+        levels.push(Number(level || 0));
+      }
+    });
+  }
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
   }
 
-  let stateMap = cacheHistory ? {} : wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
+  let stateMap = wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
   if(cacheHistory){
     levels.forEach(function(level){
       const n = Number(level || 0);
-      const round = Number((wmCurrentProgressHistoryCache.roundsByLevel || {})[n] || 0);
-      stateMap[n] = {
-        round: round,
-        levelDone: n !== latestLevel && round > 0,
-        targetLimit: 0
-      };
+      const cacheRound = Number((wmCurrentProgressHistoryCache.roundsByLevel || {})[n] || 0);
+      if(cacheRound > Number(stateMap[n] && stateMap[n].round || 0)){
+        stateMap[n] = {
+          round: cacheRound,
+          levelDone: n !== latestLevel && cacheRound > 0,
+          targetLimit: Number(stateMap[n] && stateMap[n].targetLimit || 0)
+        };
+      }
     });
   }
 
