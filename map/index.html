@@ -2254,21 +2254,11 @@ function wmGetRecordLevelListForHistory_(records){
     });
   }
 
-  if(Array.isArray(wmServerLevelHistoryLevels)){
-    wmServerLevelHistoryLevels.forEach(function(level){
-      addLevel(level);
-    });
-  }
-
-  wmLoadLevelHistoryList_().forEach(function(level){
-    addLevel(level);
-  });
-
   addLevel(currentLevelNumber);
 
-  /* WM_LEVEL_HISTORY_OFFICIAL_RULE_V1
-     학습히스토리는 임의 연속 레벨을 만들지 않고,
-     아래 렌더 단계에서 공식 엔진으로 통과한 레벨만 표시합니다. */
+  /* WM_LEVEL_HISTORY_OFFICIAL_RULE_V2
+     학습히스토리 후보는 학습기록_DB에 실제 기록이 있는 레벨 + 현재진행_DB 현재 레벨만 사용합니다.
+     서버 levelHistoryLevels/localStorage 캐시는 학생별 경로 차이를 만들 수 있으므로 렌더 기준에서 제외합니다. */
 
   list.sort(function(a,b){ return a-b; });
   return list;
@@ -2317,11 +2307,11 @@ function wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive){
   return Number(level) === Number(latestLevel) ? '현재' : '';
 }
 
-function wmRenderRecordLevelHistoryBoard_(records, setStatusMap){
+function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOverride){
   const bar = document.querySelector('.level-bar');
   if(!bar) return;
 
-  const latestLevel = Number(currentLevelNumber || 0);
+  const latestLevel = Number(latestLevelOverride || currentLevelNumber || 0);
   let levels = wmGetRecordLevelListForHistory_(records);
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
@@ -2363,12 +2353,15 @@ function wmSwitchHistoryLevel_(levelNumber, completedView){
   levelNumber = Number(levelNumber || 0);
   if(!WM_LEVEL_CONFIG[levelNumber] || !wmLastLearningMapData) return;
 
+  const latestHistoryLevel = Number(wmHistoryCurrentLevel || currentLevelNumber || levelNumber || 0);
+
   currentLevelNumber = levelNumber;
   wmViewingCompletedHistoryLevel = !!completedView;
   wmUpdateStudentLevelHeaderLabel_();
   wmApplyLearningMapStatus(Object.assign({}, wmLastLearningMapData, {
     __forceLevel: true,
-    __forceLevelDone: !!completedView
+    __forceLevelDone: !!completedView,
+    __historyLatestLevel: latestHistoryLevel
   }));
   wmRenderHomeworkForActiveLevel_();
   updateRecentScore(wmGetHomeworkRecordsForActiveLevel_());
@@ -2483,23 +2476,9 @@ function wmApplyLearningMapStatus(mapData){
      학생관리_DB의 레벨완료조건 + 세트순차완주 공식회차를 기준으로 표시합니다. */
   const sequentialState = wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap);
 
-  /* WM_MAP_LEVEL_HISTORY_AUTO_SWITCH_V1
-     현재 레벨이 레벨완료 상태가 되면 상단 History 보드에 완료 레벨과 다음 레벨을 나란히 표시하고,
-     기본 화면은 다음 레벨 학습맵으로 전환합니다. 완료 레벨 버튼을 누르면 해당 레벨 히스토리를 다시 볼 수 있습니다. */
-  if(!mapData.__forceLevel && sequentialState.levelComplete && currentLevelNumber < 13){
-    const completedLevel = currentLevelNumber;
-    const nextLevel = currentLevelNumber + 1;
-    wmRenderLevelHistoryBoard_(completedLevel, nextLevel);
-    currentLevelNumber = nextLevel;
-    wmViewingCompletedHistoryLevel = false;
-    wmUpdateStudentLevelHeaderLabel_();
-    wmApplyLearningMapStatus(Object.assign({}, wmLastLearningMapData, { __forceLevel: true }));
-    return;
-  }
-
-  if(wmHistoryCompletedLevel && wmHistoryCurrentLevel){
-    wmRenderLevelHistoryBoard_(wmHistoryCompletedLevel, wmHistoryCurrentLevel);
-  }
+  /* WM_MAP_LEVEL_HISTORY_SINGLE_ENGINE_V1
+     학습히스토리는 자동전환/캐시 렌더링을 사용하지 않고,
+     아래 wmRenderRecordLevelHistoryBoard_() 한 경로에서만 공식 엔진 결과로 렌더링합니다. */
 
   /* WM_MAP_RECORD_PROGRESS_SYNC_V1
      하단 학습기록_DB에 완료 기록이 있으면 상단 블럭/진행률도 같은 기록을 반영합니다.
@@ -2556,7 +2535,7 @@ function wmApplyLearningMapStatus(mapData){
     };
   });
 
-  wmRenderRecordLevelHistoryBoard_(records, setStatusMap);
+  wmRenderRecordLevelHistoryBoard_(records, setStatusMap, mapData.__historyLatestLevel);
   wmMapDataReady = true;
   wmStopMapLoadingState_();
   renderSetMap();
