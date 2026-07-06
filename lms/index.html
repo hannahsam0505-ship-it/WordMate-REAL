@@ -2301,7 +2301,36 @@
       }
       alert(scope+' 검색조건 적용 예정: Google Apps Script 연결 후 현재 탭 DB 기준으로 조회됩니다.');
     }
-    function resetFilter(scope){ document.querySelectorAll('[data-filter-scope="'+scope+'"] input,[data-filter-scope="'+scope+'"] select').forEach(el=>el.value=''); if(scope==='profile'){ setProfileLoading(false); const box=document.getElementById('wmProfileSearchStatus'); if(box){ box.style.display='none'; box.textContent=''; } } if(scope==='students') setManageLoading('students', false); if(scope==='records') setManageLoading('records', false); if(scope==='reports') setManageLoading('reports', false); if(scope==='dashboard') renderDashboard(); }
+    function resetFilter(scope){
+      document.querySelectorAll('[data-filter-scope="'+scope+'"] input,[data-filter-scope="'+scope+'"] select').forEach(el=>el.value='');
+      if(scope==='profile'){
+        setProfileLoading(false);
+        const box=document.getElementById('wmProfileSearchStatus');
+        if(box){ box.style.display='none'; box.textContent=''; }
+        return;
+      }
+      if(scope==='students'){
+        if(WM_STUDENT_MANAGE_ROWS && WM_STUDENT_MANAGE_ROWS.length) renderStudentManageRows();
+        else loadStudents();
+        return;
+      }
+      if(scope==='records'){
+        if(WM_RECORD_MANAGE_ROWS && WM_RECORD_MANAGE_ROWS.length) renderRecordManageRows();
+        else loadRecords();
+        return;
+      }
+      if(scope==='reports'){
+        if(WM_REPORT_MANAGE_ROWS && WM_REPORT_MANAGE_ROWS.length) renderReportManageRows();
+        else loadReports();
+        return;
+      }
+      if(scope==='currentProgress'){
+        if(WM_CURRENT_PROGRESS_ROWS && WM_CURRENT_PROGRESS_ROWS.length) renderCurrentProgressRows();
+        else loadCurrentProgressRows();
+        return;
+      }
+      if(scope==='dashboard') renderDashboard();
+    }
 
     function setManageLoading(scope, isLoading){
       const id = scope === 'students' ? 'wmStudentManageLoading' : scope === 'records' ? 'wmRecordManageLoading' : scope === 'reports' ? 'wmReportManageLoading' : '';
@@ -2779,19 +2808,14 @@ function extractRecordRowsFromResponse(data){
       return haystack.includes(needle);
     }
 
-    function wmStudentLevelText(row){
-      const values = [
-        wmStudentField(row, ['학습배정','배정레벨','학습레벨','레벨','Level']),
-        wmStudentField(row, ['현재레벨','현재단계']),
-        wmStudentField(row, ['현재세트','Set_ID','기록Set_ID'])
-      ];
-      return wmStudentFilterText(values.join('|').replace(/WM/gi, '').replace(/Basic/gi, ''));
-    }
-
     function wmStudentMatchLevel(row, keyword){
       const needle = wmStudentFilterText(keyword).replace(/wm/g, '').replace(/basic/g, '');
       if(!needle) return true;
-      const haystack = wmStudentLevelText(row);
+      const haystack = wmStudentFilterText([
+        wmStudentField(row, ['학습배정','배정레벨','학습레벨','레벨','Level']),
+        wmStudentField(row, ['현재레벨','현재단계']),
+        wmStudentField(row, ['현재세트','Set_ID','기록Set_ID'])
+      ].join('|').replace(/WM/gi, '').replace(/Basic/gi, ''));
       if(haystack.includes(needle)) return true;
       const levelNumber = (needle.match(/\d+/) || [''])[0];
       if(!levelNumber) return false;
@@ -4302,6 +4326,17 @@ async function appendSendLogFromSendWaitRow(waitRow){
   });
 }
 
+
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('[data-filter-scope="students"] input,[data-filter-scope="students"] select').forEach(function(el){
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        runFilter('students');
+      }
+    });
+  });
+});
 
 document.addEventListener('DOMContentLoaded', loadStudents);
 document.addEventListener('DOMContentLoaded', loadRecords);
