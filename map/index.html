@@ -1016,13 +1016,13 @@ let wmCurrentStudent = null;
 let wmStudentProfile = null;
 let wmLastLearningMapData = null;
 let wmServerLevelHistoryLevels = [];
-let wmCurrentProgressHistoryCache = null;
 let wmHistoryCompletedLevel = 0;
 let wmHistoryCurrentLevel = 0;
 let wmViewingCompletedHistoryLevel = false;
 let wmMapLoadingTimer = null;
 let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
+let wmCurrentProgressHistoryCache = null;
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1501,6 +1501,38 @@ function wmParseProgressPercentNumber_(value){
   return Math.max(0, Math.min(100, Math.round(num)));
 }
 
+
+function wmParsePipeNumberListForHistory_(value){
+  if(Array.isArray(value)){
+    return value.map(function(item){ return Number(String(item || '').match(/\d+/) ? String(item || '').match(/\d+/)[0] : item); }).filter(function(n){ return Number.isFinite(n) && n > 0; });
+  }
+  const text = String(value || '').trim();
+  if(!text) return [];
+  return text.split('|').map(function(part){
+    const match = String(part || '').match(/\d+/);
+    return match ? Number(match[0]) : 0;
+  }).filter(function(n){ return Number.isFinite(n) && n > 0; });
+}
+
+function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
+  raw = raw || {};
+  const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료된레벨, raw.historyLevels, raw.levelHistoryLevels));
+  const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료횟수, raw.historyRounds, raw.levelHistoryRounds));
+  const latest = Number(latestLevel || raw.현재레벨 || raw.currentLevel || 0);
+  if(latest && WM_LEVEL_CONFIG[latest] && levels.indexOf(latest) === -1){
+    levels.push(latest);
+    rounds.push(0);
+  }
+  const pairs = levels.map(function(level, index){
+    return { level:Number(level), round:Number(rounds[index] || 0) };
+  }).filter(function(item){ return !!WM_LEVEL_CONFIG[item.level]; });
+  pairs.sort(function(a,b){ return a.level - b.level; });
+  return {
+    levels: pairs.map(function(item){ return item.level; }),
+    roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {})
+  };
+}
+
 function wmParseRecent30Records_(value){
   if(Array.isArray(value)) return value;
   if(!value) return [];
@@ -1513,55 +1545,6 @@ function wmParseRecent30Records_(value){
     }
   }
   return [];
-}
-
-function wmParsePipeNumberList_(value){
-  if(Array.isArray(value)){
-    return value.map(function(v){ return Number(String(v || '').match(/\d+/) || 0); }).filter(function(n){ return Number.isFinite(n) && n >= 0; });
-  }
-  return String(value || '')
-    .split('|')
-    .map(function(v){
-      const match = String(v || '').match(/\d+/);
-      return match ? Number(match[0]) : 0;
-    })
-    .filter(function(n){ return Number.isFinite(n) && n >= 0; });
-}
-
-function wmBuildHistoryCacheFromCurrentProgress_(rawCache, currentLevel){
-  rawCache = rawCache || {};
-  const levels = wmParsePipeNumberList_(rawCache.완료된레벨 || rawCache.historyLevels || rawCache.levelHistoryLevels);
-  const rounds = wmParsePipeNumberList_(rawCache.완료횟수 || rawCache.historyRounds || rawCache.levelHistoryRounds);
-  const stateMap = {};
-  const resultLevels = [];
-  const seen = {};
-
-  levels.forEach(function(level, index){
-    const n = Number(level || 0);
-    if(!WM_LEVEL_CONFIG[n] || seen[n]) return;
-    seen[n] = true;
-    resultLevels.push(n);
-    const round = Number(rounds[index] || 0);
-    stateMap[n] = {
-      round: Math.max(0, round),
-      levelDone: Number(n) !== Number(currentLevel || 0),
-      targetLimit: wmGetLevelTargetRoundLimitForMap_(),
-      fromCurrentProgressCache: true
-    };
-  });
-
-  if(currentLevel && WM_LEVEL_CONFIG[currentLevel] && !seen[currentLevel]){
-    resultLevels.push(currentLevel);
-    stateMap[currentLevel] = {
-      round: Number(rawCache.순차완주회차 || 0),
-      levelDone: false,
-      targetLimit: wmGetLevelTargetRoundLimitForMap_(),
-      fromCurrentProgressCache: true
-    };
-  }
-
-  resultLevels.sort(function(a,b){ return a-b; });
-  return resultLevels.length ? { levels: resultLevels, stateMap: stateMap } : null;
 }
 
 function wmFindCurrentProgressCache_(data){
@@ -1648,7 +1631,7 @@ function wmNormalizeCurrentProgressCache_(data){
     setProgress: Number.isFinite(setProgress) ? setProgress : 0,
     recentScore: recentScore,
     recent30Records: recent30,
-    historyCache: wmBuildHistoryCacheFromCurrentProgress_(cache, currentLevel)
+    historyCache: wmBuildCurrentProgressHistoryCacheForMap_(cache, currentLevel)
   };
 }
 
@@ -1733,14 +1716,15 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
   wmCurrentProgressHistoryCache = cacheData.historyCache || null;
 
-  /* WM_MAP_LEVEL_HISTORY_CURRENT_PROGRESS_DB_RENDER_V1
+  /* WM_MAP_LEVEL_HISTORY_CACHE_RENDER_FIX_20260706_V1
      현재진행_DB 캐시 경로에서도 학습기록_DB 전체 records 기준으로
      상단 학습히스토리(지난 레벨 + 현재 레벨)를 반드시 다시 그립니다. */
   wmLastLearningMapData = {
     completedSetIds: Array.isArray(data && data.completedSetIds) ? data.completedSetIds : [],
     setStatusMap: (data && data.setStatusMap) || {},
     records: wmLearningRecords,
-    levelHistoryLevels: wmServerLevelHistoryLevels.slice()
+    levelHistoryLevels: wmServerLevelHistoryLevels.slice(),
+    currentProgressHistoryCache: wmCurrentProgressHistoryCache
   };
   wmRenderRecordLevelHistoryBoard_(wmLearningRecords, (data && data.setStatusMap) || {});
 
@@ -1791,7 +1775,6 @@ function wmHandleLearningMapResponse(data){
   wmStopMapLoadingState_();
   wmLearningRecords = [];
   wmServerLevelHistoryLevels = [];
-  wmCurrentProgressHistoryCache = null;
   setData = [];
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
@@ -2296,10 +2279,6 @@ function wmGetStudentStartLevelForHistory_(){
 }
 
 function wmGetRecordLevelListForHistory_(records, latestLevelOverride){
-  if(wmCurrentProgressHistoryCache && Array.isArray(wmCurrentProgressHistoryCache.levels) && wmCurrentProgressHistoryCache.levels.length){
-    return wmCurrentProgressHistoryCache.levels.slice().sort(function(a,b){ return a-b; });
-  }
-
   const levelMap = {};
   const list = [];
 
@@ -2377,12 +2356,9 @@ function wmGetLevelHistoryClassForLevel_(level, latestLevel, state){
 
 function wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive){
   if(isActive) return '0%';
-  if(state && state.levelDone){
-    const doneRound = Number(state && state.round ? state.round : 0);
-    return doneRound > 0 ? (doneRound + '회완료') : '완료';
-  }
 
   const round = Number(state && state.round ? state.round : 0);
+  if(state && state.levelDone) return (round > 0 ? round : '') + '회완료';
   if(round >= 3) return '3회';
   if(round === 2) return '2회';
   if(round === 1) return '1회';
@@ -2395,14 +2371,26 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   if(!bar) return;
 
   const latestLevel = Number(latestLevelOverride || currentLevelNumber || 0);
-  let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
+  const cacheHistory = (wmCurrentProgressHistoryCache && Array.isArray(wmCurrentProgressHistoryCache.levels) && wmCurrentProgressHistoryCache.levels.length)
+    ? wmCurrentProgressHistoryCache
+    : null;
+  let levels = cacheHistory ? wmCurrentProgressHistoryCache.levels.slice() : wmGetRecordLevelListForHistory_(records, latestLevel);
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
   }
 
-  const stateMap = (wmCurrentProgressHistoryCache && wmCurrentProgressHistoryCache.stateMap)
-    ? wmCurrentProgressHistoryCache.stateMap
-    : wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
+  let stateMap = cacheHistory ? {} : wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
+  if(cacheHistory){
+    levels.forEach(function(level){
+      const n = Number(level || 0);
+      const round = Number((wmCurrentProgressHistoryCache.roundsByLevel || {})[n] || 0);
+      stateMap[n] = {
+        round: round,
+        levelDone: n !== latestLevel && round > 0,
+        targetLimit: 0
+      };
+    });
+  }
 
   levels = levels.filter(function(level){
     const n = Number(level || 0);
@@ -2455,13 +2443,17 @@ function wmApplyLearningMapStatus(mapData){
       completedSetIds: mapData.completedSetIds || [],
       setStatusMap: mapData.setStatusMap || {},
       records: Array.isArray(mapData.records) ? mapData.records : [],
-      levelHistoryLevels: Array.isArray(mapData.levelHistoryLevels) ? mapData.levelHistoryLevels.slice() : []
+      levelHistoryLevels: Array.isArray(mapData.levelHistoryLevels) ? mapData.levelHistoryLevels.slice() : [],
+      currentProgressHistoryCache: mapData.currentProgressHistoryCache || wmCurrentProgressHistoryCache || null
     };
   }
 
   const completedSetIds = mapData.completedSetIds || [];
   const setStatusMap = mapData.setStatusMap || {};
   const records = Array.isArray(mapData.records) ? mapData.records : [];
+  if(mapData.currentProgressHistoryCache){
+    wmCurrentProgressHistoryCache = mapData.currentProgressHistoryCache;
+  }
   if(Array.isArray(mapData.levelHistoryLevels)){
     wmServerLevelHistoryLevels = mapData.levelHistoryLevels.slice();
   }
