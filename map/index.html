@@ -1999,8 +1999,9 @@ function wmGetLevelTargetRoundLimitForMap_(){
   return 2;
 }
 
-function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap){
-  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){
+function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNumber){
+  const sourceLevelNumber = Number(levelNumber || currentLevelNumber || 0);
+  const sequence = wmBuildLevelSetData(sourceLevelNumber).map(function(item){
     return String(item.set || '').trim();
   });
   const targetLimit = wmGetLevelTargetRoundLimitForMap_();
@@ -2266,8 +2267,8 @@ function wmGetRecordLevelListForHistory_(records){
   addLevel(currentLevelNumber);
 
   /* WM_LEVEL_HISTORY_OFFICIAL_RULE_V1
-     학습히스토리는 공식 엔진 결과만 사용합니다.
-     연속 레벨 자동생성은 하지 않습니다. */
+     학습히스토리는 임의 연속 레벨을 만들지 않고,
+     아래 렌더 단계에서 공식 엔진으로 통과한 레벨만 표시합니다. */
 
   list.sort(function(a,b){ return a-b; });
   return list;
@@ -2281,70 +2282,69 @@ function wmGetRoundNumberForHistory_(value){
   return Number.isFinite(n) ? n : 0;
 }
 
-function wmBuildLevelRoundStateForHistory_(records){
+function wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels){
   const state = {};
-  const targetRound = wmGetLevelTargetRoundLimitForMap_ ? wmGetLevelTargetRoundLimitForMap_() : 3;
 
-  if(Array.isArray(records)){
-    records.forEach(function(record){
-      const level = wmRecordLevelNumber_(record);
-      if(!WM_LEVEL_CONFIG[level]) return;
+  (Array.isArray(levels) ? levels : []).forEach(function(level){
+    const n = Number(level || 0);
+    if(!WM_LEVEL_CONFIG[n]) return;
 
-      const round = Math.max(
-        wmGetRoundNumberForHistory_(record && record['완료']),
-        wmGetRoundNumberForHistory_(record && record['완료회차']),
-        wmGetRoundNumberForHistory_(record && record.completeRound),
-        wmGetRoundNumberForHistory_(record && record.round)
-      );
-
-      if(!state[level]) state[level] = {round:0, levelDone:false};
-      state[level].round = Math.max(state[level].round, round);
-      if(round >= targetRound) state[level].levelDone = true;
+    const officialState = wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, n);
+    const roundValues = Object.keys(officialState.officialRoundMap || {}).map(function(key){
+      return Number((officialState.officialRoundMap || {})[key] || 0);
     });
-  }
+    const maxRound = roundValues.length ? Math.max.apply(null, roundValues) : 0;
+
+    state[n] = {
+      round: Math.max(0, Math.min(Number(officialState.targetLimit || 1), maxRound)),
+      levelDone: !!officialState.levelComplete,
+      targetLimit: Number(officialState.targetLimit || 1)
+    };
+  });
 
   return state;
 }
 
 function wmGetLevelHistoryClassForLevel_(level, latestLevel, state){
+  if(Number(level) === Number(latestLevel)) return 'level-current';
   if(state && state.levelDone && Number(level) < Number(latestLevel)) return 'level-done';
-  const round = state && state.round ? Number(state.round) : 0;
-  if(round >= 3) return 'level-history-complete3';
-  if(round === 2) return 'level-history-complete2';
-  if(round === 1) return 'level-history-complete1';
-  return Number(level) === Number(latestLevel) ? 'level-current' : 'level-history-study';
+  return 'level-current';
 }
 
 function wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive){
   if(isActive) return '0%';
   if(state && state.levelDone && Number(level) < Number(latestLevel)) return '완료';
-  const round = state && state.round ? Number(state.round) : 0;
-  if(round >= 3) return '3회';
-  if(round === 2) return '2회';
-  if(round === 1) return '1회';
-  return Number(level) === Number(latestLevel) ? '현재' : '학습중';
+  return Number(level) === Number(latestLevel) ? '현재' : '';
 }
 
-function wmRenderRecordLevelHistoryBoard_(records){
+function wmRenderRecordLevelHistoryBoard_(records, setStatusMap){
   const bar = document.querySelector('.level-bar');
   if(!bar) return;
 
+  const latestLevel = Number(currentLevelNumber || 0);
   let levels = wmGetRecordLevelListForHistory_(records);
-
-  if(levels.length <= 1){
-    const onlyLevel = levels.length ? levels[0] : currentLevelNumber;
-    bar.innerHTML = '<button class="level-block level-current"><span id="currentLevelLabel">' + onlyLevel + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
-    return;
+  if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
+    levels.push(latestLevel);
   }
 
-  const latestLevel = Number(currentLevelNumber || 0);
-  const stateMap = wmBuildLevelRoundStateForHistory_(records);
+  const stateMap = wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
+
+  levels = levels.filter(function(level){
+    const n = Number(level || 0);
+    if(!WM_LEVEL_CONFIG[n]) return false;
+    if(n === latestLevel) return true;
+    if(n < latestLevel){
+      return !!(stateMap[n] && stateMap[n].levelDone);
+    }
+    return false;
+  });
+
+  levels.sort(function(a,b){ return a-b; });
   wmSaveLevelHistoryList_(levels);
 
   bar.innerHTML = levels.map(function(level){
     const isActive = Number(currentLevelNumber || 0) === Number(level || 0);
-    const isCurrentLevel = Number(level || 0) === Number(latestLevel || 0);
-    const completedView = !isCurrentLevel;
+    const completedView = Number(level || 0) !== Number(latestLevel || 0);
     const state = stateMap[level] || null;
     const cls = wmGetLevelHistoryClassForLevel_(level, latestLevel, state);
     const activeCls = isActive ? ' level-history-active' : '';
@@ -2556,7 +2556,7 @@ function wmApplyLearningMapStatus(mapData){
     };
   });
 
-  wmRenderRecordLevelHistoryBoard_(records);
+  wmRenderRecordLevelHistoryBoard_(records, setStatusMap);
   wmMapDataReady = true;
   wmStopMapLoadingState_();
   renderSetMap();
