@@ -2338,12 +2338,6 @@ function wmRenderRecordLevelHistoryBoard_(records){
 
   let levels = wmGetRecordLevelListForHistory_(records);
 
-  if(levels.length <= 1){
-    const onlyLevel = levels.length ? levels[0] : currentLevelNumber;
-    bar.innerHTML = '<button class="level-block level-current"><span id="currentLevelLabel">' + onlyLevel + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
-    return;
-  }
-
   const latestLevel = Math.max.apply(null, levels.concat([Number(currentLevelNumber || 0)]));
   const stateMap = wmBuildLevelRoundStateForHistory_(records);
   wmSaveLevelHistoryList_(levels);
