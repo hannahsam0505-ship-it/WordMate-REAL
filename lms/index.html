@@ -2761,38 +2761,68 @@ function extractRecordRowsFromResponse(data){
       return raw;
     }
 
+    function wmStudentFilterText(value){
+      return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '');
+    }
+
+    function wmStudentField(row, names){
+      for(const name of names){
+        if(row && row[name] !== undefined && row[name] !== null && String(row[name]).trim() !== '') return row[name];
+      }
+      return '';
+    }
+
+    function wmStudentMatch(row, keyword, fieldNames){
+      const needle = wmStudentFilterText(keyword);
+      if(!needle) return true;
+      const haystack = fieldNames.map(name=>wmStudentFilterText(row[name])).join('|');
+      return haystack.includes(needle);
+    }
+
+    function wmStudentLevelText(row){
+      const values = [
+        wmStudentField(row, ['학습배정','배정레벨','학습레벨','레벨','Level']),
+        wmStudentField(row, ['현재레벨','현재단계']),
+        wmStudentField(row, ['현재세트','Set_ID','기록Set_ID'])
+      ];
+      return wmStudentFilterText(values.join('|').replace(/WM/gi, '').replace(/Basic/gi, ''));
+    }
+
+    function wmStudentMatchLevel(row, keyword){
+      const needle = wmStudentFilterText(keyword).replace(/wm/g, '').replace(/basic/g, '');
+      if(!needle) return true;
+      const haystack = wmStudentLevelText(row);
+      if(haystack.includes(needle)) return true;
+      const levelNumber = (needle.match(/\d+/) || [''])[0];
+      if(!levelNumber) return false;
+      return new RegExp('(^|[^0-9])' + levelNumber + '($|[^0-9])').test(haystack);
+    }
+
     function getStudentManageFilteredRows(rows){
-      const studentId = getFilterValue('students','studentId').toLowerCase();
-      const studentName = getFilterValue('students','studentName').toLowerCase();
-      const teacher = getFilterValue('students','teacher').toLowerCase();
-      const leader = getFilterValue('students','leader').toLowerCase();
-      const className = getFilterValue('students','class').toLowerCase();
-      const school = getFilterValue('students','school').toLowerCase();
-      const region = getFilterValue('students','region').toLowerCase();
-      const level = getFilterValue('students','level').toLowerCase();
-      const dateStart = getFilterValue('students','dateStart');
-      const dateEnd = getFilterValue('students','dateEnd');
+      const filters = {
+        studentId: getFilterValue('students','studentId'),
+        studentName: getFilterValue('students','studentName'),
+        teacher: getFilterValue('students','teacher'),
+        leader: getFilterValue('students','leader'),
+        className: getFilterValue('students','class'),
+        school: getFilterValue('students','school'),
+        region: getFilterValue('students','region'),
+        level: getFilterValue('students','level'),
+        dateStart: getFilterValue('students','dateStart'),
+        dateEnd: getFilterValue('students','dateEnd')
+      };
 
-      return (rows || []).filter(row=>{
-        const rowStudentId = String(row['학생ID'] || '').toLowerCase();
-        const rowStudentName = String(row['학생이름'] || '').toLowerCase();
-        const rowTeacher = String(row['교사명'] || '').toLowerCase();
-        const rowLeader = String(row['담당리더'] || row['리더'] || row['리더명'] || '').toLowerCase();
-        const rowClass = String(row['반'] || row['Class'] || '').toLowerCase();
-        const rowSchool = String(row['학교'] || '').toLowerCase();
-        const rowAddress = String(row['주소'] || row['지역'] || '').toLowerCase();
-        const rowLevel = String(row['학습배정'] || row['레벨'] || row['학습레벨'] || row['Level'] || '').toLowerCase();
-        const rowDate = row['등록일'] || row['최초등록일'] || row['최근결제일'] || row['최종결제'];
-
-        if(!isWithinManageDateRange(rowDate, dateStart, dateEnd)) return false;
-        if(studentId && !rowStudentId.includes(studentId)) return false;
-        if(studentName && !rowStudentName.includes(studentName)) return false;
-        if(teacher && !rowTeacher.includes(teacher)) return false;
-        if(leader && !rowLeader.includes(leader)) return false;
-        if(className && !rowClass.includes(className)) return false;
-        if(school && !rowSchool.includes(school)) return false;
-        if(region && !rowAddress.includes(region)) return false;
-        if(level && !rowLevel.includes(level)) return false;
+      return (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
+        const rowDate = wmStudentField(row, ['등록일','최초등록일','최근결제일','최종결제','수정일']);
+        if(!isWithinManageDateRange(rowDate, filters.dateStart, filters.dateEnd)) return false;
+        if(!wmStudentMatch(row, filters.studentId, ['학생ID','StudentID','아이디'])) return false;
+        if(!wmStudentMatch(row, filters.studentName, ['학생이름','학생명','이름','StudentName'])) return false;
+        if(!wmStudentMatch(row, filters.teacher, ['교사명','현재담당교사','담당교사','Teacher'])) return false;
+        if(!wmStudentMatch(row, filters.leader, ['담당리더','리더','리더명','Leader'])) return false;
+        if(!wmStudentMatch(row, filters.className, ['반명','반','Class','현재반','클래스'])) return false;
+        if(!wmStudentMatch(row, filters.school, ['학교','학교명','School'])) return false;
+        if(!wmStudentMatch(row, filters.region, ['지역','주소','시도','시군구'])) return false;
+        if(!wmStudentMatchLevel(row, filters.level)) return false;
         return true;
       });
     }
