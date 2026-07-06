@@ -603,6 +603,19 @@ body.wm-map-loading-active #wm-learning-record-widget{
 .level-done{
   background:linear-gradient(135deg,#16a34a,#0f7a32);
 }
+.level-history-study{
+  background:linear-gradient(135deg,#ffe680,#f3c500);
+  color:#3a2a00;
+}
+.level-history-complete1{
+  background:linear-gradient(135deg,#0066cc,#004a99);
+}
+.level-history-complete2{
+  background:linear-gradient(135deg,#f28c28,#d96f00);
+}
+.level-history-complete3{
+  background:linear-gradient(135deg,#7b4fd6,#5630aa);
+}
 
 .level-history-active{
   outline:3px solid rgba(37,99,235,.35);
@@ -2215,18 +2228,10 @@ function wmGetStudentStartLevelForHistory_(){
 function wmGetRecordLevelListForHistory_(records){
   const levelMap = {};
   const list = [];
-  const startLevel = wmGetStudentStartLevelForHistory_();
 
   function addLevel(level){
     const n = Number(level || 0);
     if(!WM_LEVEL_CONFIG[n] || levelMap[n]) return;
-
-    /* WM_HISTORY_START_LEVEL_FILTER_20260617_V3
-       학생 시작레벨보다 낮은 레벨은 히스토리 버튼에 표시하지 않습니다.
-       예: 4레벨 시작 학생은 records에 3레벨 잔여/오염 기록이 있어도 3 LEVEL을 숨깁니다.
-       실제 3레벨부터 시작한 학생은 startLevel이 3이므로 3 LEVEL이 정상 표시됩니다. */
-    if(n < startLevel) return;
-
     levelMap[n] = true;
     list.push(n);
   }
@@ -2239,8 +2244,71 @@ function wmGetRecordLevelListForHistory_(records){
 
   addLevel(currentLevelNumber);
 
+  /* WM_LEVEL_HISTORY_CONTIGUOUS_FROM_RECORDS_SAFE_V2
+     학습기록_DB에 실제 이전 레벨 기록이 있으면 시작레벨부터 현재진행_DB 현재레벨까지
+     3→4→5처럼 중간 레벨을 빠짐없이 표시합니다. */
+  if(list.length){
+    const minLevel = Math.min.apply(null, list);
+    const maxLevel = Math.max.apply(null, list.concat([Number(currentLevelNumber || 0)]));
+    for(let level=minLevel; level<=maxLevel; level++){
+      addLevel(level);
+    }
+  }
+
   list.sort(function(a,b){ return a-b; });
   return list;
+}
+
+function wmGetRoundNumberForHistory_(value){
+  const text = String(value || '').trim();
+  const match = text.match(/(\d+)\s*회/);
+  if(match) return Number(match[1]);
+  const n = Number(text);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function wmBuildLevelRoundStateForHistory_(records){
+  const state = {};
+  const targetRound = wmGetLevelTargetRoundLimitForMap_ ? wmGetLevelTargetRoundLimitForMap_() : 3;
+
+  if(Array.isArray(records)){
+    records.forEach(function(record){
+      const level = wmRecordLevelNumber_(record);
+      if(!WM_LEVEL_CONFIG[level]) return;
+
+      const round = Math.max(
+        wmGetRoundNumberForHistory_(record && record['완료']),
+        wmGetRoundNumberForHistory_(record && record['완료회차']),
+        wmGetRoundNumberForHistory_(record && record.completeRound),
+        wmGetRoundNumberForHistory_(record && record.round)
+      );
+
+      if(!state[level]) state[level] = {round:0, levelDone:false};
+      state[level].round = Math.max(state[level].round, round);
+      if(round >= targetRound) state[level].levelDone = true;
+    });
+  }
+
+  return state;
+}
+
+function wmGetLevelHistoryClassForLevel_(level, latestLevel, state){
+  if(state && state.levelDone && Number(level) < Number(latestLevel)) return 'level-done';
+  const round = state && state.round ? Number(state.round) : 0;
+  if(round >= 3) return 'level-history-complete3';
+  if(round === 2) return 'level-history-complete2';
+  if(round === 1) return 'level-history-complete1';
+  return Number(level) === Number(latestLevel) ? 'level-current' : 'level-history-study';
+}
+
+function wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive){
+  if(isActive) return '0%';
+  if(state && state.levelDone && Number(level) < Number(latestLevel)) return '완료';
+  const round = state && state.round ? Number(state.round) : 0;
+  if(round >= 3) return '3회';
+  if(round === 2) return '2회';
+  if(round === 1) return '1회';
+  return Number(level) === Number(latestLevel) ? '현재' : '학습중';
 }
 
 function wmRenderRecordLevelHistoryBoard_(records){
@@ -2255,15 +2323,19 @@ function wmRenderRecordLevelHistoryBoard_(records){
     return;
   }
 
-  const latestLevel = Math.max.apply(null, levels);
+  const latestLevel = Math.max.apply(null, levels.concat([Number(currentLevelNumber || 0)]));
+  const stateMap = wmBuildLevelRoundStateForHistory_(records);
+  wmSaveLevelHistoryList_(levels);
+
   bar.innerHTML = levels.map(function(level){
     const isActive = Number(currentLevelNumber || 0) === Number(level || 0);
     const isCurrentLevel = Number(level || 0) === Number(latestLevel || 0);
     const completedView = !isCurrentLevel;
-    const cls = isCurrentLevel ? 'level-current' : 'level-done';
+    const state = stateMap[level] || null;
+    const cls = wmGetLevelHistoryClassForLevel_(level, latestLevel, state);
     const activeCls = isActive ? ' level-history-active' : '';
     const strongId = isActive ? ' id="levelPercent"' : '';
-    const label = isActive ? '0%' : (isCurrentLevel ? '현재' : '완료');
+    const label = wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive);
 
     return '<button class="level-block ' + cls + activeCls + '" type="button" onclick="wmSwitchHistoryLevel_(' + level + ', ' + (completedView ? 'true' : 'false') + ')">'
       + '<span' + (isActive ? ' id="currentLevelLabel"' : '') + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
