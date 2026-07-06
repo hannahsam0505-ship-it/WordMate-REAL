@@ -1665,7 +1665,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
      records가 없을 때만 현재진행_DB 최근30건JSON을 fallback으로 사용합니다. */
   const serverLearningRecords = Array.isArray(data && data.records) ? data.records : [];
   const cacheLearningRecords = Array.isArray(cacheData.recent30Records) ? cacheData.recent30Records : [];
-  wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords).slice(0, 30);
+  wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords);
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
 
   wmMapDataReady = true;
@@ -2090,33 +2090,11 @@ function wmRecordLevelNumber_(record){
 }
 
 function wmGetHomeworkRecordsForActiveLevel_(){
-  /* WM_HOMEWORK_ACTIVE_LEVEL_FILTER_RESTORE_20260617_V1
-     하단 숙제검사/학습기록 DB는 현재 선택된 히스토리 레벨 기준으로 표시합니다.
-     - 4 LEVEL 완료 클릭: 4레벨 기록만 표시
-     - 5 LEVEL 현재 클릭: 5레벨 기록만 표시
-     - 단, 현재레벨 기록이 아직 없으면 DB를 비우지 않고 최근 기록 10줄을 표시합니다.
-       완료레벨 클릭 시에는 다른 레벨 기록을 섞지 않습니다. */
+  /* WM_HOMEWORK_ALL_RECORDS_VIEW_V1
+     학습맵 하단 학습기록은 학습기록_DB 전체를 표시합니다.
+     레벨 필터, 최근 10건 제한, 히스토리 레벨 제한을 적용하지 않습니다. */
   const records = Array.isArray(wmLearningRecords) ? wmLearningRecords : [];
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  const activeLevel = Number(currentLevelNumber || 0);
-
-  if(!activeLevel || !WM_LEVEL_CONFIG[activeLevel]){
-    return sortedRecords.slice(0, 10);
-  }
-
-  const levelRecords = sortedRecords.filter(function(record){
-    return Number(wmRecordLevelNumber_(record) || 0) === activeLevel;
-  });
-
-  if(levelRecords.length > 0){
-    return levelRecords;
-  }
-
-  if(!wmViewingCompletedHistoryLevel){
-    return sortedRecords.slice(0, 10);
-  }
-
-  return [];
+  return wmSortLearningRecordsDesc_(records);
 }
 
 function wmRenderHomeworkForActiveLevel_(){
