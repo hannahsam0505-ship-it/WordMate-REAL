@@ -1016,6 +1016,7 @@ let wmCurrentStudent = null;
 let wmStudentProfile = null;
 let wmLastLearningMapData = null;
 let wmServerLevelHistoryLevels = [];
+let wmCurrentProgressHistoryCache = null;
 let wmHistoryCompletedLevel = 0;
 let wmHistoryCurrentLevel = 0;
 let wmViewingCompletedHistoryLevel = false;
@@ -1514,6 +1515,55 @@ function wmParseRecent30Records_(value){
   return [];
 }
 
+function wmParsePipeNumberList_(value){
+  if(Array.isArray(value)){
+    return value.map(function(v){ return Number(String(v || '').match(/\d+/) || 0); }).filter(function(n){ return Number.isFinite(n) && n >= 0; });
+  }
+  return String(value || '')
+    .split('|')
+    .map(function(v){
+      const match = String(v || '').match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    })
+    .filter(function(n){ return Number.isFinite(n) && n >= 0; });
+}
+
+function wmBuildHistoryCacheFromCurrentProgress_(rawCache, currentLevel){
+  rawCache = rawCache || {};
+  const levels = wmParsePipeNumberList_(rawCache.완료된레벨 || rawCache.historyLevels || rawCache.levelHistoryLevels);
+  const rounds = wmParsePipeNumberList_(rawCache.완료횟수 || rawCache.historyRounds || rawCache.levelHistoryRounds);
+  const stateMap = {};
+  const resultLevels = [];
+  const seen = {};
+
+  levels.forEach(function(level, index){
+    const n = Number(level || 0);
+    if(!WM_LEVEL_CONFIG[n] || seen[n]) return;
+    seen[n] = true;
+    resultLevels.push(n);
+    const round = Number(rounds[index] || 0);
+    stateMap[n] = {
+      round: Math.max(0, round),
+      levelDone: Number(n) !== Number(currentLevel || 0),
+      targetLimit: wmGetLevelTargetRoundLimitForMap_(),
+      fromCurrentProgressCache: true
+    };
+  });
+
+  if(currentLevel && WM_LEVEL_CONFIG[currentLevel] && !seen[currentLevel]){
+    resultLevels.push(currentLevel);
+    stateMap[currentLevel] = {
+      round: Number(rawCache.순차완주회차 || 0),
+      levelDone: false,
+      targetLimit: wmGetLevelTargetRoundLimitForMap_(),
+      fromCurrentProgressCache: true
+    };
+  }
+
+  resultLevels.sort(function(a,b){ return a-b; });
+  return resultLevels.length ? { levels: resultLevels, stateMap: stateMap } : null;
+}
+
 function wmFindCurrentProgressCache_(data){
   if(!data || typeof data !== 'object') return null;
 
@@ -1597,7 +1647,8 @@ function wmNormalizeCurrentProgressCache_(data){
     levelProgress: Number.isFinite(levelProgress) ? levelProgress : 0,
     setProgress: Number.isFinite(setProgress) ? setProgress : 0,
     recentScore: recentScore,
-    recent30Records: recent30
+    recent30Records: recent30,
+    historyCache: wmBuildHistoryCacheFromCurrentProgress_(cache, currentLevel)
   };
 }
 
@@ -1680,8 +1731,9 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   const cacheLearningRecords = Array.isArray(cacheData.recent30Records) ? cacheData.recent30Records : [];
   wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords);
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
+  wmCurrentProgressHistoryCache = cacheData.historyCache || null;
 
-  /* WM_MAP_LEVEL_HISTORY_CACHE_RENDER_FIX_20260706_V1
+  /* WM_MAP_LEVEL_HISTORY_CURRENT_PROGRESS_DB_RENDER_V1
      현재진행_DB 캐시 경로에서도 학습기록_DB 전체 records 기준으로
      상단 학습히스토리(지난 레벨 + 현재 레벨)를 반드시 다시 그립니다. */
   wmLastLearningMapData = {
@@ -1739,6 +1791,7 @@ function wmHandleLearningMapResponse(data){
   wmStopMapLoadingState_();
   wmLearningRecords = [];
   wmServerLevelHistoryLevels = [];
+  wmCurrentProgressHistoryCache = null;
   setData = [];
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
@@ -2243,6 +2296,10 @@ function wmGetStudentStartLevelForHistory_(){
 }
 
 function wmGetRecordLevelListForHistory_(records, latestLevelOverride){
+  if(wmCurrentProgressHistoryCache && Array.isArray(wmCurrentProgressHistoryCache.levels) && wmCurrentProgressHistoryCache.levels.length){
+    return wmCurrentProgressHistoryCache.levels.slice().sort(function(a,b){ return a-b; });
+  }
+
   const levelMap = {};
   const list = [];
 
@@ -2320,7 +2377,10 @@ function wmGetLevelHistoryClassForLevel_(level, latestLevel, state){
 
 function wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive){
   if(isActive) return '0%';
-  if(state && state.levelDone) return '완료';
+  if(state && state.levelDone){
+    const doneRound = Number(state && state.round ? state.round : 0);
+    return doneRound > 0 ? (doneRound + '회완료') : '완료';
+  }
 
   const round = Number(state && state.round ? state.round : 0);
   if(round >= 3) return '3회';
@@ -2340,7 +2400,9 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     levels.push(latestLevel);
   }
 
-  const stateMap = wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
+  const stateMap = (wmCurrentProgressHistoryCache && wmCurrentProgressHistoryCache.stateMap)
+    ? wmCurrentProgressHistoryCache.stateMap
+    : wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
 
   levels = levels.filter(function(level){
     const n = Number(level || 0);
