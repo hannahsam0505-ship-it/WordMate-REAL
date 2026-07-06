@@ -1681,6 +1681,17 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords);
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
 
+  /* WM_MAP_LEVEL_HISTORY_CACHE_RENDER_FIX_20260706_V1
+     현재진행_DB 캐시 경로에서도 학습기록_DB 전체 records 기준으로
+     상단 학습히스토리(지난 레벨 + 현재 레벨)를 반드시 다시 그립니다. */
+  wmLastLearningMapData = {
+    completedSetIds: Array.isArray(data && data.completedSetIds) ? data.completedSetIds : [],
+    setStatusMap: (data && data.setStatusMap) || {},
+    records: wmLearningRecords,
+    levelHistoryLevels: wmServerLevelHistoryLevels.slice()
+  };
+  wmRenderRecordLevelHistoryBoard_(wmLearningRecords);
+
   wmMapDataReady = true;
   wmStopMapLoadingState_();
   renderSetMap();
@@ -2242,11 +2253,21 @@ function wmGetRecordLevelListForHistory_(records){
     });
   }
 
+  if(Array.isArray(wmServerLevelHistoryLevels)){
+    wmServerLevelHistoryLevels.forEach(function(level){
+      addLevel(level);
+    });
+  }
+
+  wmLoadLevelHistoryList_().forEach(function(level){
+    addLevel(level);
+  });
+
   addLevel(currentLevelNumber);
 
-  /* WM_LEVEL_HISTORY_CONTIGUOUS_FROM_RECORDS_SAFE_V2
-     학습기록_DB에 실제 이전 레벨 기록이 있으면 시작레벨부터 현재진행_DB 현재레벨까지
-     3→4→5처럼 중간 레벨을 빠짐없이 표시합니다. */
+  /* WM_LEVEL_HISTORY_CONTIGUOUS_FROM_RECORDS_SAFE_V3
+     학습기록_DB 전체 records, 서버 히스토리, 저장된 히스토리 중 확인된 최저 레벨부터
+     현재진행_DB 현재레벨까지 3→4→5처럼 중간 레벨을 빠짐없이 표시합니다. */
   if(list.length){
     const minLevel = Math.min.apply(null, list);
     const maxLevel = Math.max.apply(null, list.concat([Number(currentLevelNumber || 0)]));
