@@ -34,7 +34,69 @@
       throw new Error('WM_ENV 값 오류: TEST 또는 REAL만 사용할 수 있습니다. 현재값=' + WM_ENV);
     }
 
-    const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
+    
+
+/* ============================================================
+   WM PARTIAL LOCK CONFIG
+============================================================ */
+const WM_LOCKS = {
+  Dashboard_V1_LOCK:true,
+  StudentDB_V1_LOCK:true,
+  StudyRecordDB_V1_LOCK:true,
+  CurrentProgressDB_V1_LOCK:true,
+  Dashboard_Search_V1_LOCK:true,
+  Student_Search_V1_LOCK:true
+};
+
+function wmConfirmLock(lockName){
+  if(!WM_LOCKS[lockName]) return true;
+  return confirm(`🔒 [${lockName}]\n이 기능은 LOCK 상태입니다.\n\n정말 수정하시겠습니까?\n\n수정 사유를 기록한 뒤 진행하세요.`);
+}
+
+function wmLockNameForScope(scope, action){
+  const key = String(scope || '') + ':' + String(action || 'feature');
+  const map = {
+    'dashboard:feature':'Dashboard_V1_LOCK',
+    'dashboard:search':'Dashboard_Search_V1_LOCK',
+    'students:feature':'StudentDB_V1_LOCK',
+    'students:search':'Student_Search_V1_LOCK',
+    'records:feature':'StudyRecordDB_V1_LOCK',
+    'records:search':'StudyRecordDB_V1_LOCK',
+    'currentProgress:feature':'CurrentProgressDB_V1_LOCK',
+    'currentProgress:search':'CurrentProgressDB_V1_LOCK'
+  };
+  return map[key] || '';
+}
+
+function wmConfirmScopeLock(scope, action){
+  const lockName = wmLockNameForScope(scope, action);
+  return lockName ? wmConfirmLock(lockName) : true;
+}
+
+
+
+/* WM_ROLE_LOCK_V1 */
+const WM_ROLE_SCOPE_LOCK=true;
+const WM_ROLE_MENU_LOCK=true;
+
+const WM_ROLE_CONFIG={
+SUPER_ADMIN:{showDev:true,scope:'ALL'},
+SPECIAL_ADMIN:{showDev:true,scope:'ALL'},
+SUB_LEADER:{showDev:false,scope:'LEADER'},
+TEACHER:{showDev:false,scope:'CLASS'}
+};
+
+function wmApplyRoleUI(role){
+ const cfg=WM_ROLE_CONFIG[role]||WM_ROLE_CONFIG.SUPER_ADMIN;
+ const dev=document.getElementById('devCenterBtn');
+ if(dev) dev.style.display=cfg.showDev?'block':'none';
+}
+/* WM_ROLE_LOCK_V1 END */
+
+
+/* ============================================================ */
+
+const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
     const WM_MAP_URL = WM_CONFIG.MAP_URL;
     const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
@@ -291,6 +353,7 @@
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('students','yesterdayToday')">어제+오늘</button>
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('students','week')">일주일</button>
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('students','month')">한달</button>
+            <button type="button" class="wm-date-quick-btn" onclick="resetManageDateRange('students')">기간초기화</button>
           </div>
         </div>
         <div class="wm-filter-grid">
@@ -335,6 +398,7 @@
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('records','yesterdayToday')">어제+오늘</button>
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('records','week')">일주일</button>
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('records','month')">한달</button>
+            <button type="button" class="wm-date-quick-btn" onclick="resetManageDateRange('records')">기간초기화</button>
           </div>
         </div>
         <div class="wm-filter-grid">
@@ -1199,6 +1263,7 @@
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
       if(visibleViewRangeText) visibleViewRangeText.textContent = (typeof roleViewText !== 'undefined' && roleViewText[role]) ? roleViewText[role] : '허용된 LMS 범위';
+      if(typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
     }
     function wmRestoreLmsAuth(){
       try{
@@ -1300,6 +1365,25 @@
       const targetBtn=document.querySelector('.wm-menu-btn[data-panel="'+panelName+'"]');
       if(targetPanel) targetPanel.classList.add('active');
       if(targetBtn) targetBtn.classList.add('active');
+      /* WM_LMS_FIRST_SCREEN_SPEED_LOCK_V1: 첫화면에서는 무거운 탭 DB를 자동조회하지 않고, 탭 진입 시 1회 지연로딩합니다. */
+      if(panelName === 'students'){
+        setTimeout(function(){
+          if(typeof loadStudents === 'function' && (!WM_STUDENT_MANAGE_ROWS || !WM_STUDENT_MANAGE_ROWS.length)) loadStudents();
+          else if(typeof renderStudentManageRows === 'function') renderStudentManageRows();
+        }, 0);
+      }
+      if(panelName === 'records'){
+        setTimeout(function(){
+          if(typeof loadRecords === 'function' && (!WM_RECORD_MANAGE_ROWS || !WM_RECORD_MANAGE_ROWS.length)) loadRecords();
+          else if(typeof renderRecordManageRows === 'function') renderRecordManageRows();
+        }, 0);
+      }
+      if(panelName === 'reports'){
+        setTimeout(function(){
+          if(typeof loadReports === 'function' && (!WM_REPORT_MANAGE_ROWS || !WM_REPORT_MANAGE_ROWS.length)) loadReports();
+          else if(typeof renderReportManageRows === 'function') renderReportManageRows();
+        }, 0);
+      }
       if(panelName === 'currentProgress'){
         setTimeout(function(){
           if(typeof loadCurrentProgressRows === 'function' && (!WM_CURRENT_PROGRESS_ROWS || !WM_CURRENT_PROGRESS_ROWS.length)){
@@ -1315,7 +1399,8 @@
       viewRangeText.textContent=roleViewText[role];
       roleButtons.forEach(btn=>btn.classList.toggle('active',btn.dataset.role===role));
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
-      if(devCenterBtn){ devCenterBtn.style.display = role === 'SUPER_ADMIN' ? 'block' : 'none'; }
+      if(devCenterBtn){ devCenterBtn.style.display = (role==='SUPER_ADMIN'||role==='SPECIAL_ADMIN') ? 'block' : 'none'; }
+      wmApplyRoleUI(role);
       if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', !adminLike); }
       document.querySelectorAll('.wm-student-seq-col').forEach(el=>el.classList.add('wm-hidden'));
       updateStudentCreatePreview();
@@ -1349,6 +1434,12 @@
       if(preset === 'month') start.setMonth(today.getMonth()-1);
       setFilterValue(scope, 'dateStart', toDateInputValue(start));
       setFilterValue(scope, 'dateEnd', toDateInputValue(today));
+      runFilter(scope);
+    }
+
+    function resetManageDateRange(scope){
+      setFilterValue(scope, 'dateStart', '');
+      setFilterValue(scope, 'dateEnd', '');
       runFilter(scope);
     }
 
@@ -1986,7 +2077,9 @@
       return rows;
     }
 
-    async function ensureDashboardSourceRows(){
+    async function ensureDashboardSourceRows(options){
+      options = options || {};
+      const allowFallback = options.allowFallback !== false;
       ensureDashboardDefaultDates();
 
       try{
@@ -2013,14 +2106,16 @@
           WM_DASHBOARD_PAYMENT_ROWS = payments;
           if(currentProgress.length) WM_CURRENT_PROGRESS_ROWS = currentProgress;
 
-          if(typeof renderStudentManageRows === 'function') renderStudentManageRows();
-          if(typeof renderRecordManageRows === 'function') renderRecordManageRows();
           return;
         }
 
         console.warn('대시보드 mode=dashboard 응답은 왔지만 핵심 DB 행이 0건이라 개별 DB 조회로 fallback합니다.', data);
       }catch(err){
         console.warn('대시보드 mode=dashboard 조회 실패, 기존 개별 조회로 fallback합니다.', err);
+      }
+
+      if(!allowFallback){
+        return;
       }
 
       const tasks = [];
@@ -2151,6 +2246,7 @@
     }
 
     function renderDashboardDetail(type){
+      if(!wmConfirmScopeLock('dashboard','feature')) return;
       const state = WM_DASHBOARD_STATE;
       if(!state){ renderDashboard().then(()=>renderDashboardDetail(type)); return; }
       if(type==='totalStudents'){
@@ -2226,8 +2322,8 @@
       }
     }
 
-    async function renderDashboard(){
-      await ensureDashboardSourceRows();
+    async function renderDashboard(options){
+      await ensureDashboardSourceRows(options || {allowFallback:true});
       const state = buildDashboardState();
       WM_DASHBOARD_STATE = state;
       const todayCount = state.todayStudyIds.size;
@@ -2251,6 +2347,7 @@
     }
 
     function runFilter(scope){
+      if(['dashboard','students','records','currentProgress'].includes(scope) && !wmConfirmScopeLock(scope,'search')) return;
       if(scope==='profile'){
         runProfileFilter();
         return;
@@ -2296,12 +2393,13 @@
         return;
       }
       if(scope==='dashboard'){
-        renderDashboard();
+        renderDashboard({allowFallback:true});
         return;
       }
       alert(scope+' 검색조건 적용 예정: Google Apps Script 연결 후 현재 탭 DB 기준으로 조회됩니다.');
     }
     function resetFilter(scope){
+      if(['dashboard','students','records','currentProgress'].includes(scope) && !wmConfirmScopeLock(scope,'search')) return;
       document.querySelectorAll('[data-filter-scope="'+scope+'"] input,[data-filter-scope="'+scope+'"] select').forEach(el=>el.value='');
       if(scope==='profile'){
         setProfileLoading(false);
@@ -2329,7 +2427,7 @@
         else loadCurrentProgressRows();
         return;
       }
-      if(scope==='dashboard') renderDashboard();
+      if(scope==='dashboard') renderDashboard({allowFallback:true});
     }
 
     function setManageLoading(scope, isLoading){
@@ -3886,6 +3984,7 @@ function getNextStudentSerialForCreate(){
 }
 
 async function saveStudentCreateToDB(){
+  if(!wmConfirmScopeLock('students','feature')) return;
   const rows = getStudentRowsFromLocalDB();
   const nextSerial = getNextStudentSerialForCreate();
 
@@ -4006,6 +4105,7 @@ function wmModeSelectHtml(studentId, key, value, options){
 }
 
 async function saveStudentLearningModeFromRow(studentId){
+  if(!wmConfirmScopeLock('students','feature')) return;
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
@@ -4338,11 +4438,38 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 
-document.addEventListener('DOMContentLoaded', loadStudents);
-document.addEventListener('DOMContentLoaded', loadRecords);
-document.addEventListener('DOMContentLoaded', loadReports);
+
+/* WM_LMS_FIRST_SCREEN_SPEED_LOCK_V2
+ * 기준파일(4401줄)에서 재작업: 로그인 전 대시보드 DB 자동조회 금지,
+ * 로그인 직후 화면을 먼저 표시한 뒤 대시보드만 지연 조회합니다.
+ * 학생관리/학습기록 탭 로딩 방식은 변경하지 않았습니다.
+ */
+let WM_DASHBOARD_FIRST_LOAD_STARTED = false;
+function wmInitDashboardFastFirstScreen(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const start = new Date(today);
+  start.setMonth(today.getMonth()-1);
+  setFilterValue('dashboard', 'dateStart', toDateInputValue(start));
+  setFilterValue('dashboard', 'dateEnd', toDateInputValue(today));
+}
+function wmScheduleDashboardFirstLoad(){
+  if(WM_DASHBOARD_FIRST_LOAD_STARTED) return;
+  WM_DASHBOARD_FIRST_LOAD_STARTED = true;
+  wmInitDashboardFastFirstScreen();
+  const run = function(){
+    if(typeof renderDashboard === 'function') renderDashboard({allowFallback:false});
+  };
+  if(window.requestIdleCallback){
+    window.requestIdleCallback(run, {timeout:1800});
+  }else{
+    setTimeout(run, 900);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function(){
-  setManageDateRange('dashboard', 'month');
+  wmInitDashboardFastFirstScreen();
+  if(document.body && document.body.classList.contains('wm-lms-authenticated')) wmScheduleDashboardFirstLoad();
 });
 
   </script>
