@@ -278,7 +278,7 @@
         <div class="wm-stat-card" onclick="renderDashboardDetail('counsel')"><div class="wm-stat-label">상담기록</div><div class="wm-stat-num" id="dashboardCounselCount">0건</div><div class="wm-stat-sub">검색기간 기준</div></div>
       </div>
       <div class="wm-table-wrap"><table id="dashboardSummaryTable"><thead><tr><th>구분</th><th>학생ID</th><th>학생명</th><th>반</th><th>교사</th><th>리더</th><th>학교</th><th>날짜</th><th>상태</th></tr></thead><tbody id="dashboardSummaryTbody"><tr><td colspan="9">대시보드 카드 클릭 시 상세 목록이 표시됩니다.</td></tr></tbody></table></div>
-      <div class="wm-note">대시보드는 DB 탭이 아니라 학생관리_DB, 학습기록_DB, 성적표생성_DB, 발송대기_DB, 발송기록_DB, Class_DB를 요약하는 운영 건강상태 화면입니다.</div>
+      <div class="wm-note">대시보드는 DB 탭이 아니라 학생관리_DB, 학습기록_DB, 현재진행_DB, 성적표생성_DB, 발송대기_DB, 발송기록_DB, Class_DB를 요약하는 운영 건강상태 화면입니다.</div>
     </section>
     <section class="wm-panel" id="panel-students">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학생관리 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학생관리_DB / 요청 컬럼 기준으로 반영했습니다. 최종결제는 향후 아임웹 카드자동결제 연동 예정입니다.</p></div>
@@ -1490,8 +1490,12 @@
         '학생이름':['학생이름','Student_Name','studentName','이름','학생명'],
         '학교':['학교','School','Student_School'],
         '학년':['학년','Grade'],
-        '반':['반','Class','Class_ID','Class_Name','반명'],
-        '교사명':['교사명','Teacher','Teacher_Name','담당교사'],
+        '반':['반','Class','Class_ID','Class_Name','반명','현재반'],
+        '교사명':['교사명','Teacher','Teacher_Name','담당교사','현재담당교사'],
+        '담당리더':['담당리더','리더','리더명','현재담당리더','Leader','Leader_Name'],
+        '지역':['지역','Area','Region','주소'],
+        '학습배정':['학습배정','배정레벨','Level_Assign','Learning_Assign','레벨','학습레벨','Level'],
+        '현재레벨':['현재레벨','Current_Level','currentLevel','레벨','학습레벨','Level'],
         '주소':['주소','Address'],
         '학부모명':['학부모명','Parent_Name'],
         '학부모연락처':['학부모연락처','Parent_Phone','Parent_Phone_Number'],
@@ -1844,6 +1848,21 @@
       }
     }
 
+    function getDashboardCurrentProgressMap(){
+      const map = new Map();
+      (WM_CURRENT_PROGRESS_ROWS || []).forEach(row=>{
+        const sid = String(cellValue(row, headerAliases('학생ID')) || row['학생ID'] || '').trim();
+        if(sid && !map.has(sid)) map.set(sid, row);
+      });
+      return map;
+    }
+
+    function dashboardMergedValue(studentRow, progressRow, aliases){
+      const fromStudent = cellValue(studentRow, aliases);
+      if(fromStudent !== undefined && fromStudent !== null && String(fromStudent).trim() !== '') return fromStudent;
+      return cellValue(progressRow || {}, aliases);
+    }
+
     function dashboardTextFilteredStudentRows(rows){
       const studentId = getFilterValue('dashboard','studentId');
       const studentName = getFilterValue('dashboard','studentName');
@@ -1853,15 +1872,19 @@
       const school = getFilterValue('dashboard','school');
       const region = getFilterValue('dashboard','region');
       const level = getFilterValue('dashboard','level');
+      const progressMap = getDashboardCurrentProgressMap();
       return (rows || []).filter(row=>{
-        if(!rowMatchesText(cellValue(row, headerAliases('학생ID')), studentId)) return false;
-        if(!rowMatchesText(cellValue(row, headerAliases('학생이름')), studentName)) return false;
-        if(!rowMatchesText(cellValue(row, headerAliases('교사명')), teacher)) return false;
-        if(!rowMatchesText(cellValue(row, ['담당리더','리더','리더명','현재담당리더']), leader)) return false;
-        if(!rowMatchesText(cellValue(row, ['반','Class','현재반','반명']), className)) return false;
-        if(!rowMatchesText(cellValue(row, headerAliases('학교')), school)) return false;
-        if(!rowMatchesText(cellValue(row, ['주소','지역']), region)) return false;
-        if(!rowMatchesText(cellValue(row, ['레벨','학습레벨','Level']), level)) return false;
+        const sid = String(cellValue(row, headerAliases('학생ID')) || '').trim();
+        const progressRow = sid ? progressMap.get(sid) : null;
+        const rowLevel = dashboardMergedValue(row, progressRow, headerAliases('학습배정')) || dashboardMergedValue(row, progressRow, headerAliases('현재레벨')) || dashboardMergedValue(row, progressRow, ['Set_ID','기록Set_ID']);
+        if(!rowMatchesText(sid, studentId)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, headerAliases('학생이름')), studentName)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, headerAliases('교사명')), teacher)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, headerAliases('담당리더')), leader)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, ['반','Class','현재반','반명']), className)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, headerAliases('학교')), school)) return false;
+        if(!rowMatchesText(dashboardMergedValue(row, progressRow, headerAliases('지역')), region)) return false;
+        if(!rowMatchesText(rowLevel, level)) return false;
         return true;
       });
     }
@@ -1950,7 +1973,8 @@
         WM_DASHBOARD_TEACHER_ROWS,
         WM_DASHBOARD_SEND_LOG_ROWS,
         WM_DASHBOARD_COUNSEL_ROWS,
-        WM_DASHBOARD_PAYMENT_ROWS
+        WM_DASHBOARD_PAYMENT_ROWS,
+        WM_CURRENT_PROGRESS_ROWS
       }[cacheName];
       if(current && current.length) return current;
       const rows = normalizeRows(await readSheetRows(sheetNames));
@@ -1959,6 +1983,7 @@
       if(cacheName==='WM_DASHBOARD_SEND_LOG_ROWS') WM_DASHBOARD_SEND_LOG_ROWS = rows;
       if(cacheName==='WM_DASHBOARD_COUNSEL_ROWS') WM_DASHBOARD_COUNSEL_ROWS = rows;
       if(cacheName==='WM_DASHBOARD_PAYMENT_ROWS') WM_DASHBOARD_PAYMENT_ROWS = rows;
+      if(cacheName==='WM_CURRENT_PROGRESS_ROWS') WM_CURRENT_PROGRESS_ROWS = rows;
       return rows;
     }
 
@@ -1975,6 +2000,7 @@
         const sendLog = normalizeRows(data && data.sendLog ? data.sendLog : []);
         const counsel = normalizeRows(data && data.counsel ? data.counsel : []);
         const payments = normalizeRows(data && (data.payments || data.payment || data.paymentRows) ? (data.payments || data.payment || data.paymentRows) : []);
+        const currentProgress = normalizeRows(data && (data.currentProgress || data.currentProgressRows || data.progress || data.progressRows) ? (data.currentProgress || data.currentProgressRows || data.progress || data.progressRows) : []);
 
         if(students.length) WM_STUDENT_MANAGE_ROWS = students;
         if(records.length) WM_RECORD_MANAGE_ROWS = records;
@@ -1983,6 +2009,7 @@
         WM_DASHBOARD_SEND_LOG_ROWS = sendLog;
         WM_DASHBOARD_COUNSEL_ROWS = counsel;
         WM_DASHBOARD_PAYMENT_ROWS = payments;
+        if(currentProgress.length) WM_CURRENT_PROGRESS_ROWS = currentProgress;
 
         if(typeof renderStudentManageRows === 'function') renderStudentManageRows();
         if(typeof renderRecordManageRows === 'function') renderRecordManageRows();
@@ -1999,12 +2026,17 @@
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_SEND_LOG_ROWS', ['5-1.발송기록_DB','6.발송기록_DB','발송기록_DB','sendLog','send_log']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_COUNSEL_ROWS', ['6.상담카페_DB','상담_DB','상담카페_DB','counsel','consult']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_PAYMENT_ROWS', ['결제_DB','결제DB','Payment_DB','payments','매출_DB']));
+      if(!WM_CURRENT_PROGRESS_ROWS || !WM_CURRENT_PROGRESS_ROWS.length) tasks.push(loadDashboardSheetIfEmpty('WM_CURRENT_PROGRESS_ROWS', ['8.현재진행_DB','현재진행_DB','currentProgress','current_progress']));
       await Promise.all(tasks);
     }
 
     function buildDashboardState(){
       const activeStudents = dashboardActiveStudents();
       const activeStudentIds = uniqueNonEmpty(activeStudents.map(row=>cellValue(row, headerAliases('학생ID'))));
+      const progressRows = (WM_CURRENT_PROGRESS_ROWS || []).filter(row=>{
+        const sid = String(cellValue(row, headerAliases('학생ID')) || '').trim();
+        return !activeStudentIds.size || !sid || activeStudentIds.has(sid);
+      });
       const textRecordRows = getDashboardRecordFilteredRows(WM_RECORD_MANAGE_ROWS || [], activeStudentIds);
       const periodRecordRows = dashboardRowsInPeriod(textRecordRows, headerAliases('학습날짜').concat(['학습일','날짜','date']));
       const todayRecordRows = textRecordRows.filter(row=>isTodayDateValue(cellValue(row, headerAliases('학습날짜')) || cellValue(row, ['학습일','날짜','date'])));
@@ -2046,6 +2078,7 @@
         periodLeaveRows,
         todayRecordRows,
         notStudyRows,
+        progressRows,
         sendLogRows,
         counselRows,
         todayStudyIds,
@@ -2153,9 +2186,26 @@
         return;
       }
       if(type==='notStudy'){
-        const headers=['학생ID','학생이름','반','교사명','담당리더','학교','학부모연락처','등록상태','비고'];
-        const alias={담당리더:['담당리더','리더','리더명']};
-        setDashboardTable(headers, renderRowsForHeaders(state.notStudyRows, headers, alias), '미학습 학생 목록이 없습니다.');
+        const headers=['학생ID','학생이름','반','교사명','담당리더','학교','현재레벨','기록Set_ID','최종수정일','등록상태'];
+        const progressMap = getDashboardCurrentProgressMap();
+        const html = (state.notStudyRows || []).map(row=>{
+          const sid = String(cellValue(row, headerAliases('학생ID')) || '').trim();
+          const progressRow = sid ? progressMap.get(sid) : null;
+          const values = [
+            sid,
+            dashboardMergedValue(row, progressRow, headerAliases('학생이름')),
+            dashboardMergedValue(row, progressRow, ['반','Class','현재반','반명']),
+            dashboardMergedValue(row, progressRow, headerAliases('교사명')),
+            dashboardMergedValue(row, progressRow, headerAliases('담당리더')),
+            dashboardMergedValue(row, progressRow, headerAliases('학교')),
+            dashboardMergedValue(row, progressRow, headerAliases('현재레벨')),
+            dashboardMergedValue(row, progressRow, ['기록Set_ID','Set_ID']),
+            dashboardMergedValue(row, progressRow, ['최종수정일','수정일']),
+            dashboardMergedValue(row, progressRow, ['등록상태','활성상태','상태'])
+          ];
+          return '<tr>'+values.map((value,idx)=>'<td>'+escapeHtml(displayCellValue(value, headers[idx]))+'</td>').join('')+'</tr>';
+        }).join('');
+        setDashboardTable(headers, html, '미학습 학생 목록이 없습니다.');
         return;
       }
       if(type==='sendLog'){
