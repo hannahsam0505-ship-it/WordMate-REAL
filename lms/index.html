@@ -4346,5 +4346,18 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
   </script>
+
+<script>
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter') return;
+  const el=document.activeElement;
+  if(!el||!el.closest('[data-filter-scope]')) return;
+  e.preventDefault();
+  const box=el.closest('[data-filter-scope]');
+  const scope=box.getAttribute('data-filter-scope');
+  if(scope&&typeof runFilter==='function') runFilter(scope);
+});
+</script>
+
 </body>
 </html>
