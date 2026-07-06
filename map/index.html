@@ -2021,9 +2021,14 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
 
   function isCompletedRecord_(record){
     const status = String(
-      (record && (record.완료상태 || record.status || record.completeStatus)) || ''
+      (record && (record.완료상태 || record.status || record.completeStatus || record['상태'])) || ''
     ).trim();
-    return status === '완료' || status.toUpperCase() === 'COMPLETE' || status.toUpperCase() === 'COMPLETED';
+    const statusUpper = status.toUpperCase();
+    const completeRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료']));
+
+    /* WM_LEVEL_HISTORY_COMPLETE_COLUMN_ACCEPT_V1
+       학습기록_DB의 완료 컬럼(1회차/2회차/3회차)이 있으면 완료상태 값이 비어 있어도 공식 완료기록으로 인정합니다. */
+    return completeRound > 0 || status === '완료' || statusUpper === 'COMPLETE' || statusUpper === 'COMPLETED' || statusUpper === 'DONE';
   }
 
   sequence.forEach(function(setId){
@@ -2237,28 +2242,39 @@ function wmGetStudentStartLevelForHistory_(){
   return 3;
 }
 
-function wmGetRecordLevelListForHistory_(records){
+function wmGetRecordLevelListForHistory_(records, latestLevelOverride){
   const levelMap = {};
-  const list = [];
+  const recordLevels = [];
 
-  function addLevel(level){
+  function addRecordLevel(level){
     const n = Number(level || 0);
     if(!WM_LEVEL_CONFIG[n] || levelMap[n]) return;
     levelMap[n] = true;
-    list.push(n);
+    recordLevels.push(n);
   }
 
   if(Array.isArray(records)){
     records.forEach(function(record){
-      addLevel(wmRecordLevelNumber_(record));
+      addRecordLevel(wmRecordLevelNumber_(record));
     });
   }
 
-  addLevel(currentLevelNumber);
+  const latestLevel = Number(latestLevelOverride || currentLevelNumber || 0);
+  const minRecordLevel = recordLevels.length ? Math.min.apply(null, recordLevels) : latestLevel;
+  const startLevel = WM_LEVEL_CONFIG[minRecordLevel] ? minRecordLevel : latestLevel;
+  const endLevel = WM_LEVEL_CONFIG[latestLevel] ? latestLevel : startLevel;
+  const list = [];
 
-  /* WM_LEVEL_HISTORY_OFFICIAL_RULE_V2
-     학습히스토리 후보는 학습기록_DB에 실제 기록이 있는 레벨 + 현재진행_DB 현재 레벨만 사용합니다.
-     서버 levelHistoryLevels/localStorage 캐시는 학생별 경로 차이를 만들 수 있으므로 렌더 기준에서 제외합니다. */
+  /* WM_LEVEL_HISTORY_ALL_PAST_LEVELS_OFFICIAL_V1
+     학습히스토리 후보는 학습기록_DB 전체에서 확인되는 최초 레벨부터 현재진행_DB 현재레벨까지 전 구간으로 잡습니다.
+     버튼 표시 여부는 아래 wmRenderRecordLevelHistoryBoard_에서 레벨완료조건+세트순차완주 공식으로 다시 판정합니다. */
+  for(let level=startLevel; level<=endLevel; level++){
+    if(WM_LEVEL_CONFIG[level]) list.push(level);
+  }
+
+  if(WM_LEVEL_CONFIG[latestLevel] && list.indexOf(latestLevel) === -1){
+    list.push(latestLevel);
+  }
 
   list.sort(function(a,b){ return a-b; });
   return list;
@@ -2312,7 +2328,7 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   if(!bar) return;
 
   const latestLevel = Number(latestLevelOverride || currentLevelNumber || 0);
-  let levels = wmGetRecordLevelListForHistory_(records);
+  let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
   }
@@ -2393,9 +2409,14 @@ function wmApplyLearningMapStatus(mapData){
 
   function isCompletedRecord_(record){
     const status = String(
-      (record && (record.완료상태 || record.status || record.completeStatus)) || ''
+      (record && (record.완료상태 || record.status || record.completeStatus || record['상태'])) || ''
     ).trim();
-    return status === '완료' || status.toUpperCase() === 'COMPLETE' || status.toUpperCase() === 'COMPLETED';
+    const statusUpper = status.toUpperCase();
+    const completeRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료']));
+
+    /* WM_LEVEL_HISTORY_COMPLETE_COLUMN_ACCEPT_V1
+       학습기록_DB의 완료 컬럼(1회차/2회차/3회차)이 있으면 완료상태 값이 비어 있어도 공식 완료기록으로 인정합니다. */
+    return completeRound > 0 || status === '완료' || statusUpper === 'COMPLETE' || statusUpper === 'COMPLETED' || statusUpper === 'DONE';
   }
 
   const completedSet = new Set();
