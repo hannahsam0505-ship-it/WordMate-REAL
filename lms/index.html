@@ -230,7 +230,7 @@
       <button type="button" class="wm-lms-logout-btn" id="wmLmsLogoutBtn">LMS 로그아웃</button>
     </section>
     <nav class="wm-menu-grid">
-      <button class="wm-menu-btn active" data-panel="dashboard">대시보드</button><button class="wm-menu-btn" data-panel="deployManage">9. 배포관리</button><button class="wm-menu-btn wm-learning-btn" data-panel="learning">학습화면</button>
+      <button class="wm-menu-btn active" data-panel="dashboard">대시보드</button><button class="wm-menu-btn" data-panel="students">1. 학생관리</button><button class="wm-menu-btn" data-panel="records">2. 학습기록</button><button class="wm-menu-btn" data-panel="profile">3. 프로필센터</button><button class="wm-menu-btn" data-panel="reports">4. 성적표생성</button><button class="wm-menu-btn" data-panel="sendLog">5. 발송기록</button><button class="wm-menu-btn" data-panel="counsel">6. 상담카페</button><button class="wm-menu-btn" data-panel="classes">7. 설정센터</button><button class="wm-menu-btn" data-panel="currentProgress">8. 현재진행</button><button class="wm-menu-btn" data-panel="deployManage">9. 배포관리</button><button class="wm-menu-btn wm-learning-btn" data-panel="learning">학습화면</button>
       <button class="wm-menu-btn wm-dev-btn" id="devCenterBtn" data-panel="dev">DEV CENTER</button>
     </nav>
     <section class="wm-panel active" id="panel-dashboard">
@@ -277,8 +277,7 @@
         <div class="wm-stat-card" onclick="renderDashboardDetail('sendLog')"><div class="wm-stat-label">발송기록</div><div class="wm-stat-num" id="dashboardSendLogCount">0건</div><div class="wm-stat-sub">검색기간 기준</div></div>
         <div class="wm-stat-card" onclick="renderDashboardDetail('counsel')"><div class="wm-stat-label">상담기록</div><div class="wm-stat-num" id="dashboardCounselCount">0건</div><div class="wm-stat-sub">검색기간 기준</div></div>
       </div>
-      <div class="wm-table-wrap"><table id="dashboardSummaryTable"><thead><tr><th>구분</th><th>학생ID</th><th>학생명</th><th>반</th><th>교사</th><th>리더</th><th>학교</th><th>날짜</th><th>상태</th></tr></thead><tbody id="dashboardSummaryTbody"><tr><td colspan="9">대시보드 카드 클릭 시 상세 목록이 표시됩니다.</td></tr></tbody></table></div>
-      <div class="wm-note">대시보드는 DB 탭이 아니라 학생관리_DB, 학습기록_DB, 현재진행_DB, 성적표생성_DB, 발송대기_DB, 발송기록_DB, Class_DB를 요약하는 운영 건강상태 화면입니다.</div>
+      <div class="wm-table-wrap" id="dashboardSummaryWrap" style="display:none;"><table id="dashboardSummaryTable"><thead><tr><th>구분</th><th>학생ID</th><th>학생명</th><th>반</th><th>교사</th><th>리더</th><th>학교</th><th>날짜</th><th>상태</th></tr></thead><tbody id="dashboardSummaryTbody"><tr><td colspan="9">상단 카드를 클릭하면 상세 목록이 표시됩니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-students">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학생관리 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학생관리_DB / 요청 컬럼 기준으로 반영했습니다. 최종결제는 향후 아임웹 카드자동결제 연동 예정입니다.</p></div>
@@ -2097,8 +2096,10 @@
     }
 
     function setDashboardTable(headers, rowsHtml, emptyMessage){
+      const wrap = document.getElementById('dashboardSummaryWrap');
       const table = document.getElementById('dashboardSummaryTable');
       const tbody = document.getElementById('dashboardSummaryTbody');
+      if(wrap) wrap.style.display = '';
       if(!table || !tbody) return;
       const thead = table.querySelector('thead');
       if(thead) thead.innerHTML = '<tr>'+headers.map(h=>'<th>'+escapeHtml(h)+'</th>').join('')+'</tr>';
@@ -2245,7 +2246,8 @@
       setTextById('dashboardNotStudy', notStudy + '명');
       setTextById('dashboardSendLogCount', state.sendLogRows.length + '건');
       setTextById('dashboardCounselCount', state.counselRows.length + '건');
-      renderDashboardDefaultRows(state);
+      const dashboardSummaryWrap = document.getElementById('dashboardSummaryWrap');
+      if(dashboardSummaryWrap) dashboardSummaryWrap.style.display = 'none';
     }
 
     function runFilter(scope){
