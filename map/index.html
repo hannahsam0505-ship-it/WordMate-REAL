@@ -2265,16 +2265,9 @@ function wmGetRecordLevelListForHistory_(records){
 
   addLevel(currentLevelNumber);
 
-  /* WM_LEVEL_HISTORY_CONTIGUOUS_FROM_RECORDS_SAFE_V3
-     학습기록_DB 전체 records, 서버 히스토리, 저장된 히스토리 중 확인된 최저 레벨부터
-     현재진행_DB 현재레벨까지 3→4→5처럼 중간 레벨을 빠짐없이 표시합니다. */
-  if(list.length){
-    const minLevel = Math.min.apply(null, list);
-    const maxLevel = Math.max.apply(null, list.concat([Number(currentLevelNumber || 0)]));
-    for(let level=minLevel; level<=maxLevel; level++){
-      addLevel(level);
-    }
-  }
+  /* WM_LEVEL_HISTORY_OFFICIAL_RULE_V1
+     학습히스토리는 공식 엔진 결과만 사용합니다.
+     연속 레벨 자동생성은 하지 않습니다. */
 
   list.sort(function(a,b){ return a-b; });
   return list;
@@ -2338,7 +2331,13 @@ function wmRenderRecordLevelHistoryBoard_(records){
 
   let levels = wmGetRecordLevelListForHistory_(records);
 
-  const latestLevel = Math.max.apply(null, levels.concat([Number(currentLevelNumber || 0)]));
+  if(levels.length <= 1){
+    const onlyLevel = levels.length ? levels[0] : currentLevelNumber;
+    bar.innerHTML = '<button class="level-block level-current"><span id="currentLevelLabel">' + onlyLevel + ' LEVEL</span><br><strong id="levelPercent">0%</strong></button>';
+    return;
+  }
+
+  const latestLevel = Number(currentLevelNumber || 0);
   const stateMap = wmBuildLevelRoundStateForHistory_(records);
   wmSaveLevelHistoryList_(levels);
 
