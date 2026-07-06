@@ -2,6 +2,46 @@
 <html lang="ko">
 <head>
 
+  <script>
+    /* ============================================================
+       WORD MATE LMS.html - TEST / REAL 전환 설정
+       Vercel 단독 배포 기준: 주소는 이 블록에서만 관리합니다.
+       현재 기준: REAL
+    ============================================================ */
+    const WM_ENV = 'REAL';
+
+    const WM_ENV_CONFIG = {
+      TEST: {
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+        LOGIN_URL: 'https://hsam05.com/test-login',
+        MAP_URL: 'https://word-mate-test.vercel.app/map',
+        STUDY_URL: 'https://word-mate-test.vercel.app/study',
+        LMS_URL: 'https://word-mate-test.vercel.app/lms',
+        DEV_URL: 'https://word-mate-test.vercel.app/dev'
+      },
+      REAL: {
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
+        LOGIN_URL: 'https://hsam05.com/64',
+        MAP_URL: 'https://word-mate-real.vercel.app/map',
+        STUDY_URL: 'https://word-mate-real.vercel.app/study',
+        LMS_URL: 'https://word-mate-real.vercel.app/lms',
+        DEV_URL: 'https://word-mate-real.vercel.app/dev'
+      }
+    };
+
+    const WM_CONFIG = WM_ENV_CONFIG[WM_ENV];
+    if (!WM_CONFIG) {
+      throw new Error('WM_ENV 값 오류: TEST 또는 REAL만 사용할 수 있습니다. 현재값=' + WM_ENV);
+    }
+
+    const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
+    const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
+    const WM_MAP_URL = WM_CONFIG.MAP_URL;
+    const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
+    const WM_LMS_URL = WM_CONFIG.LMS_URL;
+    const WM_DEV_URL = WM_CONFIG.DEV_URL;
+  </script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word Mate LMS ADMIN CENTER V3</title>
@@ -1101,7 +1141,7 @@
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-table-wrap"><table><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>현재레벨</th><th>완료회차</th><th>레벨완료조건</th><th>레벨회차추가</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료여부</th><th>최근30건JSON</th><th>캐시버전</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="27">8.현재진행_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap"><table><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>현재레벨</th><th>완료회차</th><th>레벨완료조건</th><th>레벨회차추가</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료여부</th><th>최근30건JSON</th><th>캐시버전</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="27">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-deployManage">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">배포관리 센터</h2><p class="wm-panel-desc">연결 DB: 9.배포관리_DB / TEST·REAL 배포 변경 이력을 그대로 표시합니다.</p></div>
@@ -1261,6 +1301,15 @@
       const targetBtn=document.querySelector('.wm-menu-btn[data-panel="'+panelName+'"]');
       if(targetPanel) targetPanel.classList.add('active');
       if(targetBtn) targetBtn.classList.add('active');
+      if(panelName === 'currentProgress'){
+        setTimeout(function(){
+          if(typeof loadCurrentProgressRows === 'function' && (!WM_CURRENT_PROGRESS_ROWS || !WM_CURRENT_PROGRESS_ROWS.length)){
+            loadCurrentProgressRows();
+          }else if(typeof renderCurrentProgressRows === 'function'){
+            renderCurrentProgressRows();
+          }
+        }, 0);
+      }
     }
     function applyRole(role){
       currentRoleText.textContent=role;
@@ -1274,43 +1323,6 @@
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       if(!adminLike && (document.getElementById('panel-dev').classList.contains('active') || document.getElementById('panel-settings').classList.contains('active'))) showPanel('dashboard');
     }
-    /* ============================================================
-       WORD MATE LMS.html - TEST / REAL 전환 설정
-       Vercel 단독 배포 기준: 주소는 이 블록에서만 관리합니다.
-    ============================================================ */
-const WM_ENV = 'REAL';
-
-const WM_ENV_CONFIG = {
-  TEST: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
-    LOGIN_URL: 'https://hsam05.com/test-login',
-    MAP_URL: 'https://word-mate-test.vercel.app/map',
-    STUDY_URL: 'https://word-mate-test.vercel.app/study',
-    LMS_URL: 'https://word-mate-test.vercel.app/lms',
-    DEV_URL: 'https://word-mate-test.vercel.app/dev'
-  },
-
-  REAL: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
-    LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL: 'https://word-mate-real.vercel.app/map',
-    STUDY_URL: 'https://word-mate-real.vercel.app/study',
-    LMS_URL: 'https://word-mate-real.vercel.app/lms',
-    DEV_URL: 'https://word-mate-real.vercel.app/dev'
-  }
-};
-
-    const WM_CONFIG = WM_ENV_CONFIG[WM_ENV];
-    if (!WM_CONFIG) {
-      throw new Error('WM_ENV 값 오류: TEST 또는 REAL만 사용할 수 있습니다. 현재값=' + WM_ENV);
-    }
-
-    const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
-    const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
-    const WM_MAP_URL = WM_CONFIG.MAP_URL;
-    const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
-    const WM_LMS_URL = WM_CONFIG.LMS_URL;
-    const WM_DEV_URL = WM_CONFIG.DEV_URL;
 
     function getFilterValue(scope, filterName){
       const el=document.querySelector('[data-filter-scope="'+scope+'"] [data-filter="'+filterName+'"]');
@@ -4009,10 +4021,23 @@ async function loadCurrentProgressRows(){
   const tbody = document.getElementById('currentProgressTbody');
   setManageLoading('currentProgress', true);
   if(tbody) tbody.innerHTML = '<tr><td colspan="27">8.현재진행_DB 조회 중입니다.</td></tr>';
+
   try{
-    const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=currentProgress&ts=' + Date.now(), {method:'GET', cache:'no-store'});
-    const data = await res.json();
-    WM_CURRENT_PROGRESS_ROWS = normalizeRows(data && data.currentProgress ? data.currentProgress : []);
+    let rows = [];
+
+    try{
+      const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=currentProgress&ts=' + Date.now(), {method:'GET', cache:'no-store'});
+      const data = await res.json();
+      rows = normalizeRows(data && (data.currentProgress || data.currentProgressRows || data.rows || data.data) ? (data.currentProgress || data.currentProgressRows || data.rows || data.data) : data);
+    }catch(modeErr){
+      console.warn('8.현재진행_DB mode=currentProgress 조회 실패, sheet read fallback 실행:', modeErr);
+    }
+
+    if(!rows.length){
+      rows = normalizeRows(await readSheetRows(['8.현재진행_DB','현재진행_DB','currentProgress','current_progress']));
+    }
+
+    WM_CURRENT_PROGRESS_ROWS = rows;
     renderCurrentProgressRows();
     setManageLoading('currentProgress', false);
     return WM_CURRENT_PROGRESS_ROWS;
