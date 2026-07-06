@@ -1278,26 +1278,27 @@
        WORD MATE LMS.html - TEST / REAL 전환 설정
        Vercel 단독 배포 기준: 주소는 이 블록에서만 관리합니다.
     ============================================================ */
-    const WM_ENV = 'TEST';
+const WM_ENV = 'REAL';
 
-    const WM_ENV_CONFIG = {
-      TEST: {
-        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
-        LOGIN_URL: 'https://hsam05.com/test-login',
-        MAP_URL: 'https://new-word-mate.vercel.app',
-        STUDY_URL: 'https://new-word-mate.vercel.app/study',
-        LMS_URL: 'https://new-word-mate.vercel.app/lms',
-        DEV_URL: 'https://new-word-mate.vercel.app/dev'
-      },
-      REAL: {
-        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
-        LOGIN_URL: 'https://hsam05.com/64',
-        MAP_URL: 'https://new-word-mate.vercel.app',
-        STUDY_URL: 'https://new-word-mate.vercel.app/study',
-        LMS_URL: 'https://new-word-mate.vercel.app/lms',
-        DEV_URL: 'https://new-word-mate.vercel.app/dev'
-      }
-    };
+const WM_ENV_CONFIG = {
+  TEST: {
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    LOGIN_URL: 'https://hsam05.com/test-login',
+    MAP_URL: 'https://word-mate-test.vercel.app/map',
+    STUDY_URL: 'https://word-mate-test.vercel.app/study',
+    LMS_URL: 'https://word-mate-test.vercel.app/lms',
+    DEV_URL: 'https://word-mate-test.vercel.app/dev'
+  },
+
+  REAL: {
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
+    LOGIN_URL: 'https://hsam05.com/64',
+    MAP_URL: 'https://word-mate-real.vercel.app/map',
+    STUDY_URL: 'https://word-mate-real.vercel.app/study',
+    LMS_URL: 'https://word-mate-real.vercel.app/lms',
+    DEV_URL: 'https://word-mate-real.vercel.app/dev'
+  }
+};
 
     const WM_CONFIG = WM_ENV_CONFIG[WM_ENV];
     if (!WM_CONFIG) {
