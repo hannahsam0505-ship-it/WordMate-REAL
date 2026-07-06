@@ -2002,18 +2002,24 @@
         const payments = normalizeRows(data && (data.payments || data.payment || data.paymentRows) ? (data.payments || data.payment || data.paymentRows) : []);
         const currentProgress = normalizeRows(data && (data.currentProgress || data.currentProgressRows || data.progress || data.progressRows) ? (data.currentProgress || data.currentProgressRows || data.progress || data.progressRows) : []);
 
-        if(students.length) WM_STUDENT_MANAGE_ROWS = students;
-        if(records.length) WM_RECORD_MANAGE_ROWS = records;
-        WM_DASHBOARD_CLASS_ROWS = classInfo;
-        WM_DASHBOARD_TEACHER_ROWS = classInfo.length ? classInfo : students;
-        WM_DASHBOARD_SEND_LOG_ROWS = sendLog;
-        WM_DASHBOARD_COUNSEL_ROWS = counsel;
-        WM_DASHBOARD_PAYMENT_ROWS = payments;
-        if(currentProgress.length) WM_CURRENT_PROGRESS_ROWS = currentProgress;
+        const dashboardHasPrimaryRows = students.length || records.length || currentProgress.length;
+        if(dashboardHasPrimaryRows){
+          if(students.length) WM_STUDENT_MANAGE_ROWS = students;
+          if(records.length) WM_RECORD_MANAGE_ROWS = records;
+          WM_DASHBOARD_CLASS_ROWS = classInfo;
+          WM_DASHBOARD_TEACHER_ROWS = normalizeRows(data && (data.teacherInfo || data.teachers || data.teacherRows) ? (data.teacherInfo || data.teachers || data.teacherRows) : []);
+          if(!WM_DASHBOARD_TEACHER_ROWS.length) WM_DASHBOARD_TEACHER_ROWS = classInfo.length ? classInfo : students;
+          WM_DASHBOARD_SEND_LOG_ROWS = sendLog;
+          WM_DASHBOARD_COUNSEL_ROWS = counsel;
+          WM_DASHBOARD_PAYMENT_ROWS = payments;
+          if(currentProgress.length) WM_CURRENT_PROGRESS_ROWS = currentProgress;
 
-        if(typeof renderStudentManageRows === 'function') renderStudentManageRows();
-        if(typeof renderRecordManageRows === 'function') renderRecordManageRows();
-        return;
+          if(typeof renderStudentManageRows === 'function') renderStudentManageRows();
+          if(typeof renderRecordManageRows === 'function') renderRecordManageRows();
+          return;
+        }
+
+        console.warn('대시보드 mode=dashboard 응답은 왔지만 핵심 DB 행이 0건이라 개별 DB 조회로 fallback합니다.', data);
       }catch(err){
         console.warn('대시보드 mode=dashboard 조회 실패, 기존 개별 조회로 fallback합니다.', err);
       }
