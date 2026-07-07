@@ -1516,13 +1516,13 @@ function wmParsePipeNumberListForHistory_(value){
 
 function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   raw = raw || {};
-  const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료된레벨, raw.historyLevels, raw.levelHistoryLevels));
-  const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료횟수, raw.historyRounds, raw.levelHistoryRounds));
+  const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리레벨, raw.완료된레벨, raw.historyLevels, raw.levelHistoryLevels));
+  const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리횟수, raw.완료횟수, raw.historyRounds, raw.levelHistoryRounds));
   const latest = Number(latestLevel || raw.현재레벨 || raw.currentLevel || 0);
 
-  /* WM_CURRENT_PROGRESS_HISTORY_SEQUENTIAL_ROUND_CONNECT_20260707_V1
-     새 8.현재진행_DB 컬럼 중 순차완주회차를 현재 레벨 히스토리 회차에 연결합니다.
-     완료된레벨/완료횟수는 지난 레벨 목록과 회차, 순차완주회차는 현재 레벨 회차 보강값입니다. */
+  /* WM_CURRENT_PROGRESS_HISTORY_SEQUENTIAL_ROUND_CONNECT_20260707_V2
+     새 8.현재진행_DB 컬럼 중 히스토리레벨/히스토리횟수를 지난 레벨 버튼에 연결하고,
+     순차완주세트/순차완주회차를 현재 레벨 히스토리 회차 보강값으로 사용합니다. */
   const sequentialRound = Number(wmPickFirstValue_(
     raw.순차완주회차,
     raw.sequentialRound,
@@ -2385,12 +2385,21 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
 
   /* WM_LEVEL_HISTORY_RECORD_FIRST_SAFE_20260707_V1
      히스토리 버튼 개수는 학습기록_DB records에 존재하는 레벨 + 현재 레벨 기준입니다.
-     현재진행_DB 완료된레벨/완료횟수는 컬럼 밀림 가능성이 있어 버튼 개수를 늘리는 기준으로 쓰지 않고,
+     현재진행_DB 히스토리레벨/히스토리횟수는 버튼 개수 보강값으로만 제한적으로 사용하고,
      이미 records에 존재하는 레벨의 회차 보강에만 제한적으로 사용합니다. */
   let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
+  if(cacheHistory && Array.isArray(cacheHistory.levels)){
+    cacheHistory.levels.forEach(function(level){
+      const n = Number(level || 0);
+      if(WM_LEVEL_CONFIG[n] && !levels.some(function(item){ return Number(item || 0) === n; })){
+        levels.push(n);
+      }
+    });
+  }
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
   }
+  levels.sort(function(a,b){ return Number(a || 0) - Number(b || 0); });
 
   let stateMap = wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
   if(cacheHistory){
