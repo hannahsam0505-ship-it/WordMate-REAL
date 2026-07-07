@@ -1806,6 +1806,36 @@ function wmSetSummaryRecentScoreFromCurrentProgress_(score){
   return '';
 }
 
+
+function wmUnwrapApiPayloadForMap_(payload){
+  /* WM_MAP_API_PAYLOAD_UNWRAP_20260707_V1
+     fetch/google.script.run 응답이 {success,data/result/payload} 형태로 감싸져 와도
+     하단 학습기록 records를 같은 방식으로 읽도록 평탄화합니다. */
+  if(!payload || typeof payload !== 'object') return payload;
+
+  const inner = (payload.data && typeof payload.data === 'object') ? payload.data
+    : ((payload.result && typeof payload.result === 'object') ? payload.result
+    : ((payload.payload && typeof payload.payload === 'object') ? payload.payload : null));
+
+  if(!inner) return payload;
+
+  return Object.assign({}, inner, {
+    success: payload.success !== undefined ? payload.success : inner.success,
+    message: payload.message || inner.message || '',
+    records: inner.records || payload.records,
+    learningRecords: inner.learningRecords || payload.learningRecords,
+    recordsAll: inner.recordsAll || payload.recordsAll,
+    currentProgressCache: inner.currentProgressCache || payload.currentProgressCache,
+    currentProgress: inner.currentProgress || payload.currentProgress,
+    currentProgressRow: inner.currentProgressRow || payload.currentProgressRow,
+    studentProfile: inner.studentProfile || payload.studentProfile,
+    profile: inner.profile || payload.profile,
+    최근점수: inner.최근점수 || payload.최근점수,
+    recentScore: inner.recentScore || payload.recentScore,
+    latestScore: inner.latestScore || payload.latestScore
+  });
+}
+
 function wmPickLearningRecordsFromPayload_(data, cacheData){
   /* WM_MAP_BOTTOM_RECORDS_DIRECT_FALLBACK_20260707_V2
      하단 학습기록은 2.학습기록_DB records를 1순위로 사용합니다.
@@ -1854,6 +1884,7 @@ function wmLoadLearningRecordsDirectForMap_(reason){
   wmBottomRecordsDirectLoading = true;
 
   function applyPayload(payload){
+    payload = wmUnwrapApiPayloadForMap_(payload || {});
     wmBottomRecordsDirectLoading = false;
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     if(!directRecords.length) return;
@@ -2015,6 +2046,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 }
 
 function wmHandleLearningMapResponse(data){
+  data = wmUnwrapApiPayloadForMap_(data || {});
   if(!data || data.success !== true){
     wmStopMapLoadingState_();
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
@@ -3187,13 +3219,7 @@ function renderHomeworkTable(records, profile){
   if(!tbody) return;
 
   if(!Array.isArray(records) || records.length === 0){
-    const baseProfile = wmBuildEmptyLearningRecordFromProfile(profile || wmStudentProfile || wmCurrentStudent);
-
-    if(baseProfile && (baseProfile.학생ID || baseProfile.학생이름)){
-      tbody.innerHTML = wmRenderHomeworkRow(baseProfile);
-    }else{
-      tbody.innerHTML = '<tr><td colspan="18">아직 표시할 학습기록이 없습니다.</td></tr>';
-    }
+    tbody.innerHTML = '<tr><td colspan="18">학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.</td></tr>';
     wmInitHomeworkTopScrollbar();
     return;
   }
