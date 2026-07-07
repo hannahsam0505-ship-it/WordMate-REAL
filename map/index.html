@@ -1674,70 +1674,12 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
 
-  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
-  const currentIndex = cacheData.currentSet ? sequence.indexOf(cacheData.currentSet) : -1;
-  const completedCount = Math.max(0, Math.min(sequence.length, Math.floor(cacheData.completedSetCount || 0)));
-
-  setData = sequence.map(function(setId, index){
-    const statusInfo = ((data && data.setStatusMap) || {})[setId] || ((data && data.setStatusMap) || {})['WM' + setId] || {};
-    const officialRound = Number(statusInfo.officialRound || statusInfo.repeatCount || 0);
-
-    if(index < completedCount){
-      return {
-        set:setId,
-        status:'complete',
-        progress:100,
-        repeatCount: Math.max(1, officialRound || 1),
-        officialRound: Math.max(1, officialRound || 1),
-        targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-        levelComplete:false,
-        score: String(statusInfo.latestScore || cacheData.recentScore || '-').trim() || '-',
-        latestDate: String(statusInfo.latestDate || '').trim()
-      };
-    }
-
-    if((currentIndex >= 0 && index === currentIndex) || (currentIndex < 0 && index === completedCount)){
-      return {
-        set:setId,
-        status:'current',
-        /* 현재진행_DB.세트진행률 그대로 표시: Step2 완료 33% 같은 값 */
-        progress: Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0))),
-        repeatCount:0,
-        officialRound:0,
-        targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-        levelComplete:false,
-        score:'-',
-        latestDate:''
-      };
-    }
-
-    return {
-      set:setId,
-      status:'locked',
-      progress:0,
-      repeatCount:0,
-      officialRound:0,
-      targetRoundLimit: wmGetLevelTargetRoundLimitForMap_(),
-      levelComplete:false,
-      score:'-',
-      latestDate:''
-    };
-  });
-
-  totalSets = cacheData.totalSetCount || sequence.length;
-  /* WM_MAP_LEARNING_RECORD_DB_DIRECT_RECORDS_FIX_20260704_V1
-     현재진행_DB 캐시는 맵 활성화에만 사용하고,
-     하단 학습기록 테이블은 서버 payload.records(2.학습기록_DB 직접 조회 결과)를 우선 사용합니다.
-     records가 없을 때만 현재진행_DB 최근30건JSON을 fallback으로 사용합니다. */
   const serverLearningRecords = Array.isArray(data && data.records) ? data.records : [];
   const cacheLearningRecords = Array.isArray(cacheData.recent30Records) ? cacheData.recent30Records : [];
   wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords);
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
   wmCurrentProgressHistoryCache = cacheData.historyCache || null;
 
-  /* WM_MAP_LEVEL_HISTORY_CACHE_RENDER_FIX_20260706_V1
-     현재진행_DB 캐시 경로에서도 학습기록_DB 전체 records 기준으로
-     상단 학습히스토리(지난 레벨 + 현재 레벨)를 반드시 다시 그립니다. */
   wmLastLearningMapData = {
     completedSetIds: Array.isArray(data && data.completedSetIds) ? data.completedSetIds : [],
     setStatusMap: (data && data.setStatusMap) || {},
@@ -1745,20 +1687,36 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
     levelHistoryLevels: wmServerLevelHistoryLevels.slice(),
     currentProgressHistoryCache: wmCurrentProgressHistoryCache
   };
-  wmRenderRecordLevelHistoryBoard_(wmLearningRecords, (data && data.setStatusMap) || {});
 
-  wmMapDataReady = true;
-  wmStopMapLoadingState_();
-  renderSetMap();
+  /* WM_MAP_CURRENT_PROGRESS_SAFE_RENDER_20260707_V2
+     현재진행_DB의 완료세트수/전체세트수 값이 컬럼 밀림으로 틀어질 수 있으므로
+     세트 블럭 색상과 히스토리는 학습기록_DB records + setStatusMap 공식으로 렌더링합니다. */
+  wmApplyLearningMapStatus(wmLastLearningMapData);
 
+  const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
+  const validTotalSetCount = sequence.length;
   const safeLevelProgress = Math.max(0, Math.min(100, Math.floor(cacheData.levelProgress || 0)));
+  const safeSetProgress = Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0)));
+  const currentPlainSet = String(cacheData.currentSet || '').trim();
+
+  if(currentPlainSet){
+    setData = (Array.isArray(setData) ? setData : []).map(function(item){
+      if(item && item.set === currentPlainSet && item.status !== 'complete'){
+        return Object.assign({}, item, { status:'current', progress:safeSetProgress });
+      }
+      return item;
+    });
+    renderSetMap();
+  }
+
+  totalSets = validTotalSetCount || totalSets;
   setText('levelPercent', safeLevelProgress + '%');
   setText('mainProgressText', safeLevelProgress + '%');
   const fill = document.getElementById('progressFill');
   if(fill) fill.style.width = safeLevelProgress + '%';
 
-  setText('summaryTotalSet', (cacheData.totalSetCount || sequence.length) + ' SET');
-  setText('summaryCompleteSet', completedCount + ' SET');
+  setText('summaryTotalSet', validTotalSetCount + ' SET');
+  setText('summaryCompleteSet', String(Math.max(0, Math.min(validTotalSetCount, Math.floor(cacheData.completedSetCount || 0)))) + ' SET');
   setText('summaryProgress', safeLevelProgress + '%');
   setText('summaryRecentScore', cacheData.recentScore ? cacheData.recentScore + '점' : '-');
 
@@ -1879,11 +1837,35 @@ function wmLearningAssignDisplay_(value){
 function wmNormalizeModeForBanner_(student){
   const s = student || {};
   const mode = (s.학습모드 && typeof s.학습모드 === 'object') ? s.학습모드 : {};
-  const s4 = String(s.S4실루엣단계 || mode.S4실루엣단계 || mode.s4 || '전체').trim() || '전체';
-  const s6 = String(s.S6테스트모드 || mode.S6테스트모드 || mode.s6 || mode.testMode || '기본전체').trim() || '기본전체';
-  const complete = String(s.레벨완료조건 || mode.레벨완료조건 || mode.levelCompleteCondition || '2회').trim() || '2회';
-  const extraRaw = String(s.레벨회차추가 || mode.레벨회차추가 || mode.extraRounds || '').trim();
-  const extra = Number(extraRaw || 0) || 0;
+
+  function safeShortText_(value, fallback){
+    const text = String(value === undefined || value === null ? '' : value).trim();
+    if(!text) return fallback;
+    if(text.length > 40) return fallback;
+    if(text.charAt(0) === '[' || text.charAt(0) === '{') return fallback;
+    return text;
+  }
+
+  function safeLevelComplete_(value){
+    const text = safeShortText_(value, '2회');
+    const match = text.match(/(1|2|3)\s*회|^(1|2|3)$/);
+    if(match){
+      return (match[1] || match[2]) + '회';
+    }
+    return '2회';
+  }
+
+  function safeExtraRound_(value){
+    const text = safeShortText_(value, '');
+    const match = text.match(/\d+/);
+    const n = match ? Number(match[0]) : 0;
+    return Number.isFinite(n) && n > 0 && n <= 10 ? n : 0;
+  }
+
+  const s4 = safeShortText_(s.S4실루엣단계 || mode.S4실루엣단계 || mode.s4, '전체');
+  const s6 = safeShortText_(s.S6테스트모드 || mode.S6테스트모드 || mode.s6 || mode.testMode, '기본전체');
+  const complete = safeLevelComplete_(s.레벨완료조건 || mode.레벨완료조건 || mode.levelCompleteCondition);
+  const extra = safeExtraRound_(s.레벨회차추가 || mode.레벨회차추가 || mode.extraRounds);
 
   return {
     learningAssign: wmLearningAssignDisplay_(s.학습배정 || s.learningAssign || ''),
@@ -2401,18 +2383,11 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     ? wmCurrentProgressHistoryCache
     : null;
 
-  /* WM_LEVEL_HISTORY_ALL_STUDIED_LEVELS_20260706_V2
-     학습히스토리 버튼 개수는 현재진행_DB 캐시만 단독 사용하지 않고,
-     학습기록_DB records에 존재하는 모든 레벨 + 서버 히스토리 + 현재레벨을 병합합니다.
-     색상/회차는 기존 wmBuildSequentialDisplayRoundMapForMap_ 공식 엔진으로 판단합니다. */
+  /* WM_LEVEL_HISTORY_RECORD_FIRST_SAFE_20260707_V1
+     히스토리 버튼 개수는 학습기록_DB records에 존재하는 레벨 + 현재 레벨 기준입니다.
+     현재진행_DB 완료된레벨/완료횟수는 컬럼 밀림 가능성이 있어 버튼 개수를 늘리는 기준으로 쓰지 않고,
+     이미 records에 존재하는 레벨의 회차 보강에만 제한적으로 사용합니다. */
   let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
-  if(cacheHistory){
-    cacheHistory.levels.forEach(function(level){
-      if(!levels.some(function(item){ return Number(item || 0) === Number(level || 0); })){
-        levels.push(Number(level || 0));
-      }
-    });
-  }
   if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
     levels.push(latestLevel);
   }
@@ -2421,12 +2396,14 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   if(cacheHistory){
     levels.forEach(function(level){
       const n = Number(level || 0);
-      const cacheRound = Number((wmCurrentProgressHistoryCache.roundsByLevel || {})[n] || 0);
-      if(cacheRound > Number(stateMap[n] && stateMap[n].round || 0)){
+      const cacheRoundRaw = Number((cacheHistory.roundsByLevel || {})[n] || 0);
+      const targetLimit = Number(stateMap[n] && stateMap[n].targetLimit || wmGetLevelTargetRoundLimitForMap_() || 1);
+      const cacheRound = Math.max(0, Math.min(targetLimit, cacheRoundRaw));
+      if(cacheRound > 0 && cacheRound > Number(stateMap[n] && stateMap[n].round || 0)){
         stateMap[n] = {
           round: cacheRound,
-          levelDone: n !== latestLevel && cacheRound > 0,
-          targetLimit: Number(stateMap[n] && stateMap[n].targetLimit || 0)
+          levelDone: n !== latestLevel && cacheRound >= targetLimit,
+          targetLimit: targetLimit
         };
       }
     });
