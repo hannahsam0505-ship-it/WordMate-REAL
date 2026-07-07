@@ -1023,6 +1023,7 @@ let wmMapLoadingTimer = null;
 let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
+let wmBottomRecordsDirectLoading = false;
 let wmCurrentProgressDisplayOverride = null;
 
 function wmGetApiBaseUrl(){
@@ -1403,6 +1404,7 @@ function wmRenderInstantMapFromStudentCache_(){
   setText('summaryProgress', estimatedProgress + '%');
   setText('summaryRecentScore', '-');
   renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+  wmLoadLearningRecordsDirectForMap_('instant-cache-sync');
   wmShowMapMessage('현재진행_DB 캐시 동기화 중입니다. 세트 버튼은 즉시 사용할 수 있습니다.');
   return true;
 }
@@ -1744,6 +1746,56 @@ function wmPickLearningRecordsFromPayload_(data, cacheData){
   return [];
 }
 
+function wmLoadLearningRecordsDirectForMap_(reason){
+  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
+     getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
+     하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
+  if(wmBottomRecordsDirectLoading) return;
+  if(Array.isArray(wmLearningRecords) && wmLearningRecords.length > 0) return;
+
+  const student = wmCurrentStudent || wmStudentProfile || {};
+  const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
+  if(!studentId) return;
+
+  wmBottomRecordsDirectLoading = true;
+
+  function applyPayload(payload){
+    wmBottomRecordsDirectLoading = false;
+    const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
+    if(!directRecords.length) return;
+
+    wmLearningRecords = directRecords;
+    if(wmLastLearningMapData){
+      wmLastLearningMapData.records = directRecords;
+    }
+    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+    updateRecentScore(wmLearningRecords);
+  }
+
+  function failPayload(){
+    wmBottomRecordsDirectLoading = false;
+  }
+
+  if(window.google && google.script && google.script.run){
+    google.script.run
+      .withSuccessHandler(applyPayload)
+      .withFailureHandler(failPayload)
+      .getLearningRecordsForMapData(studentId);
+    return;
+  }
+
+  const url = wmGetApiBaseUrl()
+    + '?mode=getLearningRecordsForMapData'
+    + '&action=getLearningRecordsForMapData'
+    + '&studentId=' + encodeURIComponent(studentId)
+    + '&t=' + Date.now();
+
+  fetch(url)
+    .then(function(res){ return res.json(); })
+    .then(applyPayload)
+    .catch(failPayload);
+}
+
 function wmNormalizeLearningRecordForBottomTable_(record, data){
   const r = Object.assign({}, record || {});
   const profile = (data && (data.studentProfile || data.profile || data.currentProgressCache || data.currentProgress || data.currentProgressRow)) || wmStudentProfile || wmCurrentStudent || {};
@@ -1852,6 +1904,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryRecentScore', cacheData.recentScore ? cacheData.recentScore + '점' : '-');
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+  if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('cache-empty');
   wmShowLearningModeBanner();
   return true;
 }
@@ -1891,6 +1944,7 @@ function wmHandleLearningMapResponse(data){
   });
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+  if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('payload-empty');
   wmShowLearningModeBanner();
 }
 
