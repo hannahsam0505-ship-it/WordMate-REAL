@@ -1688,11 +1688,23 @@ function wmNormalizeCurrentProgressCache_(data){
   const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
     cache.최근점수,
     cache['최근 점수'],
+    cache.RecentScore,
     cache.recentScore,
     cache.latestScore,
+    cache.lastScore,
     cache.score,
+    cache.점수,
     learningProgress.최근점수,
+    learningProgress['최근 점수'],
     learningProgress.recentScore,
+    learningProgress.latestScore,
+    data && data.최근점수,
+    data && data['최근 점수'],
+    data && data.RecentScore,
+    data && data.recentScore,
+    data && data.latestScore,
+    wmExtractRecentScoreFromAnyPayload_(data),
+    wmExtractRecentScoreFromRecords_(recent30),
     ''
   ));
 
@@ -1720,6 +1732,58 @@ function wmNormalizeScoreForMap_(value){
   const n = Number(match[1]);
   if(!Number.isFinite(n) || n < 0 || n > 100) return '';
   return String(Math.round(n));
+}
+
+function wmExtractRecentScoreFromAnyPayload_(payload){
+  /* WM_RECENT_SCORE_PAYLOAD_DEEP_SCAN_V2
+     현재진행_DB 최근점수가 응답의 어느 묶음에 들어와도 첫화면 최근점수에 연결합니다. */
+  const seen = new Set();
+  const scoreKeys = ['최근점수','최근 점수','RecentScore','recentScore','latestScore','lastScore'];
+
+  function scan(value, depth){
+    if(value === undefined || value === null || depth > 6) return '';
+
+    if(typeof value !== 'object'){
+      return '';
+    }
+
+    if(seen.has(value)) return '';
+    seen.add(value);
+
+    for(const key of scoreKeys){
+      if(Object.prototype.hasOwnProperty.call(value, key)){
+        const normalized = wmNormalizeScoreForMap_(value[key]);
+        if(normalized) return normalized;
+      }
+    }
+
+    if(Array.isArray(value)){
+      for(const item of value){
+        const normalized = scan(item, depth + 1);
+        if(normalized) return normalized;
+      }
+      return '';
+    }
+
+    for(const key of Object.keys(value)){
+      const normalized = scan(value[key], depth + 1);
+      if(normalized) return normalized;
+    }
+
+    return '';
+  }
+
+  return scan(payload, 0);
+}
+
+function wmExtractRecentScoreFromRecords_(records){
+  if(!Array.isArray(records) || !records.length) return '';
+  const sortedRecords = wmSortLearningRecordsDesc_(records);
+  for(const record of sortedRecords){
+    const score = wmNormalizeScoreForMap_((record && (record.최근점수 || record['최근 점수'] || record.한영주관식 || record.점수)) || '');
+    if(score) return score;
+  }
+  return '';
 }
 
 function wmSetSummaryRecentScoreFromCurrentProgress_(score){
@@ -3064,13 +3128,10 @@ function updateRecentScore(records){
     return;
   }
 
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  for(const record of sortedRecords){
-    const score = wmNormalizeScoreForMap_((record && (record.한영주관식 || record.점수)) || '');
-    if(score){
-      setText('summaryRecentScore', score + '점');
-      return;
-    }
+  const scoreFromRecords = wmExtractRecentScoreFromRecords_(records);
+  if(scoreFromRecords){
+    setText('summaryRecentScore', scoreFromRecords + '점');
+    return;
   }
 
   setText('summaryRecentScore', '-');
