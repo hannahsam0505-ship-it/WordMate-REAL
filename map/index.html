@@ -1519,10 +1519,29 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료된레벨, raw.historyLevels, raw.levelHistoryLevels));
   const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.완료횟수, raw.historyRounds, raw.levelHistoryRounds));
   const latest = Number(latestLevel || raw.현재레벨 || raw.currentLevel || 0);
-  if(latest && WM_LEVEL_CONFIG[latest] && levels.indexOf(latest) === -1){
-    levels.push(latest);
-    rounds.push(0);
+
+  /* WM_CURRENT_PROGRESS_HISTORY_SEQUENTIAL_ROUND_CONNECT_20260707_V1
+     새 8.현재진행_DB 컬럼 중 순차완주회차를 현재 레벨 히스토리 회차에 연결합니다.
+     완료된레벨/완료횟수는 지난 레벨 목록과 회차, 순차완주회차는 현재 레벨 회차 보강값입니다. */
+  const sequentialRound = Number(wmPickFirstValue_(
+    raw.순차완주회차,
+    raw.sequentialRound,
+    raw.completedSequentialRound,
+    raw.완료회차,
+    raw.completeRound,
+    0
+  )) || 0;
+
+  if(latest && WM_LEVEL_CONFIG[latest]){
+    const latestIndex = levels.indexOf(latest);
+    if(latestIndex === -1){
+      levels.push(latest);
+      rounds.push(sequentialRound);
+    }else if(sequentialRound > Number(rounds[latestIndex] || 0)){
+      rounds[latestIndex] = sequentialRound;
+    }
   }
+
   const pairs = levels.map(function(level, index){
     return { level:Number(level), round:Number(rounds[index] || 0) };
   }).filter(function(item){ return !!WM_LEVEL_CONFIG[item.level]; });
@@ -1768,17 +1787,22 @@ function wmHandleLearningMapResponse(data){
     wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
-  /* WM_MAP_CURRENT_PROGRESS_ONLY_LOCK_V3
-     Map은 현재진행_DB 캐시가 확인된 경우에만 학습맵을 활성화합니다.
-     캐시 행이 없으면 URL/currentSet 임시맵으로 되돌아가지 않습니다. */
-  wmMapDataReady = false;
-  wmStopMapLoadingState_();
-  wmLearningRecords = [];
-  wmServerLevelHistoryLevels = [];
-  setData = [];
+  /* WM_MAP_CURRENT_PROGRESS_FALLBACK_RENDER_20260707_V1
+     현재진행_DB 캐시 행이 아직 없거나 새 컬럼 연결 전이어도 화면을 막지 않습니다.
+     서버가 함께 내려준 학습기록_DB records/setStatusMap 기준으로 학습맵과 히스토리를 렌더링합니다. */
+  wmLearningRecords = wmSortLearningRecordsDesc_(Array.isArray(data.records) ? data.records : []);
+  wmServerLevelHistoryLevels = Array.isArray(data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
+
+  wmApplyLearningMapStatus({
+    completedSetIds: Array.isArray(data.completedSetIds) ? data.completedSetIds : [],
+    setStatusMap: data.setStatusMap || {},
+    records: wmLearningRecords,
+    levelHistoryLevels: wmServerLevelHistoryLevels.slice(),
+    currentProgressHistoryCache: wmCurrentProgressHistoryCache || null
+  });
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmShowMapUnavailable_('현재진행_DB 캐시 행을 찾지 못했습니다. 학습맵을 활성화하지 않았습니다.');
+  wmShowLearningModeBanner();
 }
 
 function wmFetchLearningMap(studentId){
@@ -1793,10 +1817,11 @@ function wmFetchLearningMap(studentId){
         wmHandleLearningMapResponse(data);
       })
       .withFailureHandler(function(err){
-        wmMapDataReady = false;
         wmStopMapLoadingState_();
-        wmShowMapUnavailable_('현재진행_DB 캐시 조회 오류: 학습맵을 활성화하지 않았습니다. ' + String(err && err.message ? err.message : err));
-        renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+        if(!wmRenderInstantMapFromStudentCache_()){
+          wmShowMapUnavailable_('현재진행_DB 캐시 조회 오류: 임시 학습맵을 표시할 수 없습니다. ' + String(err && err.message ? err.message : err));
+          renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+        }
       })
       .getLearningMapCacheData(studentId);
     return;
@@ -1814,10 +1839,11 @@ function wmFetchLearningMap(studentId){
       wmHandleLearningMapResponse(data);
     })
     .catch(function(err){
-      wmMapDataReady = false;
       wmStopMapLoadingState_();
-      wmShowMapUnavailable_('현재진행_DB 캐시 응답 실패: 학습맵을 활성화하지 않았습니다.');
-      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+      if(!wmRenderInstantMapFromStudentCache_()){
+        wmShowMapUnavailable_('현재진행_DB 캐시 응답 실패: 임시 학습맵을 표시할 수 없습니다.');
+        renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+      }
     });
 }
 
