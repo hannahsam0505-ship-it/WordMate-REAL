@@ -2114,6 +2114,10 @@ function wmGetLevelTargetRoundLimitForMap_(){
 }
 
 function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNumber){
+  /* WM_MAP_SEQUENTIAL_COLOR_FORMULA_LOCK_20260707_V1
+     색상은 레벨완료조건 + 순차완주회차 + 순차완주세트 공식에 맞을 때만 변합니다.
+     순차완주세트는 현재 회차에서 앞에서부터 순서대로 완료한 세트 수이며,
+     현재 학습중 세트와 순서가 끊긴 완료기록은 색상 변경 기준에 포함하지 않습니다. */
   const sourceLevelNumber = Number(levelNumber || currentLevelNumber || 0);
   const sequence = wmBuildLevelSetData(sourceLevelNumber).map(function(item){
     return String(item.set || '').trim();
@@ -2140,44 +2144,87 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
     const statusUpper = status.toUpperCase();
     const completeRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료']));
 
-    /* WM_LEVEL_HISTORY_COMPLETE_COLUMN_ACCEPT_V1
-       학습기록_DB의 완료 컬럼(1회차/2회차/3회차)이 있으면 완료상태 값이 비어 있어도 공식 완료기록으로 인정합니다. */
     return completeRound > 0 || status === '완료' || statusUpper === 'COMPLETE' || statusUpper === 'COMPLETED' || statusUpper === 'DONE';
+  }
+
+  function getSortTime_(record, index){
+    const raw = record && (record.sortTime || record.학습날짜 || record.learningDate || record.date || '');
+    const numeric = Number(raw);
+    if(Number.isFinite(numeric) && numeric > 0) return numeric;
+    if(typeof wmGetLearningRecordSortTime_ === 'function'){
+      const parsed = wmGetLearningRecordSortTime_(raw);
+      if(Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    return index + 1;
   }
 
   sequence.forEach(function(setId){
     officialRoundMap[setId] = 0;
   });
 
-  if(setStatusMap && typeof setStatusMap === 'object'){
+  const completedEvents = [];
+  if(Array.isArray(records)){
+    records.forEach(function(record, index){
+      if(!isCompletedRecord_(record)) return;
+      const plain = normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id));
+      if(!plain || officialRoundMap[plain] === undefined) return;
+      completedEvents.push({
+        setId: plain,
+        sortTime: getSortTime_(record, index),
+        rowIndex: Number(record && record.rowIndex || index || 0)
+      });
+    });
+  }
+
+  completedEvents.sort(function(a, b){
+    if(a.sortTime !== b.sortTime) return a.sortTime - b.sortTime;
+    return a.rowIndex - b.rowIndex;
+  });
+
+  let round = 1;
+  let index = 0;
+
+  if(sequence.length && completedEvents.length){
+    completedEvents.forEach(function(event){
+      if(round > targetLimit) return;
+      const expectedSetId = sequence[index];
+      if(event.setId !== expectedSetId) return;
+
+      officialRoundMap[event.setId] = Math.max(Number(officialRoundMap[event.setId] || 0), round);
+      index += 1;
+
+      if(index >= sequence.length){
+        round += 1;
+        index = 0;
+      }
+    });
+  }else if(setStatusMap && typeof setStatusMap === 'object'){
+    /* records가 비어 있는 예외 상황에서도 setStatusMap 값을 그대로 칠하지 않고,
+       앞에서부터 끊기지 않는 순차완주 공식으로만 보조 반영합니다. */
+    const fallbackRoundMap = {};
     Object.keys(setStatusMap).forEach(function(key){
       const plain = normalizeSetIdForMap_(key);
       if(!plain || officialRoundMap[plain] === undefined) return;
       const item = setStatusMap[key] || {};
       const explicitRound = parseCompleteRound_(item.완료 || item.completeRound || item.officialRoundText);
-      const numericRound = Number(item.officialRound || 0);
-      const fallbackRound = Number.isFinite(numericRound) && numericRound > 0 ? Math.floor(numericRound) : explicitRound;
-      if(fallbackRound > officialRoundMap[plain]){
-        officialRoundMap[plain] = fallbackRound;
-      }
+      const numericRound = Number(item.officialRound || item.공식완료회차 || item.repeatCountOfficial || 0);
+      fallbackRoundMap[plain] = Math.max(explicitRound, Number.isFinite(numericRound) ? Math.floor(numericRound) : 0);
     });
-  }
 
-  if(Array.isArray(records)){
-    records.forEach(function(record){
-      if(!isCompletedRecord_(record)) return;
-      const plain = normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id));
-      if(!plain || officialRoundMap[plain] === undefined) return;
-
-      /* 완료 컬럼이 비어 있는 기존 완료 기록은 1회차로만 인정합니다.
-         1회차 전체 순차완주 전에는 화면에서 2회 완료가 절대 뜨지 않게 하는 핵심 안전장치입니다. */
-      const explicitRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound));
-      const safeRound = explicitRound > 0 ? explicitRound : 1;
-
-      if(safeRound > officialRoundMap[plain]){
-        officialRoundMap[plain] = safeRound;
+    for(let r = 1; r <= targetLimit; r += 1){
+      for(let si = 0; si < sequence.length; si += 1){
+        const setId = sequence[si];
+        if(Number(fallbackRoundMap[setId] || 0) < r) return {
+          targetLimit: targetLimit,
+          repeatMap: officialRoundMap,
+          officialRoundMap: officialRoundMap,
+          순차완주회차: r,
+          순차완주세트: si,
+          levelComplete: false
+        };
+        officialRoundMap[setId] = r;
       }
-    });
+    }
   }
 
   const levelComplete = sequence.length > 0 && sequence.every(function(setId){
@@ -2188,6 +2235,8 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
     targetLimit: targetLimit,
     repeatMap: officialRoundMap,
     officialRoundMap: officialRoundMap,
+    순차완주회차: levelComplete ? targetLimit : Math.max(0, Math.min(3, round)),
+    순차완주세트: levelComplete ? sequence.length : index,
     levelComplete: levelComplete
   };
 }
