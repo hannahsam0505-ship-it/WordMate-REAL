@@ -1026,6 +1026,8 @@ let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
 let wmCurrentProgressDisplayOverride = null;
 let wmCurrentProgressRecentScore = '';
+let wmBottomRecordsDirectTried = false;
+let wmBottomRecordsDirectLastMessage = '';
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1871,25 +1873,47 @@ function wmPickLearningRecordsFromPayload_(data, cacheData){
 }
 
 function wmLoadLearningRecordsDirectForMap_(reason){
-  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
-     getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
-     하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
+  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V2
+     하단 학습기록은 2.학습기록_DB 직접 조회를 1회 보강 실행합니다.
+     응답이 0건/실패여도 "조회 중" 문구에 멈추지 않고 최종 상태를 표시합니다. */
   if(wmBottomRecordsDirectLoading) return;
   if(Array.isArray(wmLearningRecords) && wmLearningRecords.length > 0) return;
+  if(wmBottomRecordsDirectTried) {
+    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+    return;
+  }
 
   const student = wmCurrentStudent || wmStudentProfile || {};
   const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
-  if(!studentId) return;
+  if(!studentId) {
+    wmBottomRecordsDirectTried = true;
+    wmBottomRecordsDirectLastMessage = '학생ID가 없어 학습기록_DB를 조회할 수 없습니다.';
+    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+    return;
+  }
 
   wmBottomRecordsDirectLoading = true;
+  wmBottomRecordsDirectTried = true;
+  wmBottomRecordsDirectLastMessage = '학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.';
+  renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
 
   function applyPayload(payload){
     payload = wmUnwrapApiPayloadForMap_(payload || {});
     wmBottomRecordsDirectLoading = false;
+
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
-    if(!directRecords.length) return;
+    if(!directRecords.length) {
+      const countText = payload && payload.learningRecordDbDirectCount !== undefined ? String(payload.learningRecordDbDirectCount) : '0';
+      wmBottomRecordsDirectLastMessage = (payload && payload.learningRecordDbDirect === false)
+        ? ('학습기록_DB 조회 실패: ' + String(payload.learningRecordDbDirectMessage || payload.learningRecordDbDirectError || payload.message || '원인을 확인할 수 없습니다.'))
+        : ('학습기록_DB 조회 완료: 해당 학생 기록 ' + countText + '건입니다.');
+      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+      updateRecentScore([]);
+      return;
+    }
 
     wmLearningRecords = directRecords;
+    wmBottomRecordsDirectLastMessage = '학습기록_DB 조회 완료: ' + directRecords.length + '건';
     const directPayloadScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
       payload && payload.최근점수,
       payload && payload.recentScore,
@@ -1903,13 +1927,18 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     }
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
+      wmLastLearningMapData.learningRecords = directRecords;
+      wmLastLearningMapData.recordsAll = directRecords;
     }
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
     updateRecentScore(wmLearningRecords);
   }
 
-  function failPayload(){
+  function failPayload(err){
     wmBottomRecordsDirectLoading = false;
+    wmBottomRecordsDirectLastMessage = '학습기록_DB 직접 조회 응답 실패: ' + String(err && err.message ? err.message : '네트워크/API 응답을 확인하세요.');
+    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+    updateRecentScore([]);
   }
 
   if(window.google && google.script && google.script.run){
@@ -1926,8 +1955,11 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     + '&studentId=' + encodeURIComponent(studentId)
     + '&t=' + Date.now();
 
-  fetch(url)
-    .then(function(res){ return res.json(); })
+  fetch(url, { method:'GET', cache:'no-store' })
+    .then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
     .then(applyPayload)
     .catch(failPayload);
 }
@@ -3219,7 +3251,10 @@ function renderHomeworkTable(records, profile){
   if(!tbody) return;
 
   if(!Array.isArray(records) || records.length === 0){
-    tbody.innerHTML = '<tr><td colspan="18">학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.</td></tr>';
+    const message = wmBottomRecordsDirectLoading
+      ? '학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.'
+      : (wmBottomRecordsDirectLastMessage || '표시할 학습기록이 없습니다.');
+    tbody.innerHTML = '<tr><td colspan="18">' + escapeHtml(message) + '</td></tr>';
     wmInitHomeworkTopScrollbar();
     return;
   }
