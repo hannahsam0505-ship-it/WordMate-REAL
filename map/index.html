@@ -1704,6 +1704,9 @@ function wmNormalizeCurrentProgressCache_(data){
     data && data.recentScore,
     data && data.latestScore,
     wmExtractRecentScoreFromAnyPayload_(data),
+    wmExtractRecentScoreFromRecords_(data && data.records),
+    wmExtractRecentScoreFromRecords_(data && data.learningRecords),
+    wmExtractRecentScoreFromRecords_(data && data.recordsAll),
     wmExtractRecentScoreFromRecords_(recent30),
     ''
   ));
@@ -1787,10 +1790,20 @@ function wmExtractRecentScoreFromRecords_(records){
 }
 
 function wmSetSummaryRecentScoreFromCurrentProgress_(score){
+  /* WM_RECENT_SCORE_NO_EMPTY_OVERWRITE_20260707_V3
+     최근점수 후보가 비어 있으면 이미 화면에 잡힌 점수를 '-'로 덮어쓰지 않습니다. */
   const normalized = wmNormalizeScoreForMap_(score);
-  wmCurrentProgressRecentScore = normalized;
-  setText('summaryRecentScore', normalized ? normalized + '점' : '-');
-  return normalized;
+  if(normalized){
+    wmCurrentProgressRecentScore = normalized;
+    setText('summaryRecentScore', normalized + '점');
+    return normalized;
+  }
+  if(wmCurrentProgressRecentScore){
+    setText('summaryRecentScore', wmCurrentProgressRecentScore + '점');
+    return wmCurrentProgressRecentScore;
+  }
+  setText('summaryRecentScore', '-');
+  return '';
 }
 
 function wmPickLearningRecordsFromPayload_(data, cacheData){
@@ -1846,6 +1859,17 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     if(!directRecords.length) return;
 
     wmLearningRecords = directRecords;
+    const directPayloadScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
+      payload && payload.최근점수,
+      payload && payload.recentScore,
+      payload && payload.latestScore,
+      wmExtractRecentScoreFromAnyPayload_(payload),
+      wmExtractRecentScoreFromRecords_(directRecords),
+      ''
+    ));
+    if(directPayloadScore){
+      wmCurrentProgressRecentScore = directPayloadScore;
+    }
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
     }
@@ -1998,8 +2022,24 @@ function wmHandleLearningMapResponse(data){
     return;
   }
 
+  const responseRecentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
+    data && data.최근점수,
+    data && data.recentScore,
+    data && data.latestScore,
+    wmExtractRecentScoreFromAnyPayload_(data),
+    wmExtractRecentScoreFromRecords_(data && data.records),
+    wmExtractRecentScoreFromRecords_(data && data.learningRecords),
+    wmExtractRecentScoreFromRecords_(data && data.recordsAll),
+    ''
+  ));
+  if(responseRecentScore){
+    wmCurrentProgressRecentScore = responseRecentScore;
+    setText('summaryRecentScore', responseRecentScore + '점');
+  }
+
   const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
   if(currentProgressCache && wmApplyLearningMapFromCurrentProgressCache_(currentProgressCache, data)){
+    updateRecentScore(wmLearningRecords);
     return;
   }
 
@@ -2025,6 +2065,7 @@ function wmHandleLearningMapResponse(data){
   });
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+  updateRecentScore(wmLearningRecords);
   if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('payload-empty');
   wmShowLearningModeBanner();
 }
@@ -3123,12 +3164,16 @@ function updateRecentScore(records){
     return;
   }
 
-  if(!Array.isArray(records) || records.length === 0){
+  const candidates = Array.isArray(records) && records.length
+    ? records
+    : (Array.isArray(wmLearningRecords) && wmLearningRecords.length ? wmLearningRecords : (wmLastLearningMapData && Array.isArray(wmLastLearningMapData.records) ? wmLastLearningMapData.records : []));
+
+  if(!Array.isArray(candidates) || candidates.length === 0){
     setText('summaryRecentScore', '-');
     return;
   }
 
-  const scoreFromRecords = wmExtractRecentScoreFromRecords_(records);
+  const scoreFromRecords = wmExtractRecentScoreFromRecords_(candidates);
   if(scoreFromRecords){
     setText('summaryRecentScore', scoreFromRecords + '점');
     return;
