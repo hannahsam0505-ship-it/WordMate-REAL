@@ -1024,10 +1024,8 @@ let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
+let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
-let wmCurrentProgressRecentScore = '';
-let wmBottomRecordsDirectTried = false;
-let wmBottomRecordsDirectLastMessage = '';
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1687,31 +1685,7 @@ function wmNormalizeCurrentProgressCache_(data){
   const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
   const levelProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
   const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
-  const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
-    cache.최근점수,
-    cache['최근 점수'],
-    cache.RecentScore,
-    cache.recentScore,
-    cache.latestScore,
-    cache.lastScore,
-    cache.score,
-    cache.점수,
-    learningProgress.최근점수,
-    learningProgress['최근 점수'],
-    learningProgress.recentScore,
-    learningProgress.latestScore,
-    data && data.최근점수,
-    data && data['최근 점수'],
-    data && data.RecentScore,
-    data && data.recentScore,
-    data && data.latestScore,
-    wmExtractRecentScoreFromAnyPayload_(data),
-    wmExtractRecentScoreFromRecords_(data && data.records),
-    wmExtractRecentScoreFromRecords_(data && data.learningRecords),
-    wmExtractRecentScoreFromRecords_(data && data.recordsAll),
-    wmExtractRecentScoreFromRecords_(recent30),
-    ''
-  ));
+  const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, ''));
 
   return {
     raw: cache,
@@ -1737,105 +1711,6 @@ function wmNormalizeScoreForMap_(value){
   const n = Number(match[1]);
   if(!Number.isFinite(n) || n < 0 || n > 100) return '';
   return String(Math.round(n));
-}
-
-function wmExtractRecentScoreFromAnyPayload_(payload){
-  /* WM_RECENT_SCORE_PAYLOAD_DEEP_SCAN_V2
-     현재진행_DB 최근점수가 응답의 어느 묶음에 들어와도 첫화면 최근점수에 연결합니다. */
-  const seen = new Set();
-  const scoreKeys = ['최근점수','최근 점수','RecentScore','recentScore','latestScore','lastScore'];
-
-  function scan(value, depth){
-    if(value === undefined || value === null || depth > 6) return '';
-
-    if(typeof value !== 'object'){
-      return '';
-    }
-
-    if(seen.has(value)) return '';
-    seen.add(value);
-
-    for(const key of scoreKeys){
-      if(Object.prototype.hasOwnProperty.call(value, key)){
-        const normalized = wmNormalizeScoreForMap_(value[key]);
-        if(normalized) return normalized;
-      }
-    }
-
-    if(Array.isArray(value)){
-      for(const item of value){
-        const normalized = scan(item, depth + 1);
-        if(normalized) return normalized;
-      }
-      return '';
-    }
-
-    for(const key of Object.keys(value)){
-      const normalized = scan(value[key], depth + 1);
-      if(normalized) return normalized;
-    }
-
-    return '';
-  }
-
-  return scan(payload, 0);
-}
-
-function wmExtractRecentScoreFromRecords_(records){
-  if(!Array.isArray(records) || !records.length) return '';
-  const sortedRecords = wmSortLearningRecordsDesc_(records);
-  for(const record of sortedRecords){
-    const score = wmNormalizeScoreForMap_((record && (record.최근점수 || record['최근 점수'] || record.한영주관식 || record.점수)) || '');
-    if(score) return score;
-  }
-  return '';
-}
-
-function wmSetSummaryRecentScoreFromCurrentProgress_(score){
-  /* WM_RECENT_SCORE_NO_EMPTY_OVERWRITE_20260707_V3
-     최근점수 후보가 비어 있으면 이미 화면에 잡힌 점수를 '-'로 덮어쓰지 않습니다. */
-  const normalized = wmNormalizeScoreForMap_(score);
-  if(normalized){
-    wmCurrentProgressRecentScore = normalized;
-    setText('summaryRecentScore', normalized + '점');
-    return normalized;
-  }
-  if(wmCurrentProgressRecentScore){
-    setText('summaryRecentScore', wmCurrentProgressRecentScore + '점');
-    return wmCurrentProgressRecentScore;
-  }
-  setText('summaryRecentScore', '-');
-  return '';
-}
-
-
-function wmUnwrapApiPayloadForMap_(payload){
-  /* WM_MAP_API_PAYLOAD_UNWRAP_20260707_V1
-     fetch/google.script.run 응답이 {success,data/result/payload} 형태로 감싸져 와도
-     하단 학습기록 records를 같은 방식으로 읽도록 평탄화합니다. */
-  if(!payload || typeof payload !== 'object') return payload;
-
-  const inner = (payload.data && typeof payload.data === 'object') ? payload.data
-    : ((payload.result && typeof payload.result === 'object') ? payload.result
-    : ((payload.payload && typeof payload.payload === 'object') ? payload.payload : null));
-
-  if(!inner) return payload;
-
-  return Object.assign({}, inner, {
-    success: payload.success !== undefined ? payload.success : inner.success,
-    message: payload.message || inner.message || '',
-    records: inner.records || payload.records,
-    learningRecords: inner.learningRecords || payload.learningRecords,
-    recordsAll: inner.recordsAll || payload.recordsAll,
-    currentProgressCache: inner.currentProgressCache || payload.currentProgressCache,
-    currentProgress: inner.currentProgress || payload.currentProgress,
-    currentProgressRow: inner.currentProgressRow || payload.currentProgressRow,
-    studentProfile: inner.studentProfile || payload.studentProfile,
-    profile: inner.profile || payload.profile,
-    최근점수: inner.최근점수 || payload.최근점수,
-    recentScore: inner.recentScore || payload.recentScore,
-    latestScore: inner.latestScore || payload.latestScore
-  });
 }
 
 function wmPickLearningRecordsFromPayload_(data, cacheData){
@@ -1873,72 +1748,32 @@ function wmPickLearningRecordsFromPayload_(data, cacheData){
 }
 
 function wmLoadLearningRecordsDirectForMap_(reason){
-  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V2
-     하단 학습기록은 2.학습기록_DB 직접 조회를 1회 보강 실행합니다.
-     응답이 0건/실패여도 "조회 중" 문구에 멈추지 않고 최종 상태를 표시합니다. */
+  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
+     getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
+     하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
   if(wmBottomRecordsDirectLoading) return;
-  if(Array.isArray(wmLearningRecords) && wmLearningRecords.length > 0) return;
-  if(wmBottomRecordsDirectTried) {
-    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-    return;
-  }
 
   const student = wmCurrentStudent || wmStudentProfile || {};
   const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
-  if(!studentId) {
-    wmBottomRecordsDirectTried = true;
-    wmBottomRecordsDirectLastMessage = '학생ID가 없어 학습기록_DB를 조회할 수 없습니다.';
-    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-    return;
-  }
+  if(!studentId) return;
 
   wmBottomRecordsDirectLoading = true;
-  wmBottomRecordsDirectTried = true;
-  wmBottomRecordsDirectLastMessage = '학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.';
-  renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
 
   function applyPayload(payload){
-    payload = wmUnwrapApiPayloadForMap_(payload || {});
     wmBottomRecordsDirectLoading = false;
-
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
-    if(!directRecords.length) {
-      const countText = payload && payload.learningRecordDbDirectCount !== undefined ? String(payload.learningRecordDbDirectCount) : '0';
-      wmBottomRecordsDirectLastMessage = (payload && payload.learningRecordDbDirect === false)
-        ? ('학습기록_DB 조회 실패: ' + String(payload.learningRecordDbDirectMessage || payload.learningRecordDbDirectError || payload.message || '원인을 확인할 수 없습니다.'))
-        : ('학습기록_DB 조회 완료: 해당 학생 기록 ' + countText + '건입니다.');
-      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-      updateRecentScore([]);
-      return;
-    }
+    if(!directRecords.length) return;
 
     wmLearningRecords = directRecords;
-    wmBottomRecordsDirectLastMessage = '학습기록_DB 조회 완료: ' + directRecords.length + '건';
-    const directPayloadScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
-      payload && payload.최근점수,
-      payload && payload.recentScore,
-      payload && payload.latestScore,
-      wmExtractRecentScoreFromAnyPayload_(payload),
-      wmExtractRecentScoreFromRecords_(directRecords),
-      ''
-    ));
-    if(directPayloadScore){
-      wmCurrentProgressRecentScore = directPayloadScore;
-    }
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
-      wmLastLearningMapData.learningRecords = directRecords;
-      wmLastLearningMapData.recordsAll = directRecords;
     }
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
     updateRecentScore(wmLearningRecords);
   }
 
-  function failPayload(err){
+  function failPayload(){
     wmBottomRecordsDirectLoading = false;
-    wmBottomRecordsDirectLastMessage = '학습기록_DB 직접 조회 응답 실패: ' + String(err && err.message ? err.message : '네트워크/API 응답을 확인하세요.');
-    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-    updateRecentScore([]);
   }
 
   if(window.google && google.script && google.script.run){
@@ -1955,11 +1790,8 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     + '&studentId=' + encodeURIComponent(studentId)
     + '&t=' + Date.now();
 
-  fetch(url, { method:'GET', cache:'no-store' })
-    .then(function(res){
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    })
+  fetch(url)
+    .then(function(res){ return res.json(); })
     .then(applyPayload)
     .catch(failPayload);
 }
@@ -2069,16 +1901,16 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryTotalSet', validTotalSetCount + ' SET');
   setText('summaryCompleteSet', String(Math.max(0, Math.min(validTotalSetCount, Math.floor(cacheData.completedSetCount || 0)))) + ' SET');
   setText('summaryProgress', safeLevelProgress + '%');
-  wmSetSummaryRecentScoreFromCurrentProgress_(cacheData.recentScore);
+  wmCurrentProgressRecentScoreForMap_ = cacheData.recentScore || '';
+  setText('summaryRecentScore', wmCurrentProgressRecentScoreForMap_ ? wmCurrentProgressRecentScoreForMap_ + '점' : '-');
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('cache-empty');
+  wmLoadLearningRecordsDirectForMap_('direct-full-refresh');
   wmShowLearningModeBanner();
   return true;
 }
 
 function wmHandleLearningMapResponse(data){
-  data = wmUnwrapApiPayloadForMap_(data || {});
   if(!data || data.success !== true){
     wmStopMapLoadingState_();
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
@@ -2086,24 +1918,8 @@ function wmHandleLearningMapResponse(data){
     return;
   }
 
-  const responseRecentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
-    data && data.최근점수,
-    data && data.recentScore,
-    data && data.latestScore,
-    wmExtractRecentScoreFromAnyPayload_(data),
-    wmExtractRecentScoreFromRecords_(data && data.records),
-    wmExtractRecentScoreFromRecords_(data && data.learningRecords),
-    wmExtractRecentScoreFromRecords_(data && data.recordsAll),
-    ''
-  ));
-  if(responseRecentScore){
-    wmCurrentProgressRecentScore = responseRecentScore;
-    setText('summaryRecentScore', responseRecentScore + '점');
-  }
-
   const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
   if(currentProgressCache && wmApplyLearningMapFromCurrentProgressCache_(currentProgressCache, data)){
-    updateRecentScore(wmLearningRecords);
     return;
   }
 
@@ -2129,7 +1945,6 @@ function wmHandleLearningMapResponse(data){
   });
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  updateRecentScore(wmLearningRecords);
   if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('payload-empty');
   wmShowLearningModeBanner();
 }
@@ -3220,30 +3035,27 @@ function wmSortLearningRecordsDesc_(records){
 }
 
 function updateRecentScore(records){
-  /* WM_RECENT_SCORE_CURRENT_PROGRESS_DB_LOCK_V1
-     최근점수는 현재진행_DB의 최근점수 값을 1순위로 그대로 표시합니다.
-     현재진행_DB 최근점수가 비어 있을 때만 학습기록_DB에서 보조 계산합니다. */
-  if(wmCurrentProgressRecentScore){
-    setText('summaryRecentScore', wmCurrentProgressRecentScore + '점');
+  /* WM_RECENT_SCORE_CURRENT_PROGRESS_LOCK_20260707_V1
+     최근점수는 8.현재진행_DB의 최근점수 값을 1순위로 그대로 표시합니다.
+     하단 학습기록 직접조회가 늦게 도착해도 기존 최근점수를 '-'로 덮어쓰지 않습니다. */
+  const currentProgressScore = wmNormalizeScoreForMap_(wmCurrentProgressRecentScoreForMap_ || '');
+  if(currentProgressScore){
+    setText('summaryRecentScore', currentProgressScore + '점');
     return;
   }
 
-  const candidates = Array.isArray(records) && records.length
-    ? records
-    : (Array.isArray(wmLearningRecords) && wmLearningRecords.length ? wmLearningRecords : (wmLastLearningMapData && Array.isArray(wmLastLearningMapData.records) ? wmLastLearningMapData.records : []));
-
-  if(!Array.isArray(candidates) || candidates.length === 0){
-    setText('summaryRecentScore', '-');
+  if(!Array.isArray(records) || records.length === 0){
     return;
   }
 
-  const scoreFromRecords = wmExtractRecentScoreFromRecords_(candidates);
-  if(scoreFromRecords){
-    setText('summaryRecentScore', scoreFromRecords + '점');
-    return;
+  const sortedRecords = wmSortLearningRecordsDesc_(records);
+  for(const record of sortedRecords){
+    const score = wmNormalizeScoreForMap_((record && (record.한영주관식 || record.점수)) || '');
+    if(score){
+      setText('summaryRecentScore', score + '점');
+      return;
+    }
   }
-
-  setText('summaryRecentScore', '-');
 }
 
 function renderHomeworkTable(records, profile){
@@ -3251,10 +3063,13 @@ function renderHomeworkTable(records, profile){
   if(!tbody) return;
 
   if(!Array.isArray(records) || records.length === 0){
-    const message = wmBottomRecordsDirectLoading
-      ? '학습기록_DB에서 해당 학생의 기록을 다시 조회 중입니다.'
-      : (wmBottomRecordsDirectLastMessage || '표시할 학습기록이 없습니다.');
-    tbody.innerHTML = '<tr><td colspan="18">' + escapeHtml(message) + '</td></tr>';
+    const baseProfile = wmBuildEmptyLearningRecordFromProfile(profile || wmStudentProfile || wmCurrentStudent);
+
+    if(baseProfile && (baseProfile.학생ID || baseProfile.학생이름)){
+      tbody.innerHTML = wmRenderHomeworkRow(baseProfile);
+    }else{
+      tbody.innerHTML = '<tr><td colspan="18">아직 표시할 학습기록이 없습니다.</td></tr>';
+    }
     wmInitHomeworkTopScrollbar();
     return;
   }
