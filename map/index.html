@@ -1023,6 +1023,7 @@ let wmMapLoadingTimer = null;
 let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
+let wmCurrentProgressDisplayOverride = null;
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1502,6 +1503,49 @@ function wmParseProgressPercentNumber_(value){
 }
 
 
+
+function wmApplyCurrentProgressDisplayOverrideToSetData_(){
+  /* WM_MAP_CURRENT_PROGRESS_DB_VALUE_LOCK_20260707_V1
+     현재진행_DB의 기록Set_ID/세트진행률 값이 있으면 학습기록_DB 계산값(0%)으로 덮이지 않게
+     현재 세트 블럭 표시값을 마지막에 다시 고정합니다. */
+  const override = wmCurrentProgressDisplayOverride || {};
+  const currentSet = wmNormalizeCurrentSetIdForMap_(override.currentSet || '');
+  if(!currentSet || !Array.isArray(setData)) return;
+
+  const dbSetProgress = wmParseProgressPercentNumber_(override.setProgress);
+  const safeSetProgress = Math.max(0, Math.min(99, Math.floor(dbSetProgress || 0)));
+  const currentStep = String(override.currentStep || '').trim();
+  const completedStep = String(override.completedStep || '').trim();
+
+  let found = false;
+  setData = setData.map(function(item){
+    if(!item || item.set !== currentSet) return item;
+    found = true;
+    return Object.assign({}, item, {
+      status:'current',
+      progress:safeSetProgress,
+      currentProgressStep:currentStep,
+      lastCompletedStep:completedStep
+    });
+  });
+
+  if(!found && WM_LEVEL_CONFIG[currentLevelNumber]){
+    setData.push({
+      set:currentSet,
+      status:'current',
+      progress:safeSetProgress,
+      repeatCount:0,
+      officialRound:0,
+      targetRoundLimit:wmGetLevelTargetRoundLimitForMap_(),
+      levelComplete:false,
+      score:'-',
+      latestDate:'',
+      currentProgressStep:currentStep,
+      lastCompletedStep:completedStep
+    });
+  }
+}
+
 function wmParsePipeNumberListForHistory_(value, keepZero){
   if(Array.isArray(value)){
     return value.map(function(item){ return Number(String(item || '').match(/\d+/) ? String(item || '').match(/\d+/)[0] : item); }).filter(function(n){ return Number.isFinite(n) && (keepZero ? n >= 0 : n > 0); });
@@ -1688,6 +1732,16 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
     currentProgressHistoryCache: wmCurrentProgressHistoryCache
   };
 
+  wmCurrentProgressDisplayOverride = {
+    currentSet: cacheData.currentSet,
+    setProgress: cacheData.setProgress,
+    levelProgress: cacheData.levelProgress,
+    completedSetCount: cacheData.completedSetCount,
+    totalSetCount: cacheData.totalSetCount,
+    currentStep: cacheData.raw && (cacheData.raw.현재Step || cacheData.raw.currentStep) || '',
+    completedStep: cacheData.raw && (cacheData.raw.완료Step || cacheData.raw.completedStep) || ''
+  };
+
   /* WM_MAP_CURRENT_PROGRESS_SET_PROGRESS_FORCE_20260707_V1
      현재진행_DB의 기록Set_ID/세트진행률을 현재 학습 세트 블럭에 직접 주입합니다.
      학습기록_DB 계산값이 비어 있어도 현재진행_DB 값(예: 17%)을 그대로 표시합니다. */
@@ -1721,12 +1775,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   const currentPlainSet = String(cacheData.currentSet || '').trim();
 
   if(currentPlainSet){
-    setData = (Array.isArray(setData) ? setData : []).map(function(item){
-      if(item && item.set === currentPlainSet && item.status !== 'complete'){
-        return Object.assign({}, item, { status:'current', progress:safeSetProgress });
-      }
-      return item;
-    });
+    wmApplyCurrentProgressDisplayOverrideToSetData_();
     renderSetMap();
   }
 
@@ -2674,6 +2723,8 @@ function renderSetMap(){
     return;
   }
 
+  wmApplyCurrentProgressDisplayOverrideToSetData_();
+
   const partConfig = WM_LEVEL_CONFIG[currentLevelNumber] || WM_LEVEL_CONFIG[4];
   const rows = [];
 
@@ -2763,7 +2814,10 @@ function updateProgress(){
     return item.status === 'complete';
   }).length;
 
-  const percent = totalSets ? Math.round((completeCount / totalSets) * 100) : 0;
+  const dbOverride = wmCurrentProgressDisplayOverride || {};
+  const dbLevelProgress = wmParseProgressPercentNumber_(dbOverride.levelProgress);
+  const hasDbLevelProgress = dbOverride.levelProgress !== undefined && dbOverride.levelProgress !== null && String(dbOverride.levelProgress).trim() !== '';
+  const percent = hasDbLevelProgress ? dbLevelProgress : (totalSets ? Math.round((completeCount / totalSets) * 100) : 0);
 
   const activeLevelDone = setData.length > 0 && setData.every(function(item){ return item.levelComplete === true; });
   const levelPercentText = activeLevelDone ? '완료' : (percent + '%');
@@ -2772,8 +2826,10 @@ function updateProgress(){
   setText('mainProgressText', activeLevelDone ? '100%' : (percent + '%'));
   setText('summaryProgress', activeLevelDone ? '100%' : (percent + '%'));
   wmUpdateStudentLevelHeaderLabel_();
-  setText('summaryTotalSet', totalSets + ' SET');
-  setText('summaryCompleteSet', completeCount + ' SET');
+  const dbTotalSetCount = Number(dbOverride.totalSetCount || 0);
+  const dbCompletedSetCount = Number(dbOverride.completedSetCount || 0);
+  setText('summaryTotalSet', (dbTotalSetCount > 0 ? dbTotalSetCount : totalSets) + ' SET');
+  setText('summaryCompleteSet', (dbCompletedSetCount >= 0 && String(dbOverride.completedSetCount || '').trim() !== '' ? dbCompletedSetCount : completeCount) + ' SET');
 
   const fill=document.getElementById('progressFill');
   if(fill){
