@@ -1711,18 +1711,54 @@ function wmNormalizeScoreForMap_(value){
 }
 
 function wmPickLearningRecordsFromPayload_(data, cacheData){
+  /* WM_MAP_BOTTOM_RECORDS_DIRECT_FALLBACK_20260707_V2
+     하단 학습기록은 2.학습기록_DB records를 1순위로 사용합니다.
+     서버 응답 구조가 currentProgressCache 중심이어도 최근30건JSON을 직접 파싱해
+     빈 기본행(학습전)으로 떨어지지 않게 보강합니다. */
+  const parsedFromCurrentProgress = wmParseRecent30Records_(wmPickFirstValue_(
+    data && data.currentProgressCache && data.currentProgressCache.최근30건JSON,
+    data && data.currentProgress && data.currentProgress.최근30건JSON,
+    data && data.currentProgressRow && data.currentProgressRow.최근30건JSON,
+    data && data.progressCache && data.progressCache.최근30건JSON,
+    data && data.mapCache && data.mapCache.최근30건JSON,
+    data && data.최근30건JSON
+  ));
+
   const candidates = [
     data && data.records,
     data && data.learningRecords,
     data && data.recordsAll,
     data && data.homeworkRecords,
     data && data.learningRecordList,
-    cacheData && cacheData.recent30Records
+    cacheData && cacheData.recent30Records,
+    parsedFromCurrentProgress
   ];
+
   for(const list of candidates){
-    if(Array.isArray(list) && list.length) return list;
+    if(Array.isArray(list) && list.length){
+      return list.map(function(record){
+        return wmNormalizeLearningRecordForBottomTable_(record, data);
+      });
+    }
   }
   return [];
+}
+
+function wmNormalizeLearningRecordForBottomTable_(record, data){
+  const r = Object.assign({}, record || {});
+  const profile = (data && (data.studentProfile || data.profile || data.currentProgressCache || data.currentProgress || data.currentProgressRow)) || wmStudentProfile || wmCurrentStudent || {};
+
+  r.학생ID = r.학생ID || profile.학생ID || profile.studentId || '';
+  r.학생이름 = r.학생이름 || profile.학생이름 || profile.studentName || '';
+  r.학교 = r.학교 || profile.학교 || profile.school || '';
+  r.학년 = r.학년 || profile.학년 || profile.grade || '';
+  r.Class = r.Class || r['반'] || r['반명'] || profile.Class || profile.className || '';
+  r.교사명 = r.교사명 || profile.교사명 || profile.teacherName || '';
+  r.Set_ID = r.Set_ID || r.setId || r.set_id || '';
+  r.점수 = wmNormalizeScoreForMap_(r.점수 || r.score || r.한영주관식 || '') || '';
+  r.완료상태 = r.완료상태 || r.status || r.latestStatus || '';
+  r.완료 = r.완료 || r.completeRound || r.round || '';
+  return r;
 }
 
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
