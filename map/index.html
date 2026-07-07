@@ -1563,36 +1563,17 @@ function wmParsePipeNumberListForHistory_(value, keepZero){
 
 function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   raw = raw || {};
-  const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리레벨, raw.완료된레벨, raw.historyLevels, raw.levelHistoryLevels), false);
-  const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리횟수, raw.완료횟수, raw.historyRounds, raw.levelHistoryRounds), true);
-  const latest = Number(latestLevel || raw.현재레벨 || raw.currentLevel || 0);
 
-  /* WM_CURRENT_PROGRESS_HISTORY_SEQUENTIAL_ROUND_CONNECT_20260707_V2
-     새 8.현재진행_DB 컬럼 중 히스토리레벨/히스토리횟수를 지난 레벨 버튼에 연결하고,
-     순차완주세트/순차완주회차를 현재 레벨 히스토리 회차 보강값으로 사용합니다. */
-  const sequentialRound = Number(wmPickFirstValue_(
-    raw.순차완주회차,
-    raw.sequentialRound,
-    raw.completedSequentialRound,
-    raw.완료회차,
-    raw.completeRound,
-    0
-  )) || 0;
-
-  if(latest && WM_LEVEL_CONFIG[latest]){
-    const latestIndex = levels.indexOf(latest);
-    if(latestIndex === -1){
-      levels.push(latest);
-      rounds.push(sequentialRound);
-    }else if(sequentialRound > Number(rounds[latestIndex] || 0)){
-      rounds[latestIndex] = sequentialRound;
-    }
-  }
+  /* WM_CURRENT_PROGRESS_HISTORY_DIRECT_READ_20260707_V4
+     학습히스토리는 8.현재진행_DB의 히스토리레벨/히스토리횟수 결론값을 그대로 사용합니다.
+     여기서 현재레벨/학습기록_DB/순차완주회차를 섞어 버튼을 추가하지 않습니다. */
+  const levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리레벨, raw.historyLevels, raw.levelHistoryLevels), false);
+  const rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(raw.히스토리횟수, raw.historyRounds, raw.levelHistoryRounds), true);
 
   const pairs = levels.map(function(level, index){
     return { level:Number(level), round:Number(rounds[index] || 0) };
   }).filter(function(item){ return !!WM_LEVEL_CONFIG[item.level]; });
-  pairs.sort(function(a,b){ return a.level - b.level; });
+
   return {
     levels: pairs.map(function(item){ return item.level; }),
     roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {})
@@ -1765,23 +1746,9 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     if(!directRecords.length) return;
 
     wmLearningRecords = directRecords;
-    const directHistoryLevels = Array.isArray(payload && payload.levelHistoryLevels) ? payload.levelHistoryLevels.slice() : wmGetRecordLevelListForHistory_(directRecords, currentLevelNumber);
-    wmServerLevelHistoryLevels = directHistoryLevels.slice();
-
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
-      wmLastLearningMapData.levelHistoryLevels = directHistoryLevels.slice();
-
-      /* WM_MAP_DIRECT_RECORD_HISTORY_RERENDER_20260707_V1
-         전체 학습기록_DB를 직접 조회한 뒤 히스토리도 즉시 다시 렌더링합니다.
-         버튼 생성 기준은 directRecords의 실제 Set_ID 레벨 중복제거입니다. */
-      wmApplyLearningMapStatus(Object.assign({}, wmLastLearningMapData, {
-        records: directRecords,
-        levelHistoryLevels: directHistoryLevels.slice(),
-        __historyLatestLevel: Number(wmHistoryCurrentLevel || currentLevelNumber || 0)
-      }));
     }
-
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
     updateRecentScore(wmLearningRecords);
   }
@@ -2627,59 +2594,43 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   const bar = document.querySelector('.level-bar');
   if(!bar) return;
 
-  const latestLevel = Number(latestLevelOverride || currentLevelNumber || 0);
   const cacheHistory = (wmCurrentProgressHistoryCache && Array.isArray(wmCurrentProgressHistoryCache.levels) && wmCurrentProgressHistoryCache.levels.length)
     ? wmCurrentProgressHistoryCache
     : null;
 
-  /* WM_LEVEL_HISTORY_RECORD_ONLY_SOURCE_20260707_V1
-     히스토리 버튼 개수는 학습기록_DB 실제 Set_ID 레벨 중복제거 + 현재 레벨만 사용합니다.
-     현재진행_DB 히스토리레벨/히스토리횟수는 버튼 개수 생성에 쓰지 않고 색상 회차 보강에만 사용합니다. */
-  let levels = wmGetRecordLevelListForHistory_(records, latestLevel);
-  if(!levels.some(function(level){ return Number(level || 0) === latestLevel; })){
-    levels.push(latestLevel);
-  }
-  levels.sort(function(a,b){ return Number(a || 0) - Number(b || 0); });
+  /* WM_LEVEL_HISTORY_CURRENT_PROGRESS_ONLY_20260707_V5
+     1) 현재진행_DB 히스토리레벨/히스토리횟수를 정상 조회
+     2) 히스토리레벨 split 결과만 버튼 배열로 사용
+     3) 같은 순서의 히스토리횟수[i]를 매칭
+     4) 버튼이 2개 이상이면 최우측은 현재학습, 좌측 전체는 완료 레벨 초록 */
+  let levels = cacheHistory ? cacheHistory.levels.map(function(level){ return Number(level || 0); }).filter(function(level){ return !!WM_LEVEL_CONFIG[level]; }) : [];
 
-  let stateMap = wmBuildLevelRoundStateForHistory_(records, setStatusMap, levels);
-  if(cacheHistory){
-    levels.forEach(function(level){
-      const n = Number(level || 0);
-      const cacheRoundRaw = Number((cacheHistory.roundsByLevel || {})[n] || 0);
-      const targetLimit = Number(stateMap[n] && stateMap[n].targetLimit || wmGetLevelTargetRoundLimitForMap_() || 1);
-      const cacheRound = Math.max(0, Math.min(targetLimit, cacheRoundRaw));
-      if(cacheRound > 0 && cacheRound > Number(stateMap[n] && stateMap[n].round || 0)){
-        stateMap[n] = {
-          round: cacheRound,
-          levelDone: n !== latestLevel && cacheRound >= targetLimit,
-          targetLimit: targetLimit
-        };
-      }
-    });
+  if(!levels.length){
+    const fallbackLevel = Number(latestLevelOverride || currentLevelNumber || 0);
+    if(WM_LEVEL_CONFIG[fallbackLevel]) levels = [fallbackLevel];
   }
 
-  levels = levels.filter(function(level){
-    const n = Number(level || 0);
-    return !!WM_LEVEL_CONFIG[n];
-  });
+  const latestLevel = levels.length ? Number(levels[levels.length - 1] || 0) : Number(latestLevelOverride || currentLevelNumber || 0);
+  const roundsByLevel = cacheHistory && cacheHistory.roundsByLevel ? cacheHistory.roundsByLevel : {};
 
-  levels.sort(function(a,b){ return a-b; });
   wmSaveLevelHistoryList_(levels);
 
-  bar.innerHTML = levels.map(function(level){
-    const isActive = Number(currentLevelNumber || 0) === Number(level || 0);
-    const completedView = Number(level || 0) !== Number(latestLevel || 0);
-    const state = stateMap[level] || null;
-    const cls = wmGetLevelHistoryClassForLevel_(level, latestLevel, state);
-    const activeCls = isActive ? ' level-history-active' : '';
-    const strongId = isActive ? ' id="levelPercent"' : '';
-    const label = wmGetLevelHistoryLabelForLevel_(level, latestLevel, state, isActive);
+  bar.innerHTML = levels.map(function(level, index){
+    level = Number(level || 0);
+    const isCurrentHistory = index === levels.length - 1;
+    const completedView = !isCurrentHistory;
+    const round = Number(roundsByLevel[level] || 0);
+    const cls = isCurrentHistory ? 'level-current' : 'level-done';
+    const activeCls = isCurrentHistory ? ' level-history-active' : '';
+    const strongId = isCurrentHistory ? ' id="levelPercent"' : '';
+    const spanId = isCurrentHistory ? ' id="currentLevelLabel"' : '';
+    const label = isCurrentHistory ? '0%' : ((round > 0 ? round : '') + '회완료');
 
     return '<button class="level-block ' + cls + activeCls + '" type="button" onclick="wmSwitchHistoryLevel_(' + level + ', ' + (completedView ? 'true' : 'false') + ')">'
-      + '<span' + (isActive ? ' id="currentLevelLabel"' : '') + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
+      + '<span' + spanId + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
   }).join('');
 
-  wmHistoryCompletedLevel = levels.length >= 2 ? levels[0] : 0;
+  wmHistoryCompletedLevel = levels.length >= 2 ? Number(levels[0] || 0) : 0;
   wmHistoryCurrentLevel = latestLevel;
 }
 
