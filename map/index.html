@@ -1682,7 +1682,7 @@ function wmNormalizeCurrentProgressCache_(data){
   const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
   const levelProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
   const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
-  const recentScore = wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, '');
+  const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, ''));
 
   return {
     raw: cache,
@@ -1696,6 +1696,33 @@ function wmNormalizeCurrentProgressCache_(data){
     recent30Records: recent30,
     historyCache: wmBuildCurrentProgressHistoryCacheForMap_(cache, currentLevel)
   };
+}
+
+
+function wmNormalizeScoreForMap_(value){
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  if(!text) return '';
+  if(/레벨|LEVEL|WM\d+-\d+-\d+/i.test(text)) return '';
+  const match = text.match(/^(\d{1,3})(?:\.\d+)?\s*(?:점|%)?$/);
+  if(!match) return '';
+  const n = Number(match[1]);
+  if(!Number.isFinite(n) || n < 0 || n > 100) return '';
+  return String(Math.round(n));
+}
+
+function wmPickLearningRecordsFromPayload_(data, cacheData){
+  const candidates = [
+    data && data.records,
+    data && data.learningRecords,
+    data && data.recordsAll,
+    data && data.homeworkRecords,
+    data && data.learningRecordList,
+    cacheData && cacheData.recent30Records
+  ];
+  for(const list of candidates){
+    if(Array.isArray(list) && list.length) return list;
+  }
+  return [];
 }
 
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
@@ -1718,9 +1745,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
 
-  const serverLearningRecords = Array.isArray(data && data.records) ? data.records : [];
-  const cacheLearningRecords = Array.isArray(cacheData.recent30Records) ? cacheData.recent30Records : [];
-  wmLearningRecords = wmSortLearningRecordsDesc_(serverLearningRecords.length ? serverLearningRecords : cacheLearningRecords);
+  wmLearningRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(data, cacheData));
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
   wmCurrentProgressHistoryCache = cacheData.historyCache || null;
 
@@ -1818,7 +1843,7 @@ function wmHandleLearningMapResponse(data){
   /* WM_MAP_CURRENT_PROGRESS_FALLBACK_RENDER_20260707_V1
      현재진행_DB 캐시 행이 아직 없거나 새 컬럼 연결 전이어도 화면을 막지 않습니다.
      서버가 함께 내려준 학습기록_DB records/setStatusMap 기준으로 학습맵과 히스토리를 렌더링합니다. */
-  wmLearningRecords = wmSortLearningRecordsDesc_(Array.isArray(data.records) ? data.records : []);
+  wmLearningRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(data, null));
   wmServerLevelHistoryLevels = Array.isArray(data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
 
   wmApplyLearningMapStatus({
@@ -2929,7 +2954,7 @@ function updateRecentScore(records){
 
   const sortedRecords = wmSortLearningRecordsDesc_(records);
   for(const record of sortedRecords){
-    const score = String((record && (record.한영주관식 || record.점수)) || '').trim();
+    const score = wmNormalizeScoreForMap_((record && (record.한영주관식 || record.점수)) || '');
     if(score){
       setText('summaryRecentScore', score + '점');
       return;
