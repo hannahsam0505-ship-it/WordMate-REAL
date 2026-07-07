@@ -1025,6 +1025,7 @@ let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
 let wmCurrentProgressDisplayOverride = null;
+let wmCurrentProgressRecentScore = '';
 
 function wmGetApiBaseUrl(){
   const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
@@ -1684,7 +1685,16 @@ function wmNormalizeCurrentProgressCache_(data){
   const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
   const levelProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
   const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
-  const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(cache.최근점수, cache.recentScore, ''));
+  const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(
+    cache.최근점수,
+    cache['최근 점수'],
+    cache.recentScore,
+    cache.latestScore,
+    cache.score,
+    learningProgress.최근점수,
+    learningProgress.recentScore,
+    ''
+  ));
 
   return {
     raw: cache,
@@ -1710,6 +1720,13 @@ function wmNormalizeScoreForMap_(value){
   const n = Number(match[1]);
   if(!Number.isFinite(n) || n < 0 || n > 100) return '';
   return String(Math.round(n));
+}
+
+function wmSetSummaryRecentScoreFromCurrentProgress_(score){
+  const normalized = wmNormalizeScoreForMap_(score);
+  wmCurrentProgressRecentScore = normalized;
+  setText('summaryRecentScore', normalized ? normalized + '점' : '-');
+  return normalized;
 }
 
 function wmPickLearningRecordsFromPayload_(data, cacheData){
@@ -1842,8 +1859,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
     setStatusMap: (data && data.setStatusMap) || {},
     records: wmLearningRecords,
     levelHistoryLevels: wmServerLevelHistoryLevels.slice(),
-    currentProgressHistoryCache: wmCurrentProgressHistoryCache,
-    currentProgressRecentScore: cacheData.recentScore
+    currentProgressHistoryCache: wmCurrentProgressHistoryCache
   };
 
   wmCurrentProgressDisplayOverride = {
@@ -1852,7 +1868,6 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
     levelProgress: cacheData.levelProgress,
     completedSetCount: cacheData.completedSetCount,
     totalSetCount: cacheData.totalSetCount,
-    recentScore: cacheData.recentScore,
     currentStep: cacheData.raw && (cacheData.raw.현재Step || cacheData.raw.currentStep) || '',
     completedStep: cacheData.raw && (cacheData.raw.완료Step || cacheData.raw.completedStep) || ''
   };
@@ -1903,7 +1918,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryTotalSet', validTotalSetCount + ' SET');
   setText('summaryCompleteSet', String(Math.max(0, Math.min(validTotalSetCount, Math.floor(cacheData.completedSetCount || 0)))) + ' SET');
   setText('summaryProgress', safeLevelProgress + '%');
-  setText('summaryRecentScore', cacheData.recentScore ? cacheData.recentScore + '점' : '-');
+  wmSetSummaryRecentScoreFromCurrentProgress_(cacheData.recentScore);
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
   if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('cache-empty');
@@ -3036,16 +3051,29 @@ function wmSortLearningRecordsDesc_(records){
 }
 
 function updateRecentScore(records){
-  /* WM_RECENT_SCORE_CURRENT_PROGRESS_DB_ONLY_V1
-     최근점수는 학습기록_DB에서 다시 계산하지 않고,
-     현재진행_DB의 최근점수 컬럼값만 그대로 표시합니다. */
-  const score = wmNormalizeScoreForMap_(wmPickFirstValue_(
-    wmCurrentProgressDisplayOverride && wmCurrentProgressDisplayOverride.recentScore,
-    wmLastLearningMapData && wmLastLearningMapData.currentProgressRecentScore,
-    ''
-  ));
+  /* WM_RECENT_SCORE_CURRENT_PROGRESS_DB_LOCK_V1
+     최근점수는 현재진행_DB의 최근점수 값을 1순위로 그대로 표시합니다.
+     현재진행_DB 최근점수가 비어 있을 때만 학습기록_DB에서 보조 계산합니다. */
+  if(wmCurrentProgressRecentScore){
+    setText('summaryRecentScore', wmCurrentProgressRecentScore + '점');
+    return;
+  }
 
-  setText('summaryRecentScore', score ? score + '점' : '-');
+  if(!Array.isArray(records) || records.length === 0){
+    setText('summaryRecentScore', '-');
+    return;
+  }
+
+  const sortedRecords = wmSortLearningRecordsDesc_(records);
+  for(const record of sortedRecords){
+    const score = wmNormalizeScoreForMap_((record && (record.한영주관식 || record.점수)) || '');
+    if(score){
+      setText('summaryRecentScore', score + '점');
+      return;
+    }
+  }
+
+  setText('summaryRecentScore', '-');
 }
 
 function renderHomeworkTable(records, profile){
