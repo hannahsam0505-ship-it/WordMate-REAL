@@ -1662,12 +1662,47 @@ function wmFindCurrentProgressCache_(data){
     data.현재진행,
     data.현재진행_DB,
     data.studentProgress,
+    data,
     data.officialLevelProgress,
     data.currentLearningProgress,
     data.studentProfile,
-    data.profile,
-    data
+    data.profile
   ];
+
+  function hasHistoryField_(candidate){
+    if(!candidate || typeof candidate !== 'object') return false;
+    return wmPickFirstValue_(
+      candidate.히스토리레벨,
+      candidate.히스토리횟수,
+      candidate.historyLevels,
+      candidate.historyRounds,
+      candidate.levelHistoryLevels,
+      candidate.levelHistoryRounds
+    ) !== '';
+  }
+
+  function hasCurrentProgressDbField_(candidate){
+    if(!candidate || typeof candidate !== 'object') return false;
+    return wmPickFirstValue_(
+      candidate.기록Set_ID,
+      candidate.최근30건JSON,
+      candidate.최근점수,
+      candidate.세트진행률,
+      candidate.레벨진행률,
+      candidate.레벨완료조건,
+      candidate.순차완주세트,
+      candidate.순차완주회차,
+      candidate.레벨완료여부
+    ) !== '';
+  }
+
+  for(const candidate of candidates){
+    if(hasHistoryField_(candidate)) return candidate;
+  }
+
+  for(const candidate of candidates){
+    if(hasCurrentProgressDbField_(candidate)) return candidate;
+  }
 
   for(const candidate of candidates){
     if(!candidate || typeof candidate !== 'object') continue;
