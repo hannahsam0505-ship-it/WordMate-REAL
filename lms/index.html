@@ -270,6 +270,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-student-id-row { display:flex; align-items:end; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
     .wm-student-id-row label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:900; color:var(--wm-gray); }
     .wm-student-id-row input { width:210px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:14px; background:#fff; text-transform:uppercase; }
+    #wmStudentRegisterId { pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important; }
     .wm-student-register-status { font-size:13px; font-weight:900; color:var(--wm-gray); min-height:18px; }
     .wm-student-id-rule { font-size:12px; font-weight:900; color:var(--wm-gray); line-height:1.35; }
     .wm-student-register-status.ok { color:var(--wm-green); }
@@ -425,7 +426,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div id="studentRegisterBox" class="wm-student-register-box">
         <h3 class="wm-student-register-title">학생등록</h3>
         <div class="wm-student-id-row">
-          <label>학생ID<input type="text" id="wmStudentRegisterId" maxlength="10" placeholder="예: S4821" oninput="wmNormalizeStudentRegisterIdInput()" /></label>
+          <label>학생ID<input type="text" id="wmStudentRegisterId" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예: S4821" onfocus="wmUnlockStudentRegisterIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleStudentRegisterIdTyping(event)" /></label>
           <button type="button" class="wm-action-btn sub" onclick="wmGenerateStudentRegisterId()">자동생성</button>
           <button type="button" class="wm-action-btn sub" onclick="wmCheckStudentRegisterDuplicate()">중복확인</button>
           <button type="button" class="wm-action-btn" onclick="wmApplyStudentRegister()">적용</button>
@@ -4152,6 +4153,7 @@ function toggleStudentRegisterBox(){
   if(!box) return;
   box.classList.toggle('active');
   if(box.classList.contains('active')){
+    wmUnlockStudentRegisterIdInput();
     wmSetStudentRegisterStatus('', '');
     if(!document.getElementById('wmStudentRegisterDate')?.value){
       const d = new Date();
@@ -4176,13 +4178,36 @@ function wmStudentRegisterValue(id){
   return document.getElementById(id)?.value || '';
 }
 
+function wmUnlockStudentRegisterIdInput(){
+  const target = document.getElementById('wmStudentRegisterId');
+  if(!target) return;
+  target.disabled = false;
+  target.readOnly = false;
+  target.removeAttribute('disabled');
+  target.removeAttribute('readonly');
+}
+
+function wmHandleStudentRegisterIdTyping(event){
+  const target = event && event.target ? event.target : document.getElementById('wmStudentRegisterId');
+  if(!target) return '';
+  target.disabled = false;
+  target.readOnly = false;
+  if(event && event.isComposing) return target.value;
+  return wmNormalizeStudentRegisterIdInput();
+}
+
 function wmNormalizeStudentRegisterIdInput(){
   const target = document.getElementById('wmStudentRegisterId');
   if(!target) return '';
-  const id = normalizeWordMateStudentId(target.value).replace(/[^A-Z0-9]/g, '').slice(0, 10);
-  target.value = id;
+  target.disabled = false;
+  target.readOnly = false;
+  target.removeAttribute('disabled');
+  target.removeAttribute('readonly');
+  const before = String(target.value || '');
+  const id = normalizeWordMateStudentId(before).replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  if(target.value !== id) target.value = id;
   WM_STUDENT_REGISTER_CHECKED_ID = '';
-  wmSetStudentRegisterStatus('', '중복확인이 필요합니다.');
+  wmSetStudentRegisterStatus('', id ? '중복확인이 필요합니다.' : '');
   return id;
 }
 
@@ -4346,6 +4371,7 @@ function wmClearStudentRegisterForm(){
     if(el) el.value = '';
   });
   WM_STUDENT_REGISTER_CHECKED_ID = '';
+  wmUnlockStudentRegisterIdInput();
 }
 
 async function wmApplyStudentRegister(){
