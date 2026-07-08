@@ -1273,8 +1273,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     }
     function wmRestoreLmsAuth(){
       try{
-        const saved = JSON.parse(localStorage.getItem(WM_LMS_AUTH_STORAGE_KEY) || 'null');
-        if(saved && saved.teacher && saved.teacher.교사ID) wmApplyLmsAuth(saved.teacher);
+        localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY);
+        document.body.classList.remove('wm-lms-authenticated');
       }catch(err){ localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY); }
     }
     /* WM_LMS_TEACHER_LOGIN_CALL_FIX_V2
