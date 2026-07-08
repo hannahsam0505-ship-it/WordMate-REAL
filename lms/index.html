@@ -1153,7 +1153,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <h3 class="wm-create-factory-title">학생생성 Factory</h3>
         <div class="wm-filter-grid">
           <label class="wm-student-seq-col">학생일련번호<input type="text" id="studentSeqForCreate" value="0001" readonly /></label>
-          <label>학생ID<input type="text" id="studentAutoId" value="자동발급 대기" readonly /></label>
+          <label>학생ID<input type="text" id="studentAutoId" value="자동발급 대기" maxlength="10" placeholder="영문/숫자 4~10자" oninput="wmNormalizeStudentIdInputForCreate(); updateStudentCreatePreview();" /></label>
           <label>학생이름<input type="text" id="studentNameForCreate" placeholder="예: 김학생" oninput="updateStudentCreatePreview()" /></label>
           <label>학교<input type="text" id="studentSchoolForCreate" placeholder="예: 샘플초" oninput="updateStudentCreatePreview()" /></label>
           <label>학년<input type="text" id="studentGradeForCreate" placeholder="예: 4" oninput="updateStudentCreatePreview()" /></label>
@@ -3892,12 +3892,24 @@ function setStudentIdCreateStatus(active, text){
   if(textNode) textNode.nodeValue = message;
 }
 
+/* WM_STUDENT_ID_RULE_260708_V1
+   학생ID 공식: 영문/숫자 4~10자, 대소문자 구분 없이 대문자 정규화, 중복만 차단합니다.
+   기존 S4821/S1057 형식은 그대로 유효합니다. */
+function normalizeWordMateStudentId(value){
+  return String(value || '').trim().toUpperCase();
+}
+
 function isValidWordMateStudentId(value){
-  const id = String(value || '').trim().toUpperCase();
-  if(!/^S\d{4}$/.test(id)) return false;
-  if(/^TEST/i.test(id)) return false;
-  if(/^S000\d$/.test(id)) return false;
-  return true;
+  const id = normalizeWordMateStudentId(value);
+  return /^[A-Z0-9]{4,10}$/.test(id);
+}
+
+function wmNormalizeStudentIdInputForCreate(){
+  const target = document.getElementById('studentAutoId');
+  if(!target) return '';
+  const normalized = normalizeWordMateStudentId(target.value).replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  target.value = normalized;
+  return normalized;
 }
 
 function collectExistingStudentIdsForCreate(){
@@ -3913,8 +3925,10 @@ function collectExistingStudentIdsForCreate(){
 
 function makeLocalRandomStudentId(){
   const used = collectExistingStudentIdsForCreate();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   for(let i=0; i<3000; i++){
-    const id = 'S' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    let id = '';
+    for(let j=0; j<6; j++) id += chars.charAt(Math.floor(Math.random() * chars.length));
     if(!isValidWordMateStudentId(id)) continue;
     if(used.has(id)) continue;
     return id;
@@ -4021,22 +4035,24 @@ async function saveStudentCreateToDB(){
   const nextSerial = getNextStudentSerialForCreate();
 
   const getValue = id => document.getElementById(id)?.value || '';
-  let issuedStudentId = String(getValue('studentAutoId') || '').trim().toUpperCase();
+  let issuedStudentId = normalizeWordMateStudentId(getValue('studentAutoId') || '');
+  const idTarget = document.getElementById('studentAutoId');
+  if(idTarget) idTarget.value = issuedStudentId;
   if(!isValidWordMateStudentId(issuedStudentId)) {
     issuedStudentId = await generateStudentAutoIdForCreate();
   }
   if(!isValidWordMateStudentId(issuedStudentId)) {
-    alert('학생ID가 공식에 맞지 않습니다. S + 랜덤 4자리로 자동발급 후 저장해 주세요.');
+    alert('학생ID가 공식에 맞지 않습니다. 영문/숫자 4~10자로 입력하거나 자동발급해 주세요.');
     return;
   }
   const usedIds = collectExistingStudentIdsForCreate();
   if(usedIds.has(issuedStudentId)) {
-    alert('이미 사용된 학생ID입니다. 학생ID 자동발급을 다시 실행해 주세요.');
+    alert('이미 사용된 학생ID입니다. 다른 학생ID를 입력하거나 자동발급을 다시 실행해 주세요.');
     return;
   }
   const newRow = {
     '학생일련번호': nextSerial,
-    '학생ID': getValue('studentAutoId') || '자동발급 대기',
+    '학생ID': issuedStudentId || '자동발급 대기',
     '학생이름': getValue('studentNameForCreate'),
     '학습배정': getValue('studentLearningAssignForCreate'),
     'S4실루엣단계': getValue('studentS4ForCreate') || '전체',
@@ -4061,7 +4077,7 @@ async function saveStudentCreateToDB(){
   setStudentRowsToLocalDB(rows);
   renderStudentManageRows();
   alert('학생생성 저장 미리보기 완료: 학생관리 목록에 반영되었습니다.');
-  const idTarget = document.getElementById('studentAutoId');
+  /* idTarget는 위에서 선언된 변수를 재사용합니다. */
   if(idTarget) idTarget.value = '자동발급 대기';
   prepareStudentCreateFactory();
 }
