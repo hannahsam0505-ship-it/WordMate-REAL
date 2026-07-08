@@ -1204,7 +1204,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-table-wrap"><table><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>현재레벨</th><th>완료회차</th><th>레벨완료조건</th><th>레벨회차추가</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료여부</th><th>최근30건JSON</th><th>캐시버전</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="27">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap"><table><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="30">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-deployManage">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">배포관리 센터</h2><p class="wm-panel-desc">연결 DB: 9.배포관리_DB / TEST·REAL 배포 변경 이력을 그대로 표시합니다.</p></div>
@@ -4184,7 +4184,7 @@ function wmRenderGenericDbRows(tbodyId, rows, columns, colspan){
   tbody.innerHTML = rows.map(row=>'<tr>'+columns.map(col=>'<td>'+escapeHtml(displayCellValue(row[col] || ''))+'</td>').join('')+'</tr>').join('');
 }
 
-const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "현재레벨", "완료회차", "레벨완료조건", "레벨회차추가", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "최근점수", "S4실루엣단계", "S6테스트모드", "레벨완료여부", "최근30건JSON", "캐시버전", "비고"];
+const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
 const WM_DEPLOY_MANAGE_HEADERS = ["변경ID", "버전ID", "구분(REAL/TEST)", "배포일시", "문제발생", "원인분석", "수정방향", "핵심수정", "대상파일", "연동파일", "수정위치/함수", "검색어(다수가능)", "변경전코드", "변경후코드", "변경전줄수", "변경후줄수", "줄수변화", "REAL 고정", "TEST 고정", "REAL 변수", "TEST 변수", "REAL 고정 수정", "TEST 고정 수정", "REAL 변수 수정", "TEST 변수 수정", "TEST적용상태", "TEST검증상태", "REAL적용상태", "REAL검증상태", "현재/직전버전", "기타버전", "파일동일성%", "상이확인", "성공/실패", "실패원인", "롤백여부", "롤백버전", "작업자", "작업구분", "비고"];
 
 function getCurrentProgressFilteredRows(rows){
@@ -4232,7 +4232,7 @@ function getDeployManageFilteredRows(rows){
 async function loadCurrentProgressRows(){
   const tbody = document.getElementById('currentProgressTbody');
   setManageLoading('currentProgress', true);
-  if(tbody) tbody.innerHTML = '<tr><td colspan="27">8.현재진행_DB 조회 중입니다.</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="30">8.현재진행_DB 조회 중입니다.</td></tr>';
 
   try{
     let rows = [];
@@ -4254,7 +4254,7 @@ async function loadCurrentProgressRows(){
     setManageLoading('currentProgress', false);
     return WM_CURRENT_PROGRESS_ROWS;
   }catch(err){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="27">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="30">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
     setManageLoading('currentProgress', false);
     return [];
   }
@@ -4279,7 +4279,7 @@ async function loadDeployManageRows(){
 }
 
 function renderCurrentProgressRows(){
-  wmRenderGenericDbRows('currentProgressTbody', getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []), WM_CURRENT_PROGRESS_HEADERS, 27);
+  wmRenderGenericDbRows('currentProgressTbody', getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []), WM_CURRENT_PROGRESS_HEADERS, 30);
   setManageLoading('currentProgress', false);
 }
 
