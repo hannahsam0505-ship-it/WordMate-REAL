@@ -174,6 +174,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #studentTableWrap th:nth-child(2), #studentTableWrap td:nth-child(2) { position:sticky; left:0; z-index:25; background:#fff; min-width:110px; }
     #studentTableWrap th:nth-child(3), #studentTableWrap td:nth-child(3) { position:sticky; left:110px; z-index:25; background:#fff; min-width:120px; }
     #studentTableWrap thead th:nth-child(2), #studentTableWrap thead th:nth-child(3) { z-index:40; background:#f9fafb; }
+    #currentProgressTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
+    #currentProgressTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
+    .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
+    .wm-current-progress-pager button { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:900; cursor:pointer; }
+    .wm-current-progress-pager button:disabled { opacity:.45; cursor:not-allowed; }
+    .wm-current-progress-page-info { font-size:13px; font-weight:900; color:var(--wm-gray); }
     table { width:100%; border-collapse:collapse; min-width:1200px; background:#fff; }
     /* WM_RECORD_DEVICE_MEMO_WIDTH_LOCK: 학습기록 기기정보/비고 폭 고정 */
     #recordManageTable th:nth-child(23), #recordManageTable td:nth-child(23) { width:58px; min-width:58px; max-width:58px; text-align:center; overflow:hidden; text-overflow:ellipsis; }
@@ -1204,7 +1210,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-table-wrap"><table><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="30">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="30">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
     </section>
     <section class="wm-panel" id="panel-deployManage">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">배포관리 센터</h2><p class="wm-panel-desc">연결 DB: 9.배포관리_DB / TEST·REAL 배포 변경 이력을 그대로 표시합니다.</p></div>
@@ -2369,6 +2375,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       if(scope==='currentProgress'){
+        WM_CURRENT_PROGRESS_PAGE = 1;
         if(WM_CURRENT_PROGRESS_ROWS && WM_CURRENT_PROGRESS_ROWS.length){
           renderCurrentProgressRows();
         }else{
@@ -2423,6 +2430,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       if(scope==='currentProgress'){
+        WM_CURRENT_PROGRESS_PAGE = 1;
         if(WM_CURRENT_PROGRESS_ROWS && WM_CURRENT_PROGRESS_ROWS.length) renderCurrentProgressRows();
         else loadCurrentProgressRows();
         return;
@@ -2431,7 +2439,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     }
 
     function setManageLoading(scope, isLoading){
-      const id = scope === 'students' ? 'wmStudentManageLoading' : scope === 'records' ? 'wmRecordManageLoading' : scope === 'reports' ? 'wmReportManageLoading' : '';
+      const id = scope === 'students' ? 'wmStudentManageLoading' : scope === 'records' ? 'wmRecordManageLoading' : scope === 'reports' ? 'wmReportManageLoading' : scope === 'currentProgress' ? 'wmCurrentProgressLoading' : '';
       const el = id ? document.getElementById(id) : null;
       if(el) el.classList.toggle('active', !!isLoading);
     }
@@ -2522,6 +2530,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     let WM_DASHBOARD_COUNSEL_ROWS = [];
     let WM_DASHBOARD_PAYMENT_ROWS = [];
     let WM_CURRENT_PROGRESS_ROWS = [];
+    let WM_CURRENT_PROGRESS_PAGE = 1;
+    const WM_CURRENT_PROGRESS_PAGE_SIZE = 25;
     let WM_DEPLOY_MANAGE_ROWS = [];
     let WM_DASHBOARD_STATE = null;
 
@@ -4279,8 +4289,57 @@ async function loadDeployManageRows(){
 }
 
 function renderCurrentProgressRows(){
-  wmRenderGenericDbRows('currentProgressTbody', getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []), WM_CURRENT_PROGRESS_HEADERS, 30);
+  const tbody = document.getElementById('currentProgressTbody');
+  const pager = document.getElementById('currentProgressPager');
+  const pageInfo = document.getElementById('currentProgressPageInfo');
+  const prevBtn = document.getElementById('currentProgressPrevBtn');
+  const nextBtn = document.getElementById('currentProgressNextBtn');
+  const rows = getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []);
+  const totalRows = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / WM_CURRENT_PROGRESS_PAGE_SIZE));
+
+  if(WM_CURRENT_PROGRESS_PAGE > totalPages) WM_CURRENT_PROGRESS_PAGE = totalPages;
+  if(WM_CURRENT_PROGRESS_PAGE < 1) WM_CURRENT_PROGRESS_PAGE = 1;
+
+  if(!totalRows){
+    if(tbody) tbody.innerHTML = '<tr><td colspan="30">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
+    if(pager) pager.style.display = 'none';
+    syncCurrentProgressTableScroll();
+    setManageLoading('currentProgress', false);
+    return;
+  }
+
+  const start = (WM_CURRENT_PROGRESS_PAGE - 1) * WM_CURRENT_PROGRESS_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + WM_CURRENT_PROGRESS_PAGE_SIZE);
+  wmRenderGenericDbRows('currentProgressTbody', pageRows, WM_CURRENT_PROGRESS_HEADERS, 30);
+
+  if(pager) pager.style.display = totalRows > WM_CURRENT_PROGRESS_PAGE_SIZE ? 'flex' : 'none';
+  if(pageInfo) pageInfo.textContent = WM_CURRENT_PROGRESS_PAGE + ' / ' + totalPages + ' · 총 ' + totalRows + '명';
+  if(prevBtn) prevBtn.disabled = WM_CURRENT_PROGRESS_PAGE <= 1;
+  if(nextBtn) nextBtn.disabled = WM_CURRENT_PROGRESS_PAGE >= totalPages;
+
+  syncCurrentProgressTableScroll();
   setManageLoading('currentProgress', false);
+}
+
+function moveCurrentProgressPage(delta){
+  const rows = getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []);
+  const totalPages = Math.max(1, Math.ceil(rows.length / WM_CURRENT_PROGRESS_PAGE_SIZE));
+  WM_CURRENT_PROGRESS_PAGE = Math.min(totalPages, Math.max(1, WM_CURRENT_PROGRESS_PAGE + Number(delta || 0)));
+  renderCurrentProgressRows();
+}
+
+function syncCurrentProgressTableScroll(){
+  const wrap = document.getElementById('currentProgressTableWrap');
+  const top = document.getElementById('currentProgressTopScroll');
+  const inner = document.getElementById('currentProgressTopScrollInner');
+  const table = document.getElementById('currentProgressManageTable');
+  if(!wrap || !top || !inner || !table) return;
+  inner.style.width = table.scrollWidth + 'px';
+  if(top.dataset.synced === '1') return;
+  top.dataset.synced = '1';
+  top.addEventListener('scroll', ()=>{ wrap.scrollLeft = top.scrollLeft; });
+  wrap.addEventListener('scroll', ()=>{ top.scrollLeft = wrap.scrollLeft; });
 }
 
 function renderDeployManageRows(){
