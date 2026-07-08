@@ -4303,17 +4303,13 @@ function renderCurrentProgressRows(){
 
   if(!totalRows){
     if(tbody) tbody.innerHTML = '<tr><td colspan="30">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
-    if(pager) pager.style.display = 'none';
-    syncCurrentProgressTableScroll();
-    setManageLoading('currentProgress', false);
-    return;
+  }else{
+    const start = (WM_CURRENT_PROGRESS_PAGE - 1) * WM_CURRENT_PROGRESS_PAGE_SIZE;
+    const pageRows = rows.slice(start, start + WM_CURRENT_PROGRESS_PAGE_SIZE);
+    wmRenderGenericDbRows('currentProgressTbody', pageRows, WM_CURRENT_PROGRESS_HEADERS, 30);
   }
 
-  const start = (WM_CURRENT_PROGRESS_PAGE - 1) * WM_CURRENT_PROGRESS_PAGE_SIZE;
-  const pageRows = rows.slice(start, start + WM_CURRENT_PROGRESS_PAGE_SIZE);
-  wmRenderGenericDbRows('currentProgressTbody', pageRows, WM_CURRENT_PROGRESS_HEADERS, 30);
-
-  if(pager) pager.style.display = totalRows > WM_CURRENT_PROGRESS_PAGE_SIZE ? 'flex' : 'none';
+  if(pager) pager.style.display = 'flex';
   if(pageInfo) pageInfo.textContent = WM_CURRENT_PROGRESS_PAGE + ' / ' + totalPages + ' · 총 ' + totalRows + '명';
   if(prevBtn) prevBtn.disabled = WM_CURRENT_PROGRESS_PAGE <= 1;
   if(nextBtn) nextBtn.disabled = WM_CURRENT_PROGRESS_PAGE >= totalPages;
