@@ -44,6 +44,8 @@ const WM_LOCKS = {
   StudentDB_V1_LOCK:true,
   StudyRecordDB_V1_LOCK:true,
   CurrentProgressDB_V1_LOCK:true,
+  CurrentProgressDB_V2_LOCK:true, /* 30컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
+  LMS_Login_V1_LOCK:true, /* 교사 로그인 게이트·로그인/로그아웃·인증흐름 LOCK */
   Dashboard_Search_V1_LOCK:true,
   Student_Search_V1_LOCK:true
 };
@@ -62,8 +64,12 @@ function wmLockNameForScope(scope, action){
     'students:search':'Student_Search_V1_LOCK',
     'records:feature':'StudyRecordDB_V1_LOCK',
     'records:search':'StudyRecordDB_V1_LOCK',
-    'currentProgress:feature':'CurrentProgressDB_V1_LOCK',
-    'currentProgress:search':'CurrentProgressDB_V1_LOCK'
+    'currentProgress:feature':'CurrentProgressDB_V2_LOCK',
+    'currentProgress:search':'CurrentProgressDB_V2_LOCK',
+    'currentProgress:page':'CurrentProgressDB_V2_LOCK',
+    'currentProgress:render':'CurrentProgressDB_V2_LOCK',
+    'login:feature':'LMS_Login_V1_LOCK',
+    'login:auth':'LMS_Login_V1_LOCK'
   };
   return map[key] || '';
 }
@@ -71,6 +77,18 @@ function wmLockNameForScope(scope, action){
 function wmConfirmScopeLock(scope, action){
   const lockName = wmLockNameForScope(scope, action);
   return lockName ? wmConfirmLock(lockName) : true;
+}
+
+function wmLockStatusMessage(lockName, label){
+  const locked = !!WM_LOCKS[lockName];
+  const msg = (locked ? '🔒 LOCK ON: ' : '🔓 LOCK OFF: ') + label + ' [' + lockName + ']';
+  if(window.console && console.info) console.info(msg);
+  return locked;
+}
+
+function wmLogCriticalLockStatus(){
+  wmLockStatusMessage('LMS_Login_V1_LOCK','LMS 교사 로그인/인증 흐름');
+  wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 전체 UI/컬럼/페이지 구조');
 }
 
 
@@ -1243,7 +1261,10 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   </main>
   <script>
 
-    /* WM_LMS_TEACHER_LOGIN_AUTH_V1 */
+    /* WM_LMS_LOGIN_V1_LOCK
+     * LOCK 범위: 교사 로그인 게이트, 로그인/로그아웃, 인증 흐름.
+     * 실행 연결: DOMContentLoaded에서 wmLockStatusMessage('LMS_Login_V1_LOCK', ...) 출력.
+     */
     const WM_LMS_AUTH_STORAGE_KEY = 'wm_lms_auth_teacher_v1';
     function wmSetLmsLoginMessage(message, isOk){
       const el = document.getElementById('wmLmsLoginMsg');
@@ -1341,6 +1362,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       wmFetchLmsLogin(teacherId, password);
     }
     document.addEventListener('DOMContentLoaded', function(){
+      wmLockStatusMessage('LMS_Login_V1_LOCK','LMS 교사 로그인/인증 흐름');
       wmRestoreLmsAuth();
       const loginBtn = document.getElementById('wmLmsLoginBtn');
       const logoutBtn = document.getElementById('wmLmsLogoutBtn');
@@ -4194,6 +4216,10 @@ function wmRenderGenericDbRows(tbodyId, rows, columns, colspan){
   tbody.innerHTML = rows.map(row=>'<tr>'+columns.map(col=>'<td>'+escapeHtml(displayCellValue(row[col] || ''))+'</td>').join('')+'</tr>').join('');
 }
 
+/* WM_CURRENT_PROGRESS_DB_V2_LOCK
+ * LOCK 범위: 현재진행_DB 30컬럼, 행고정, 상단 가로바, 25줄 페이지, 이전/다음 버튼.
+ * 실행 연결: 조회/렌더/페이지 이동 시 CurrentProgressDB_V2_LOCK 상태를 콘솔에 표시합니다.
+ */
 const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
 const WM_DEPLOY_MANAGE_HEADERS = ["변경ID", "버전ID", "구분(REAL/TEST)", "배포일시", "문제발생", "원인분석", "수정방향", "핵심수정", "대상파일", "연동파일", "수정위치/함수", "검색어(다수가능)", "변경전코드", "변경후코드", "변경전줄수", "변경후줄수", "줄수변화", "REAL 고정", "TEST 고정", "REAL 변수", "TEST 변수", "REAL 고정 수정", "TEST 고정 수정", "REAL 변수 수정", "TEST 변수 수정", "TEST적용상태", "TEST검증상태", "REAL적용상태", "REAL검증상태", "현재/직전버전", "기타버전", "파일동일성%", "상이확인", "성공/실패", "실패원인", "롤백여부", "롤백버전", "작업자", "작업구분", "비고"];
 
@@ -4240,6 +4266,7 @@ function getDeployManageFilteredRows(rows){
 }
 
 async function loadCurrentProgressRows(){
+  wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 조회/표시 구조');
   const tbody = document.getElementById('currentProgressTbody');
   setManageLoading('currentProgress', true);
   if(tbody) tbody.innerHTML = '<tr><td colspan="30">8.현재진행_DB 조회 중입니다.</td></tr>';
@@ -4289,6 +4316,7 @@ async function loadDeployManageRows(){
 }
 
 function renderCurrentProgressRows(){
+  wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 렌더링 구조');
   const tbody = document.getElementById('currentProgressTbody');
   const pager = document.getElementById('currentProgressPager');
   const pageInfo = document.getElementById('currentProgressPageInfo');
@@ -4319,6 +4347,7 @@ function renderCurrentProgressRows(){
 }
 
 function moveCurrentProgressPage(delta){
+  wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 25줄 페이지 버튼');
   const rows = getCurrentProgressFilteredRows(WM_CURRENT_PROGRESS_ROWS || []);
   const totalPages = Math.max(1, Math.ceil(rows.length / WM_CURRENT_PROGRESS_PAGE_SIZE));
   WM_CURRENT_PROGRESS_PAGE = Math.min(totalPages, Math.max(1, WM_CURRENT_PROGRESS_PAGE + Number(delta || 0)));
@@ -4523,6 +4552,7 @@ function wmScheduleDashboardFirstLoad(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  wmLogCriticalLockStatus();
   wmInitDashboardFastFirstScreen();
   if(document.body && document.body.classList.contains('wm-lms-authenticated')) wmScheduleDashboardFirstLoad();
 });
