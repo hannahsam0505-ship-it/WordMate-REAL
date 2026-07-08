@@ -223,7 +223,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-admin-only-serial.wm-hidden { display:none !important; }
     .wm-student-preview-table { margin-top:14px; }
     .wm-student-seq-col { display:none !important; }
-    .wm-student-seq-col.wm-hidden { display:none !important; }
+    body.wm-show-student-serial .wm-student-seq-col { display:revert !important; }
+    .wm-auto-managed input,.wm-auto-managed select { background:#f3f4f6 !important; color:#6b7280 !important; cursor:not-allowed !important; }
 
     .wm-class-detail-box { display:none; border:1px solid var(--wm-line); background:#fbfdff; border-radius:16px; padding:16px; margin:14px 0 18px; }
     .wm-class-detail-box.active { display:block; }
@@ -434,15 +435,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <span id="wmStudentRegisterStatus" class="wm-student-register-status"></span>
         </div>
         <div class="wm-filter-grid">
-          <label>학생일련번호<input type="text" id="wmStudentRegisterSerial" placeholder="자동 또는 직접입력" /></label>
+          <label class="wm-student-seq-col wm-auto-managed">학생일련번호<input type="text" id="wmStudentRegisterSerial" placeholder="자동관리" readonly /></label>
           <label>학생이름<input type="text" id="wmStudentRegisterName" placeholder="학생명" /></label>
-          <label>비밀번호<input type="text" id="wmStudentRegisterPassword" maxlength="4" inputmode="numeric" placeholder="숫자 4자리" /></label>
+          <label>비밀번호<input type="text" id="wmStudentRegisterPassword" maxlength="4" inputmode="numeric" placeholder="숫자 4자리" /><button type="button" class="wm-action-btn sub" onclick="wmResetStudentRegisterPassword()" style="margin-top:6px;padding:8px 10px;">초기화(1111)</button></label>
           <label>학습배정<select id="wmStudentRegisterLearningAssign"><option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option></select></label>
           <label>S4실루엣단계<select id="wmStudentRegisterS4"><option>전체</option><option>0단계</option><option>1단계</option><option>2단계</option><option>3단계</option></select></label>
           <label>S6테스트모드<select id="wmStudentRegisterS6"><option>기본전체</option><option>객관식(2개)</option><option>객관식+영한</option><option>객관식+한영</option></select></label>
           <label>레벨완료조건<select id="wmStudentRegisterComplete"><option>1회</option><option selected>2회</option><option>3회</option></select></label>
-          <label>레벨회차추가<select id="wmStudentRegisterExtra"><option selected>0</option><option>1</option><option>2</option><option>3</option></select></label>
-          <label>현재세트<input type="text" id="wmStudentRegisterCurrentSet" placeholder="예: WM3-1-1" /></label>
+          <label class="wm-auto-managed">현재세트<input type="text" id="wmStudentRegisterCurrentSet" placeholder="자동관리" readonly /></label>
           <label>반명<input type="text" id="wmStudentRegisterClass" placeholder="반명" /></label>
           <label>교사명<input type="text" id="wmStudentRegisterTeacher" placeholder="교사명" /></label>
           <label>학교<input type="text" id="wmStudentRegisterSchool" placeholder="학교명" /></label>
@@ -454,22 +454,22 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>등록일<input type="date" id="wmStudentRegisterDate" /></label>
           <label>최초등록일<input type="date" id="wmStudentRegisterFirstDate" /></label>
           <label>최근결제일<input type="date" id="wmStudentRegisterRecentPayment" /></label>
-          <label>결제공백일수<input type="text" id="wmStudentRegisterPaymentGap" placeholder="예: 0" /></label>
-          <label>재등록횟수<input type="text" id="wmStudentRegisterReregisterCount" placeholder="예: 0" /></label>
-          <label>총등록기간<input type="text" id="wmStudentRegisterTotalPeriod" placeholder="예: 0개월" /></label>
+          <label class="wm-auto-managed">결제공백일수<input type="text" id="wmStudentRegisterPaymentGap" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">재등록횟수<input type="text" id="wmStudentRegisterReregisterCount" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">총등록기간<input type="text" id="wmStudentRegisterTotalPeriod" placeholder="자동관리" readonly /></label>
           <label>등록상태<select id="wmStudentRegisterStatusValue"><option>재원중</option><option>신규</option><option>휴원</option><option>퇴원</option></select></label>
           <label>활성상태<select id="wmStudentRegisterActive"><option>ACTIVE</option><option>INACTIVE</option></select></label>
-          <label>반ID<input type="text" id="wmStudentRegisterClassId" placeholder="반ID" /></label>
-          <label>교사ID<input type="text" id="wmStudentRegisterTeacherId" placeholder="교사ID" /></label>
-          <label>현재세션<input type="text" id="wmStudentRegisterSession" placeholder="현재세션" /></label>
-          <label>세션상태<input type="text" id="wmStudentRegisterSessionStatus" placeholder="세션상태" /></label>
-          <label>최종로그인<input type="text" id="wmStudentRegisterLastLogin" placeholder="최종로그인" /></label>
-          <label>접속기기<input type="text" id="wmStudentRegisterDevice" placeholder="접속기기" /></label>
+          <label class="wm-auto-managed">반ID<input type="text" id="wmStudentRegisterClassId" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">교사ID<input type="text" id="wmStudentRegisterTeacherId" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">현재세션<input type="text" id="wmStudentRegisterSession" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">세션상태<select id="wmStudentRegisterSessionStatus" disabled><option>LOGOUT</option><option>LOGIN</option><option>EXPIRED</option></select></label>
+          <label class="wm-auto-managed">최종로그인<input type="text" id="wmStudentRegisterLastLogin" placeholder="자동관리" readonly /></label>
+          <label class="wm-auto-managed">접속기기<input type="text" id="wmStudentRegisterDevice" placeholder="자동관리" readonly /></label>
           <label>비고<input type="text" id="wmStudentRegisterMemo" placeholder="비고" /></label>
         </div>
       </div>
 
-      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>레벨회차추가</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>주소</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="34">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>주소</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="33">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-records">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학습기록 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학습기록_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영했습니다.</p></div>
@@ -1246,11 +1246,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
               <option>1회</option><option selected>2회</option><option>3회</option>
             </select>
           </label>
-          <label>레벨회차추가
-            <select id="studentExtraRoundsForCreate" onchange="updateStudentCreatePreview()">
-              <option selected>0</option><option>1</option><option>2</option><option>3</option>
-            </select>
-          </label>
           <label>현재세트<input type="text" id="studentCurrentSetForCreate" placeholder="예: 3-1-1" oninput="updateStudentCreatePreview()" /></label>
           <label>비고<input type="text" id="studentMemoForCreate" placeholder="비고" oninput="updateStudentCreatePreview()" /></label>
         </div>
@@ -1262,7 +1257,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
 
         <div class="wm-note">학생ID 공식: 영문+숫자 4~10자 / 대소문자 구분 없음 / 저장은 대문자 / 중복금지입니다. 학생일련번호는 생성 순서번호이며 SUPER_ADMIN / SPECIAL_ADMIN에게만 표시됩니다.</div>
-        <div class="wm-table-wrap wm-student-preview-table"><table><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>레벨회차추가</th><th>현재세트</th><th>학교</th><th>학년</th><th>반</th><th>교사명</th><th>활성상태</th><th>비고</th></tr></thead><tbody><tr id="studentCreatePreviewRow"><td class="wm-student-seq-col">0001</td><td>자동발급 대기</td><td></td><td>3레벨</td><td>전체</td><td>기본전체</td><td>2회</td><td>0</td><td></td><td></td><td></td><td></td><td></td><td>ACTIVE</td><td></td></tr></tbody></table></div>
+        <div class="wm-table-wrap wm-student-preview-table"><table><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>학교</th><th>학년</th><th>반</th><th>교사명</th><th>활성상태</th><th>비고</th></tr></thead><tbody><tr id="studentCreatePreviewRow"><td class="wm-student-seq-col">0001</td><td>자동발급 대기</td><td></td><td>3레벨</td><td>전체</td><td>기본전체</td><td>2회</td><td></td><td></td><td></td><td></td><td></td><td>ACTIVE</td><td></td></tr></tbody></table></div>
       </div>
 
       <div class="wm-factory-box"><h3>권한 설정 Factory</h3><p>설정DB는 User_ID 기준으로 Role, Leader_ID, Teacher_ID, Class_ID, Level_Access를 부여해 권한과 접근범위를 생성하는 탭입니다.</p><div class="wm-chip-row"><span>SUPER_ADMIN</span><span>SPECIAL_ADMIN</span><span>SUB_LEADER</span><span>TEACHER</span><span>Level_Access</span></div></div>
@@ -1491,7 +1486,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       if(devCenterBtn){ devCenterBtn.style.display = (role==='SUPER_ADMIN'||role==='SPECIAL_ADMIN') ? 'block' : 'none'; }
       wmApplyRoleUI(role);
       if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', !adminLike); }
-      document.querySelectorAll('.wm-student-seq-col').forEach(el=>el.classList.add('wm-hidden'));
+      document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       if(!adminLike && (document.getElementById('panel-dev').classList.contains('active') || document.getElementById('panel-settings').classList.contains('active'))) showPanel('dashboard');
@@ -4045,17 +4040,16 @@ function updateStudentCreatePreview(){
     getValue('studentSeqForCreate') || '0001',
     getValue('studentAutoId') || '자동발급 대기',
     getValue('studentNameForCreate'),
+    getValue('studentLearningAssignForCreate') || '3레벨',
+    getValue('studentS4ForCreate') || '전체',
+    getValue('studentS6ForCreate') || '기본전체',
+    getValue('studentLevelCompleteForCreate') || '2회',
+    getValue('studentCurrentSetForCreate'),
     getValue('studentSchoolForCreate'),
     getValue('studentGradeForCreate'),
     getValue('studentClassForCreate'),
     getValue('studentTeacherForCreate'),
-    getValue('studentAddressForCreate'),
-    getValue('studentParentForCreate'),
-    getValue('studentParentPhoneForCreate'),
-    getValue('studentPaymentForCreate'),
-    getValue('studentRegDateForCreate'),
     getValue('studentActiveForCreate') || 'ACTIVE',
-    getValue('studentLearningModeForCreate') || '기본전체',
     getValue('studentMemoForCreate')
   ];
   row.querySelectorAll('td').forEach((td, idx)=>{ td.textContent = values[idx] || ''; });
@@ -4119,7 +4113,6 @@ async function saveStudentCreateToDB(){
     'S4실루엣단계': getValue('studentS4ForCreate') || '전체',
     'S6테스트모드': getValue('studentS6ForCreate') || '기본전체',
     '레벨완료조건': getValue('studentLevelCompleteForCreate') || '2회',
-    '레벨회차추가': getValue('studentExtraRoundsForCreate') || '0',
     '현재세트': getValue('studentCurrentSetForCreate'),
     '학교': getValue('studentSchoolForCreate'),
     '학년': getValue('studentGradeForCreate'),
@@ -4303,6 +4296,11 @@ async function wmCheckStudentRegisterDuplicate(){
   return true;
 }
 
+function wmResetStudentRegisterPassword(){
+  const el = document.getElementById('wmStudentRegisterPassword');
+  if(el) el.value = '1111';
+}
+
 function wmCollectStudentRegisterPayload(){
   const id = wmStudentRegisterIdRawValue(wmStudentRegisterValue('wmStudentRegisterId'));
   const payload = {
@@ -4314,7 +4312,6 @@ function wmCollectStudentRegisterPayload(){
     s4:wmStudentRegisterValue('wmStudentRegisterS4'),
     s6:wmStudentRegisterValue('wmStudentRegisterS6'),
     levelCompleteCondition:wmStudentRegisterValue('wmStudentRegisterComplete'),
-    extraRounds:wmStudentRegisterValue('wmStudentRegisterExtra'),
     currentSet:wmStudentRegisterValue('wmStudentRegisterCurrentSet').trim(),
     className:wmStudentRegisterValue('wmStudentRegisterClass').trim(),
     teacher:wmStudentRegisterValue('wmStudentRegisterTeacher').trim(),
@@ -4349,7 +4346,6 @@ function wmCollectStudentRegisterPayload(){
     'S4실루엣단계':payload.s4,
     'S6테스트모드':payload.s6,
     '레벨완료조건':payload.levelCompleteCondition,
-    '레벨회차추가':payload.extraRounds,
     '현재세트':payload.currentSet,
     '반명':payload.className,
     '교사명':payload.teacher,
@@ -4388,7 +4384,6 @@ function wmClearStudentRegisterForm(){
 }
 
 async function wmApplyStudentRegister(){
-  if(!wmConfirmScopeLock('students','feature')) return;
   const payload = wmCollectStudentRegisterPayload();
   if(!isValidWordMateStudentId(payload.studentId)){
     wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
@@ -4464,7 +4459,7 @@ function wmRepairShiftedStudentModeRow(row){
   fixed['현재세트'] = row['S4실루엣단계'] || '';
   fixed['반명'] = row['S6테스트모드'] || row['반명'] || '';
   fixed['교사명'] = row['레벨완료조건'] || row['교사명'] || '';
-  fixed['학교'] = row['레벨회차추가'] || row['학교'] || '';
+  fixed['학교'] = row['학교'] || '';
   fixed['학년'] = wmNormalizeGradeDisplay(row['현재세트'] || row['학년'] || '');
   fixed['주소'] = row['반명'] || row['주소'] || '';
   fixed['학부모명'] = row['교사명'] || row['학부모명'] || '';
@@ -4474,7 +4469,6 @@ function wmRepairShiftedStudentModeRow(row){
   fixed['S4실루엣단계'] = '전체';
   fixed['S6테스트모드'] = '기본전체';
   fixed['레벨완료조건'] = '2회';
-  fixed['레벨회차추가'] = '0';
   return fixed;
 }
 
@@ -4489,8 +4483,8 @@ function wmModeSelectHtml(studentId, key, value, options){
   return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="${escapeHtml(key)}" id="wmMode_${escapeHtml(key)}_${escapeHtml(safeId)}">${options.map(opt=>`<option value="${escapeHtml(opt)}" ${opt === current ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}</select>`;
 }
 
-async function saveStudentLearningModeFromRow(studentId){
-  if(!wmConfirmScopeLock('students','feature')) return;
+async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
+  if(!skipLockAndToast && !wmConfirmScopeLock('students','feature')) return;
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
@@ -4502,7 +4496,6 @@ async function saveStudentLearningModeFromRow(studentId){
     s4:getSel('S4실루엣단계'),
     s6:getSel('S6테스트모드'),
     levelCompleteCondition:getSel('레벨완료조건'),
-    extraRounds:getSel('레벨회차추가'),
     ts:String(Date.now())
   });
   try{
@@ -4512,15 +4505,35 @@ async function saveStudentLearningModeFromRow(studentId){
       alert((data && data.message) ? data.message : '학습모드 저장 실패');
       return;
     }
-    showStudentModeToast(
+    if(!skipLockAndToast){
+      showStudentModeToast(
   studentId + ' ' + studentName + ' 학습모드 저장완료<br><br>' +
   '변경사항은 변경시점 다음세트부터 해당됩니다.'
 );
-    await loadStudents();
+      await loadStudents();
+    }
   }catch(err){
-    alert('학습모드 저장 오류: ' + (err && err.message ? err.message : err));
+    if(!skipLockAndToast) alert('학습모드 저장 오류: ' + (err && err.message ? err.message : err));
   }
 }
+
+async function saveAllStudentLearningModes(){
+  if(!wmConfirmScopeLock('students','feature')) return;
+  const ids = Array.from(document.querySelectorAll('#studentManageTbody select[data-student-id]'))
+    .map(el => el.getAttribute('data-student-id'))
+    .filter(Boolean)
+    .filter((id, idx, arr) => arr.indexOf(id) === idx);
+  if(!ids.length){
+    alert('저장할 학생 목록이 없습니다.');
+    return;
+  }
+  for(const studentId of ids){
+    await saveStudentLearningModeFromRow(studentId, true);
+  }
+  await loadStudents();
+  showStudentModeToast('전체 저장완료<br><br>변경사항은 변경시점 다음세트부터 해당됩니다.');
+}
+
 function showStudentModeToast(message){
   const box = document.createElement('div');
 
@@ -4732,7 +4745,7 @@ function renderStudentManageRows(){
   const rows = getStudentManageFilteredRows(WM_STUDENT_MANAGE_ROWS || []);
 
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="34">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="33">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
     setManageLoading('students', false);
     return;
   }
@@ -4748,7 +4761,6 @@ function renderStudentManageRows(){
     const s4 = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '전체');
     const s6 = wmNormalizeStudentModeValue(row, 'S6테스트모드', row['학습모드'] || '기본전체');
     const complete = wmNormalizeStudentModeValue(row, '레벨완료조건', '2회');
-    const extra = wmNormalizeStudentModeValue(row, '레벨회차추가', '0');
     return `<tr>
       <td>${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>
       <td>${escapeHtml(studentId)}${duplicateBadge}</td>
@@ -4758,7 +4770,6 @@ function renderStudentManageRows(){
       <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, ['0단계','1단계','2단계','3단계','전체'])}</td>
       <td>${wmModeSelectHtml(studentId, 'S6테스트모드', s6, ['기본전체','객관식(2개)','객관식+영한','객관식+한영'])}</td>
       <td>${wmModeSelectHtml(studentId, '레벨완료조건', complete, ['1회','2회','3회'])}</td>
-      <td>${wmModeSelectHtml(studentId, '레벨회차추가', String(extra), ['0','1','2','3'])}</td>
       <td>${escapeHtml(row['현재세트'] || '')}</td>
       <td>${escapeHtml(row['반명'] || row['반'] || row['Class'] || '')}</td>
       <td>${escapeHtml(row['교사명'] || '')}</td>
