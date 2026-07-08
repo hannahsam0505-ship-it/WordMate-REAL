@@ -263,6 +263,18 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-report-detail-loading { display:flex; align-items:center; justify-content:center; gap:10px; min-height:86px; font-size:15px; font-weight:900; color:var(--wm-gray); }
     .wm-report-detail-loading .wm-loading-spinner { width:32px; height:32px; border-width:4px; }
 
+    /* WM_STUDENT_REGISTER_UI_260708_V1 */
+    .wm-student-register-box { display:none; border:1px solid var(--wm-line); background:#fbfdff; border-radius:16px; padding:16px; margin:0 0 18px; }
+    .wm-student-register-box.active { display:block; }
+    .wm-student-register-title { font-size:17px; font-weight:900; margin:0 0 10px; }
+    .wm-student-id-row { display:flex; align-items:end; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
+    .wm-student-id-row label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:900; color:var(--wm-gray); }
+    .wm-student-id-row input { width:210px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:14px; background:#fff; text-transform:uppercase; }
+    .wm-student-register-status { font-size:13px; font-weight:900; color:var(--wm-gray); min-height:18px; }
+    .wm-student-register-status.ok { color:var(--wm-green); }
+    .wm-student-register-status.err { color:var(--wm-red); }
+    .wm-duplicate-id-badge { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:900; }
+
     @keyframes wmSpin { to { transform:rotate(360deg); } }
 
 
@@ -398,7 +410,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       </div>
       <div class="wm-action-inline-row">
   <div class="wm-action-row">
-    <button class="wm-action-btn">추가</button>
+    <button type="button" class="wm-action-btn" onclick="toggleStudentRegisterBox()">학생등록</button>
     <button class="wm-action-btn sub">수정</button>
     <button class="wm-action-btn sub">조회</button>
   </div>
@@ -408,6 +420,37 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     설정하지 않으면 기본모드(실루엣 전체 · 기본전체 · 레벨완료 2회)로 배포됩니다.
   </div>
 </div>
+
+      <div id="studentRegisterBox" class="wm-student-register-box">
+        <h3 class="wm-student-register-title">학생등록</h3>
+        <div class="wm-note" style="margin:0 0 12px;">학생ID 기준: 영문+숫자 4~10자, 대소문자 구분 없음, 저장은 대문자입니다. 직접 입력하거나 자동생성 후 중복확인하고 적용하세요.</div>
+        <div class="wm-student-id-row">
+          <label>학생ID<input type="text" id="wmStudentRegisterId" maxlength="10" placeholder="예: S4821" oninput="wmNormalizeStudentRegisterIdInput()" /></label>
+          <button type="button" class="wm-action-btn sub" onclick="wmGenerateStudentRegisterId()">자동생성</button>
+          <button type="button" class="wm-action-btn sub" onclick="wmCheckStudentRegisterDuplicate()">중복확인</button>
+          <button type="button" class="wm-action-btn" onclick="wmApplyStudentRegister()">적용</button>
+          <span id="wmStudentRegisterStatus" class="wm-student-register-status"></span>
+        </div>
+        <div class="wm-filter-grid">
+          <label>학생이름<input type="text" id="wmStudentRegisterName" placeholder="학생명" /></label>
+          <label>학교<input type="text" id="wmStudentRegisterSchool" placeholder="학교명" /></label>
+          <label>학년<input type="text" id="wmStudentRegisterGrade" placeholder="예: 4" /></label>
+          <label>반<input type="text" id="wmStudentRegisterClass" placeholder="반명" /></label>
+          <label>교사명<input type="text" id="wmStudentRegisterTeacher" placeholder="교사명" /></label>
+          <label>학습배정<select id="wmStudentRegisterLearningAssign"><option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option></select></label>
+          <label>S4실루엣단계<select id="wmStudentRegisterS4"><option>전체</option><option>0단계</option><option>1단계</option><option>2단계</option><option>3단계</option></select></label>
+          <label>S6테스트모드<select id="wmStudentRegisterS6"><option>기본전체</option><option>객관식(2개)</option><option>객관식+영한</option><option>객관식+한영</option></select></label>
+          <label>레벨완료조건<select id="wmStudentRegisterComplete"><option>1회</option><option selected>2회</option><option>3회</option></select></label>
+          <label>레벨회차추가<select id="wmStudentRegisterExtra"><option selected>0</option><option>1</option><option>2</option><option>3</option></select></label>
+          <label>현재세트<input type="text" id="wmStudentRegisterCurrentSet" placeholder="예: WM3-1-1" /></label>
+          <label>활성상태<select id="wmStudentRegisterActive"><option>ACTIVE</option><option>INACTIVE</option></select></label>
+          <label>학부모명<input type="text" id="wmStudentRegisterParent" placeholder="학부모명" /></label>
+          <label>학부모연락처<input type="text" id="wmStudentRegisterParentPhone" placeholder="010-0000-0000" /></label>
+          <label>등록일<input type="date" id="wmStudentRegisterDate" /></label>
+          <label>비고<input type="text" id="wmStudentRegisterMemo" placeholder="비고" /></label>
+        </div>
+      </div>
+
       <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>레벨회차추가</th><th>현재세트</th><th>학교</th><th>학년</th><th>반</th><th>교사명</th><th>주소</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>활성상태</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="21">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-records">
@@ -1200,7 +1243,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <span id="studentIdCreateStatus" class="wm-manage-loading"><span class="wm-loading-spinner"></span>학생ID 생성 중</span>
         </div>
 
-        <div class="wm-note">학생ID 공식: S + 랜덤 4자리 / 중복금지 / 퇴원 후 재사용금지 / TEST·S0001 같은 임시·순차형 금지입니다. 학생일련번호는 생성 순서번호이며 SUPER_ADMIN / SPECIAL_ADMIN에게만 표시됩니다.</div>
+        <div class="wm-note">학생ID 공식: 영문+숫자 4~10자 / 대소문자 구분 없음 / 저장은 대문자 / 중복금지입니다. 학생일련번호는 생성 순서번호이며 SUPER_ADMIN / SPECIAL_ADMIN에게만 표시됩니다.</div>
         <div class="wm-table-wrap wm-student-preview-table"><table><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>레벨회차추가</th><th>현재세트</th><th>학교</th><th>학년</th><th>반</th><th>교사명</th><th>활성상태</th><th>비고</th></tr></thead><tbody><tr id="studentCreatePreviewRow"><td class="wm-student-seq-col">0001</td><td>자동발급 대기</td><td></td><td>3레벨</td><td>전체</td><td>기본전체</td><td>2회</td><td>0</td><td></td><td></td><td></td><td></td><td></td><td>ACTIVE</td><td></td></tr></tbody></table></div>
       </div>
 
@@ -4083,6 +4126,192 @@ async function saveStudentCreateToDB(){
 }
 
 
+/* WM_STUDENT_REGISTER_PANEL_260708_V1
+   학생관리 탭 신규 학생등록: 학생ID 직접입력/자동생성/중복확인/적용. */
+let WM_STUDENT_REGISTER_CHECKED_ID = '';
+
+function toggleStudentRegisterBox(){
+  const box = document.getElementById('studentRegisterBox');
+  if(!box) return;
+  box.classList.toggle('active');
+  if(box.classList.contains('active')){
+    wmSetStudentRegisterStatus('', '');
+    if(!document.getElementById('wmStudentRegisterDate')?.value){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const dateEl = document.getElementById('wmStudentRegisterDate');
+      if(dateEl) dateEl.value = `${yyyy}-${mm}-${dd}`;
+    }
+  }
+}
+
+function wmSetStudentRegisterStatus(type, text){
+  const el = document.getElementById('wmStudentRegisterStatus');
+  if(!el) return;
+  el.classList.remove('ok','err');
+  if(type) el.classList.add(type);
+  el.textContent = text || '';
+}
+
+function wmStudentRegisterValue(id){
+  return document.getElementById(id)?.value || '';
+}
+
+function wmNormalizeStudentRegisterIdInput(){
+  const target = document.getElementById('wmStudentRegisterId');
+  if(!target) return '';
+  const id = normalizeWordMateStudentId(target.value).replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  target.value = id;
+  WM_STUDENT_REGISTER_CHECKED_ID = '';
+  wmSetStudentRegisterStatus('', '중복확인이 필요합니다.');
+  return id;
+}
+
+function wmStudentRegisterExistingIdSet(){
+  const used = new Set();
+  (WM_STUDENT_MANAGE_ROWS || []).forEach(row=>{
+    const id = normalizeWordMateStudentId(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
+    if(id) used.add(id);
+  });
+  return used;
+}
+
+function wmStudentDuplicateIdSet(rows){
+  const counts = new Map();
+  (rows || []).forEach(row=>{
+    const id = normalizeWordMateStudentId(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
+    if(!id) return;
+    counts.set(id, (counts.get(id) || 0) + 1);
+  });
+  const duplicated = new Set();
+  counts.forEach((count, id)=>{ if(count > 1) duplicated.add(id); });
+  return duplicated;
+}
+
+function wmMakeStudentRegisterLocalId(){
+  const used = wmStudentRegisterExistingIdSet();
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for(let i=0; i<3000; i++){
+    let id = '';
+    for(let j=0; j<6; j++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+    if(isValidWordMateStudentId(id) && !used.has(id)) return id;
+  }
+  return '';
+}
+
+async function wmGenerateStudentRegisterId(){
+  const target = document.getElementById('wmStudentRegisterId');
+  if(!target) return '';
+  wmSetStudentRegisterStatus('', '자동생성 중');
+  try{
+    const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=generateStudentId&ts=' + Date.now(), {method:'GET', cache:'no-store'});
+    const data = await res.json();
+    const id = normalizeWordMateStudentId(data && data.studentId);
+    if(data && data.success && isValidWordMateStudentId(id) && !wmStudentRegisterExistingIdSet().has(id)){
+      target.value = id;
+      WM_STUDENT_REGISTER_CHECKED_ID = id;
+      wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
+      return id;
+    }
+  }catch(err){}
+  const fallback = wmMakeStudentRegisterLocalId();
+  if(fallback){
+    target.value = fallback;
+    WM_STUDENT_REGISTER_CHECKED_ID = fallback;
+    wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
+    return fallback;
+  }
+  wmSetStudentRegisterStatus('err', '학생ID 자동생성 실패');
+  return '';
+}
+
+async function wmCheckStudentRegisterDuplicate(){
+  const target = document.getElementById('wmStudentRegisterId');
+  const id = normalizeWordMateStudentId(target ? target.value : '');
+  if(target) target.value = id;
+  WM_STUDENT_REGISTER_CHECKED_ID = '';
+  if(!isValidWordMateStudentId(id)){
+    wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
+    return false;
+  }
+  try{
+    await loadStudents();
+  }catch(err){}
+  if(wmStudentRegisterExistingIdSet().has(id)){
+    wmSetStudentRegisterStatus('err', '이미 사용 중인 학생ID입니다.');
+    return false;
+  }
+  WM_STUDENT_REGISTER_CHECKED_ID = id;
+  wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
+  return true;
+}
+
+function wmCollectStudentRegisterPayload(){
+  const id = normalizeWordMateStudentId(wmStudentRegisterValue('wmStudentRegisterId'));
+  return {
+    studentId:id,
+    studentName:wmStudentRegisterValue('wmStudentRegisterName').trim(),
+    school:wmStudentRegisterValue('wmStudentRegisterSchool').trim(),
+    grade:wmStudentRegisterValue('wmStudentRegisterGrade').trim(),
+    className:wmStudentRegisterValue('wmStudentRegisterClass').trim(),
+    teacher:wmStudentRegisterValue('wmStudentRegisterTeacher').trim(),
+    learningAssign:wmStudentRegisterValue('wmStudentRegisterLearningAssign'),
+    s4:wmStudentRegisterValue('wmStudentRegisterS4'),
+    s6:wmStudentRegisterValue('wmStudentRegisterS6'),
+    levelCompleteCondition:wmStudentRegisterValue('wmStudentRegisterComplete'),
+    extraRounds:wmStudentRegisterValue('wmStudentRegisterExtra'),
+    currentSet:wmStudentRegisterValue('wmStudentRegisterCurrentSet').trim(),
+    activeStatus:wmStudentRegisterValue('wmStudentRegisterActive'),
+    parentName:wmStudentRegisterValue('wmStudentRegisterParent').trim(),
+    parentPhone:wmStudentRegisterValue('wmStudentRegisterParentPhone').trim(),
+    registerDate:wmStudentRegisterValue('wmStudentRegisterDate'),
+    memo:wmStudentRegisterValue('wmStudentRegisterMemo').trim()
+  };
+}
+
+function wmClearStudentRegisterForm(){
+  ['wmStudentRegisterId','wmStudentRegisterName','wmStudentRegisterSchool','wmStudentRegisterGrade','wmStudentRegisterClass','wmStudentRegisterTeacher','wmStudentRegisterCurrentSet','wmStudentRegisterParent','wmStudentRegisterParentPhone','wmStudentRegisterDate','wmStudentRegisterMemo'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  WM_STUDENT_REGISTER_CHECKED_ID = '';
+}
+
+async function wmApplyStudentRegister(){
+  if(!wmConfirmScopeLock('students','feature')) return;
+  const payload = wmCollectStudentRegisterPayload();
+  if(!isValidWordMateStudentId(payload.studentId)){
+    wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
+    return;
+  }
+  if(WM_STUDENT_REGISTER_CHECKED_ID !== payload.studentId){
+    wmSetStudentRegisterStatus('err', '중복확인 후 적용하세요.');
+    return;
+  }
+  if(!payload.studentName){
+    wmSetStudentRegisterStatus('err', '학생이름을 입력하세요.');
+    return;
+  }
+  const params = new URLSearchParams(Object.assign({mode:'saveStudentToDB', ts:String(Date.now())}, payload));
+  wmSetStudentRegisterStatus('', '구글시트 저장 중');
+  try{
+    const res = await fetch(WM_APPS_SCRIPT_URL + '?' + params.toString(), {method:'GET', cache:'no-store'});
+    const data = await res.json();
+    if(!data || !data.success){
+      wmSetStudentRegisterStatus('err', (data && data.message) ? data.message : '학생관리_DB 저장 실패');
+      return;
+    }
+    wmSetStudentRegisterStatus('ok', '학생관리_DB 저장완료');
+    wmClearStudentRegisterForm();
+    await loadStudents();
+  }catch(err){
+    wmSetStudentRegisterStatus('err', '학생관리_DB 저장 오류: ' + (err && err.message ? err.message : err));
+  }
+}
+
+
 function wmNormalizeLearningAssignForDisplay(value){
   const text = String(value || '').trim();
   const m = text.match(/^(3|4|5|6|7|8|9|10|11|12|13)/);
@@ -4402,10 +4631,13 @@ function renderStudentManageRows(){
   }
 
   setManageLoading('students', false);
+  const duplicatedStudentIds = wmStudentDuplicateIdSet(WM_STUDENT_MANAGE_ROWS || []);
   tbody.innerHTML = rows.map(rawRow=>{
     const row = wmRepairShiftedStudentModeRow(rawRow);
     const serialCell = `<td class="wm-student-seq-col" style="${showSerial ? '' : 'display:none;'}">${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>`;
     const studentId = row['학생ID'] || '';
+    const normalizedStudentId = normalizeWordMateStudentId(studentId);
+    const duplicateBadge = duplicatedStudentIds.has(normalizedStudentId) ? '<span class="wm-duplicate-id-badge">중복</span>' : '';
     const studentName = row['학생이름'] || '';
     const s4 = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '전체');
     const s6 = wmNormalizeStudentModeValue(row, 'S6테스트모드', row['학습모드'] || '기본전체');
@@ -4413,7 +4645,7 @@ function renderStudentManageRows(){
     const extra = wmNormalizeStudentModeValue(row, '레벨회차추가', '0');
     return `<tr>
       ${serialCell}
-      <td>${escapeHtml(studentId)}</td>
+      <td>${escapeHtml(studentId)}${duplicateBadge}</td>
       <td><button class="wm-link-btn" onclick="openStudentMap('${escapeHtml(studentName)}')">${escapeHtml(studentName)}</button></td>
       <td>${wmLearningAssignSelectHtml(studentId, row['학습배정'] || '')}</td>
       <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, ['0단계','1단계','2단계','3단계','전체'])}</td>
