@@ -2047,12 +2047,15 @@ function wmHandleLearningMapResponse(data){
   });
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  if(!wmLearningRecords.length) wmLoadLearningRecordsDirectForMap_('payload-empty');
+  /* WM_SPEED_MAP_FIRST_RENDER_KEEP_20260708_V1
+     첫 화면 속도개선: 하단 학습기록 직접조회는 첫 렌더링을 막지 않습니다.
+     최근30건JSON이 비어 있을 때만 별도 API가 백그라운드로 보강합니다. */
+  if(!wmLearningRecords.length) setTimeout(function(){ wmLoadLearningRecordsDirectForMap_('payload-empty'); }, 0);
   wmShowLearningModeBanner();
 }
 
 function wmFetchLearningMap(studentId){
-  wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
+  wmShowMapMessage('현재진행_DB 기준으로 학습맵을 불러오는 중입니다.');
 
   /* WM_GET_LEARNING_MAP_CACHE_ONLY_V2
      현재진행_DB 안정화: Map은 getLearningMapCacheData만 호출합니다.
