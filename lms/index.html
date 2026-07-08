@@ -269,10 +269,10 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-student-register-title { font-size:17px; font-weight:900; margin:0 0 10px; }
     .wm-student-id-row { display:flex; align-items:end; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
     .wm-student-id-row label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:900; color:var(--wm-gray); }
-    .wm-student-id-row input { width:210px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:14px; background:#fff; text-transform:uppercase; }
+    .wm-student-id-row input { width:210px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:14px; background:#fff; }
     #wmStudentRegisterId { pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important; }
     .wm-student-register-status { font-size:13px; font-weight:900; color:var(--wm-gray); min-height:18px; }
-    .wm-student-id-rule { font-size:12px; font-weight:900; color:var(--wm-gray); line-height:1.35; }
+    .wm-student-id-rule { font-size:12px; font-weight:900; color:var(--wm-blue); line-height:1.35; }
     .wm-student-register-status.ok { color:var(--wm-green); }
     .wm-student-register-status.err { color:var(--wm-red); }
     .wm-duplicate-id-badge { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:900; }
@@ -426,11 +426,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div id="studentRegisterBox" class="wm-student-register-box">
         <h3 class="wm-student-register-title">학생등록</h3>
         <div class="wm-student-id-row">
-          <label>학생ID<input type="text" id="wmStudentRegisterId" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="예: S4821" onfocus="wmUnlockStudentRegisterIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleStudentRegisterIdTyping(event)" /></label>
+          <label>학생ID<input type="text" id="wmStudentRegisterId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: S4821" onfocus="wmUnlockStudentRegisterIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleStudentRegisterIdTyping(event)" /></label>
           <button type="button" class="wm-action-btn sub" onclick="wmGenerateStudentRegisterId()">자동생성</button>
           <button type="button" class="wm-action-btn sub" onclick="wmCheckStudentRegisterDuplicate()">중복확인</button>
           <button type="button" class="wm-action-btn" onclick="wmApplyStudentRegister()">적용</button>
-          <span class="wm-student-id-rule">영어+숫자 4~10자. 대소문자구분 없음. 자동생성사용가능. 생성후 적용 클릭</span>
+          <span class="wm-student-id-rule">영어+숫자 4~10자</span>
           <span id="wmStudentRegisterStatus" class="wm-student-register-status"></span>
         </div>
         <div class="wm-filter-grid">
@@ -4148,6 +4148,14 @@ async function saveStudentCreateToDB(){
    학생관리 탭 신규 학생등록: 학생ID 직접입력/자동생성/중복확인/적용. */
 let WM_STUDENT_REGISTER_CHECKED_ID = '';
 
+function wmStudentRegisterIdCompareKey(value){
+  return String(value || '').trim().toUpperCase();
+}
+
+function wmStudentRegisterIdRawValue(value){
+  return String(value || '').trim();
+}
+
 function toggleStudentRegisterBox(){
   const box = document.getElementById('studentRegisterBox');
   if(!box) return;
@@ -4203,18 +4211,22 @@ function wmNormalizeStudentRegisterIdInput(){
   target.readOnly = false;
   target.removeAttribute('disabled');
   target.removeAttribute('readonly');
-  const before = String(target.value || '');
-  const id = normalizeWordMateStudentId(before).replace(/[^A-Z0-9]/g, '').slice(0, 10);
-  if(target.value !== id) target.value = id;
+  const id = wmStudentRegisterIdRawValue(target.value);
   WM_STUDENT_REGISTER_CHECKED_ID = '';
-  wmSetStudentRegisterStatus('', id ? '중복확인이 필요합니다.' : '');
+  if(!id){
+    wmSetStudentRegisterStatus('', '');
+  }else if(!isValidWordMateStudentId(id)){
+    wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
+  }else{
+    wmSetStudentRegisterStatus('', '중복확인이 필요합니다.');
+  }
   return id;
 }
 
 function wmStudentRegisterExistingIdSet(){
   const used = new Set();
   (WM_STUDENT_MANAGE_ROWS || []).forEach(row=>{
-    const id = normalizeWordMateStudentId(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
+    const id = wmStudentRegisterIdCompareKey(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
     if(id) used.add(id);
   });
   return used;
@@ -4223,7 +4235,7 @@ function wmStudentRegisterExistingIdSet(){
 function wmStudentDuplicateIdSet(rows){
   const counts = new Map();
   (rows || []).forEach(row=>{
-    const id = normalizeWordMateStudentId(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
+    const id = wmStudentRegisterIdCompareKey(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
     if(!id) return;
     counts.set(id, (counts.get(id) || 0) + 1);
   });
@@ -4251,9 +4263,10 @@ async function wmGenerateStudentRegisterId(){
     const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=generateStudentId&ts=' + Date.now(), {method:'GET', cache:'no-store'});
     const data = await res.json();
     const id = normalizeWordMateStudentId(data && data.studentId);
-    if(data && data.success && isValidWordMateStudentId(id) && !wmStudentRegisterExistingIdSet().has(id)){
+    const idKey = wmStudentRegisterIdCompareKey(id);
+    if(data && data.success && isValidWordMateStudentId(id) && !wmStudentRegisterExistingIdSet().has(idKey)){
       target.value = id;
-      WM_STUDENT_REGISTER_CHECKED_ID = id;
+      WM_STUDENT_REGISTER_CHECKED_ID = idKey;
       wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
       return id;
     }
@@ -4261,7 +4274,7 @@ async function wmGenerateStudentRegisterId(){
   const fallback = wmMakeStudentRegisterLocalId();
   if(fallback){
     target.value = fallback;
-    WM_STUDENT_REGISTER_CHECKED_ID = fallback;
+    WM_STUDENT_REGISTER_CHECKED_ID = wmStudentRegisterIdCompareKey(fallback);
     wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
     return fallback;
   }
@@ -4271,8 +4284,8 @@ async function wmGenerateStudentRegisterId(){
 
 async function wmCheckStudentRegisterDuplicate(){
   const target = document.getElementById('wmStudentRegisterId');
-  const id = normalizeWordMateStudentId(target ? target.value : '');
-  if(target) target.value = id;
+  const id = wmStudentRegisterIdRawValue(target ? target.value : '');
+  const idKey = wmStudentRegisterIdCompareKey(id);
   WM_STUDENT_REGISTER_CHECKED_ID = '';
   if(!isValidWordMateStudentId(id)){
     wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
@@ -4281,17 +4294,17 @@ async function wmCheckStudentRegisterDuplicate(){
   try{
     await loadStudents();
   }catch(err){}
-  if(wmStudentRegisterExistingIdSet().has(id)){
+  if(wmStudentRegisterExistingIdSet().has(idKey)){
     wmSetStudentRegisterStatus('err', '이미 사용 중인 학생ID입니다.');
     return false;
   }
-  WM_STUDENT_REGISTER_CHECKED_ID = id;
+  WM_STUDENT_REGISTER_CHECKED_ID = idKey;
   wmSetStudentRegisterStatus('ok', '사용 가능한 학생ID입니다.');
   return true;
 }
 
 function wmCollectStudentRegisterPayload(){
-  const id = normalizeWordMateStudentId(wmStudentRegisterValue('wmStudentRegisterId'));
+  const id = wmStudentRegisterIdRawValue(wmStudentRegisterValue('wmStudentRegisterId'));
   const payload = {
     studentSerial:wmStudentRegisterValue('wmStudentRegisterSerial').trim(),
     studentId:id,
@@ -4381,7 +4394,7 @@ async function wmApplyStudentRegister(){
     wmSetStudentRegisterStatus('err', '학생ID는 영문+숫자 4~10자입니다.');
     return;
   }
-  if(WM_STUDENT_REGISTER_CHECKED_ID !== payload.studentId){
+  if(WM_STUDENT_REGISTER_CHECKED_ID !== wmStudentRegisterIdCompareKey(payload.studentId)){
     wmSetStudentRegisterStatus('err', '중복확인 후 적용하세요.');
     return;
   }
