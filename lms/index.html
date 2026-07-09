@@ -1380,7 +1380,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
       if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
-      if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', !adminLike); }
+      if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
@@ -2952,7 +2952,7 @@ function extractRecordRowsFromResponse(data){
     async function loadStudents() {
       const tbody = document.getElementById('studentManageTbody');
       setManageLoading('students', true);
-      if(tbody) tbody.innerHTML = '<tr><td colspan="21">학생관리_DB 조회 중입니다.</td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="32">학생관리_DB 조회 중입니다.</td></tr>';
 
       try {
         const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now());
@@ -2964,7 +2964,7 @@ function extractRecordRowsFromResponse(data){
         return WM_STUDENT_MANAGE_ROWS;
       } catch (err) {
         console.error('학생관리_DB 로드 실패', err);
-        if(tbody) tbody.innerHTML = '<tr><td colspan="21">학생관리_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+        if(tbody) tbody.innerHTML = '<tr><td colspan="32">학생관리_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
         setManageLoading('students', false);
         return [];
       }
@@ -4604,7 +4604,7 @@ function wmUpdateManagePager(scope, totalRows, totalPages, page){
   const prevBtn = pager.querySelector('[data-action="prev"]');
   const nextBtn = pager.querySelector('[data-action="next"]');
   const info = pager.querySelector('[data-role="info"]');
-  pager.style.display = totalRows > WM_MANAGE_PAGE_SIZE ? 'flex' : 'none';
+  pager.style.display = 'flex';
   if(info) info.textContent = page + ' / ' + totalPages + ' · 총 ' + totalRows + '건';
   if(prevBtn) prevBtn.disabled = page <= 1;
   if(nextBtn) nextBtn.disabled = page >= totalPages;
