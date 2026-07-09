@@ -46,8 +46,18 @@ const WM_LOCKS = {
   CurrentProgressDB_V1_LOCK:true,
   CurrentProgressDB_V2_LOCK:true, /* 30컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
   LMS_Login_V1_LOCK:true, /* 교사 로그인 게이트·로그인/로그아웃·인증흐름 LOCK */
+  TeacherLogin_V2_LOCK:true, /* 7.설정센터_DB 로그인·교사ID 대소문자·권한 UI LOCK */
   Dashboard_Search_V1_LOCK:true,
-  Student_Search_V1_LOCK:true
+  Student_Search_V1_LOCK:true,
+  SettingCenter_V1_LOCK:true, /* 설정센터 전체 LOCK */
+  SettingCenter_Register_LOCK:true, /* 설정센터 등록흐름 LOCK */
+  SettingCenter_Search_LOCK:true, /* 설정센터 검색·조회 LOCK */
+  SettingCenter_TeacherRegister_LOCK:true, /* 교사등록 LOCK */
+  SettingCenter_ClassRegister_LOCK:true, /* 반등록 LOCK */
+  SettingCenter_TeacherId_LOCK:true, /* 교사ID 직접입력·자동생성·중복확인 LOCK */
+  SettingCenter_Save_LOCK:true, /* 설정센터 저장 LOCK */
+  StudentDB_Pagination_V1_LOCK:true, /* 학생관리 하단 25줄·이전/다음 LOCK */
+  StudyRecordDB_Pagination_V1_LOCK:true /* 학습기록 하단 25줄·이전/다음 LOCK */
 };
 
 function wmConfirmLock(lockName){
@@ -68,8 +78,17 @@ function wmLockNameForScope(scope, action){
     'currentProgress:search':'CurrentProgressDB_V2_LOCK',
     'currentProgress:page':'CurrentProgressDB_V2_LOCK',
     'currentProgress:render':'CurrentProgressDB_V2_LOCK',
-    'login:feature':'LMS_Login_V1_LOCK',
-    'login:auth':'LMS_Login_V1_LOCK'
+    'students:page':'StudentDB_Pagination_V1_LOCK',
+    'records:page':'StudyRecordDB_Pagination_V1_LOCK',
+    'classes:feature':'SettingCenter_V1_LOCK',
+    'classes:search':'SettingCenter_Search_LOCK',
+    'classes:register':'SettingCenter_Register_LOCK',
+    'classes:teacherRegister':'SettingCenter_TeacherRegister_LOCK',
+    'classes:classRegister':'SettingCenter_ClassRegister_LOCK',
+    'classes:teacherId':'SettingCenter_TeacherId_LOCK',
+    'classes:save':'SettingCenter_Save_LOCK',
+    'login:feature':'TeacherLogin_V2_LOCK',
+    'login:auth':'TeacherLogin_V2_LOCK'
   };
   return map[key] || '';
 }
@@ -88,6 +107,11 @@ function wmLockStatusMessage(lockName, label){
 
 function wmLogCriticalLockStatus(){
   wmLockStatusMessage('LMS_Login_V1_LOCK','LMS 교사 로그인/인증 흐름');
+  wmLockStatusMessage('TeacherLogin_V2_LOCK','7.설정센터_DB 로그인·권한·교사ID 대소문자');
+  wmLockStatusMessage('SettingCenter_V1_LOCK','7.설정센터 전체 기능');
+  wmLockStatusMessage('SettingCenter_TeacherId_LOCK','설정센터 교사ID 직접입력·자동생성·중복확인');
+  wmLockStatusMessage('StudentDB_Pagination_V1_LOCK','학생관리 하단 25줄 페이지');
+  wmLockStatusMessage('StudyRecordDB_Pagination_V1_LOCK','학습기록 하단 25줄 페이지');
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 전체 UI/컬럼/페이지 구조');
 }
 
@@ -2666,6 +2690,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function renderRecordManageRows(){
+  wmLockStatusMessage('StudyRecordDB_Pagination_V1_LOCK','학습기록 하단 25줄 페이지');
       const tbody = document.getElementById('recordManageTbody');
       if(!tbody) return;
 
@@ -3653,6 +3678,7 @@ function makeSettingTeacherLocalId(){
 }
 
 async function generateSettingTeacherId(){
+  wmLockStatusMessage('SettingCenter_TeacherId_LOCK','설정센터 교사ID 자동생성');
   const el = document.getElementById('settingTeacherId');
   if(!el) return '';
   wmUnlockSettingTeacherIdInput();
@@ -3707,6 +3733,7 @@ function fillSettingSelectOptions(){
 }
 
 async function loadSettingCenterDB(){
+  wmLockStatusMessage('SettingCenter_Search_LOCK','설정센터 조회·검색');
   const tbody = document.getElementById('settingCenterTbody');
   if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 중입니다.</td></tr>';
   try{
@@ -3720,6 +3747,7 @@ async function loadSettingCenterDB(){
 }
 
 function renderSettingCenterRows(rows){
+  wmLockStatusMessage('SettingCenter_V1_LOCK','설정센터 목록 렌더링');
   const tbody = document.getElementById('settingCenterTbody');
   if(!tbody) return;
   if(!rows || !rows.length){
@@ -3739,6 +3767,7 @@ function renderSettingCenterRows(rows){
 }
 
 async function checkSettingTeacherIdDuplicate(){
+  wmLockStatusMessage('SettingCenter_TeacherId_LOCK','설정센터 교사ID 중복확인');
   wmUnlockSettingTeacherIdInput();
   const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim();
   wmSettingTeacherIdChecked = '';
@@ -3764,6 +3793,7 @@ async function checkSettingTeacherIdDuplicate(){
 }
 
 async function saveSettingTeacher(){
+  wmLockStatusMessage('SettingCenter_TeacherRegister_LOCK','설정센터 교사등록');
   const payload = {
     teacherName: document.getElementById('settingTeacherName')?.value || '',
     teacherId: String(document.getElementById('settingTeacherId')?.value || '').trim(),
@@ -3793,6 +3823,7 @@ function generateSettingClassId(){
 }
 
 async function saveSettingClass(){
+  wmLockStatusMessage('SettingCenter_ClassRegister_LOCK','설정센터 반등록');
   const payload = {
     className: document.getElementById('settingClassName')?.value || '',
     classId: document.getElementById('settingClassId')?.value || '',
@@ -4681,6 +4712,8 @@ function wmUpdateManagePager(scope, totalRows, totalPages, page){
 }
 
 function moveManagePage(scope, delta){
+  if(scope === 'students') wmLockStatusMessage('StudentDB_Pagination_V1_LOCK','학생관리 하단 이전/다음 버튼');
+  if(scope === 'records') wmLockStatusMessage('StudyRecordDB_Pagination_V1_LOCK','학습기록 하단 이전/다음 버튼');
   if(scope === 'students'){
     const rows = getStudentManageFilteredRows(WM_STUDENT_MANAGE_ROWS || []);
     const totalPages = Math.max(1, Math.ceil(rows.length / WM_MANAGE_PAGE_SIZE));
@@ -4697,6 +4730,7 @@ function moveManagePage(scope, delta){
 }
 
 function renderStudentManageRows(){
+  wmLockStatusMessage('StudentDB_Pagination_V1_LOCK','학생관리 하단 25줄 페이지');
   const tbody = document.getElementById('studentManageTbody');
   if(!tbody) return;
 
