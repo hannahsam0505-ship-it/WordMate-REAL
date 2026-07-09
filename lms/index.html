@@ -1290,7 +1290,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     function wmSubmitLmsLogin(){
       const teacherIdEl = document.getElementById('wmLmsTeacherId');
       const passwordEl = document.getElementById('wmLmsPassword');
-      const teacherId = String(teacherIdEl && teacherIdEl.value ? teacherIdEl.value : '').trim().toUpperCase();
+      const teacherId = String(teacherIdEl && teacherIdEl.value ? teacherIdEl.value : '').trim();
       const password = String(passwordEl && passwordEl.value ? passwordEl.value : '').trim();
       if(!teacherId || !password){ wmSetLmsLoginMessage('교사ID와 비밀번호를 입력하세요.'); return; }
       if(!/^[A-Za-z0-9]{1,10}$/.test(teacherId)){ wmSetLmsLoginMessage('교사ID는 영문/숫자 10자리 이내입니다.'); return; }
@@ -3626,7 +3626,7 @@ function wmNormalizeSettingTeacherId(){
   const el = document.getElementById('settingTeacherId');
   if(!el) return '';
   wmUnlockSettingTeacherIdInput();
-  const id = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  const id = String(el.value || '').replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
   el.value = id;
   wmSettingTeacherIdChecked = '';
   if(id){ setSettingStatus('settingTeacherStatus','중복확인이 필요합니다.'); }
@@ -3636,7 +3636,7 @@ function wmNormalizeSettingTeacherId(){
 function wmSettingTeacherExistingIdSet(){
   const used = new Set();
   (wmSettingCenterRows || []).forEach(row=>{
-    const id = String(row['교사ID'] || row['Teacher_ID'] || row['TeacherID'] || row['teacherId'] || '').trim().toUpperCase();
+    const id = String(row['교사ID'] || row['Teacher_ID'] || row['TeacherID'] || row['teacherId'] || '').trim();
     if(id) used.add(id);
   });
   return used;
@@ -3740,7 +3740,7 @@ function renderSettingCenterRows(rows){
 
 async function checkSettingTeacherIdDuplicate(){
   wmUnlockSettingTeacherIdInput();
-  const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim().toUpperCase();
+  const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim();
   wmSettingTeacherIdChecked = '';
   if(!/^[A-Z0-9]{4,10}$/.test(teacherId)){
     setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
@@ -3766,7 +3766,7 @@ async function checkSettingTeacherIdDuplicate(){
 async function saveSettingTeacher(){
   const payload = {
     teacherName: document.getElementById('settingTeacherName')?.value || '',
-    teacherId: String(document.getElementById('settingTeacherId')?.value || '').trim().toUpperCase(),
+    teacherId: String(document.getElementById('settingTeacherId')?.value || '').trim(),
     password: document.getElementById('settingTeacherPw')?.value || '',
     grade: document.getElementById('settingTeacherGrade')?.value || 'TEACHER',
     leader: document.getElementById('settingTeacherLeader')?.value || '추후선택',
@@ -3860,7 +3860,7 @@ function setStudentIdCreateStatus(active, text){
    학생ID 공식: 영문/숫자 4~10자, 대소문자 구분 없이 대문자 정규화, 중복만 차단합니다.
    기존 S4821/S1057 형식은 그대로 유효합니다. */
 function normalizeWordMateStudentId(value){
-  return String(value || '').trim().toUpperCase();
+  return String(value || '').trim();
 }
 
 function isValidWordMateStudentId(value){
@@ -3879,7 +3879,7 @@ function wmNormalizeStudentIdInputForCreate(){
 function collectExistingStudentIdsForCreate(){
   const set = new Set();
   const push = value => {
-    const id = String(value || '').trim().toUpperCase();
+    const id = String(value || '').trim();
     if(id) set.add(id);
   };
   (WM_STUDENT_MANAGE_ROWS || []).forEach(row => push(cellValue(row, headerAliases('학생ID')) || row['학생ID']));
@@ -3907,7 +3907,7 @@ async function generateStudentAutoIdForCreate(){
   try {
     const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=generateStudentId&ts=' + Date.now(), {method:'GET', cache:'no-store'});
     const data = await res.json();
-    const id = String(data && data.studentId ? data.studentId : '').trim().toUpperCase();
+    const id = String(data && data.studentId ? data.studentId : '').trim();
     if(data && data.success && isValidWordMateStudentId(id)) {
       target.value = id;
       updateStudentCreatePreview();
@@ -4050,7 +4050,7 @@ async function saveStudentCreateToDB(){
 let WM_STUDENT_REGISTER_CHECKED_ID = '';
 
 function wmStudentRegisterIdCompareKey(value){
-  return String(value || '').trim().toUpperCase();
+  return String(value || '').trim();
 }
 
 function wmStudentRegisterIdRawValue(value){
