@@ -469,7 +469,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>주소</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="33">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="32">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-records">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학습기록 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학습기록_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영했습니다.</p></div>
@@ -1100,7 +1100,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
           <label>교사ID
             <div style="display:flex;gap:8px;align-items:center;">
-              <input type="text" id="settingTeacherId" maxlength="10" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
+              <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="latin" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
               <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
             </div>
           </label>
@@ -1328,7 +1328,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     const currentRoleText = document.getElementById('currentRoleText');
     const viewRangeText = document.getElementById('viewRangeText');
     const devCenterBtn = document.getElementById('devCenterBtn');
-    const settingsMenuBtn = document.querySelector('.wm-menu-btn[data-panel="settings"]');
+    const settingsMenuBtn = document.querySelector('.wm-menu-btn[data-panel="classes"]');
     const roleViewText = {
       SUPER_ADMIN:'전체 반 / 전체 교사 / 전체 학생',
       SPECIAL_ADMIN:'SUPER_ADMIN이 허용한 전체 관리 범위',
@@ -1372,17 +1372,21 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
     }
     function applyRole(role){
-      currentRoleText.textContent=role;
-      viewRangeText.textContent=roleViewText[role];
+      const roleEl = document.getElementById('currentRoleText');
+      const rangeEl = document.getElementById('viewRangeText');
+      if(roleEl) roleEl.textContent = role;
+      if(rangeEl) rangeEl.textContent = roleViewText[role] || '허용된 LMS 범위';
       roleButtons.forEach(btn=>btn.classList.toggle('active',btn.dataset.role===role));
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
-      if(devCenterBtn){ devCenterBtn.style.display = (role==='SUPER_ADMIN'||role==='SPECIAL_ADMIN') ? 'block' : 'none'; }
+      if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
       if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', !adminLike); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
-      if(!adminLike && (document.getElementById('panel-dev').classList.contains('active') || document.getElementById('panel-settings').classList.contains('active'))) showPanel('dashboard');
+      const devPanel = document.getElementById('panel-dev');
+      const settingPanel = document.getElementById('panel-classes');
+      if(!adminLike && ((devPanel && devPanel.classList.contains('active')) || (settingPanel && settingPanel.classList.contains('active')))) showPanel('dashboard');
     }
 
     function getFilterValue(scope, filterName){
@@ -2330,6 +2334,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       if(scope==='students'){
+        WM_STUDENT_MANAGE_PAGE = 1;
         if(WM_STUDENT_MANAGE_ROWS && WM_STUDENT_MANAGE_ROWS.length){
           renderStudentManageRows();
         }else{
@@ -2338,6 +2343,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       if(scope==='records'){
+        WM_RECORD_MANAGE_PAGE = 1;
         if(WM_RECORD_MANAGE_ROWS && WM_RECORD_MANAGE_ROWS.length){
           renderRecordManageRows();
         }else{
@@ -2386,11 +2392,13 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       if(scope==='students'){
+        WM_STUDENT_MANAGE_PAGE = 1;
         if(WM_STUDENT_MANAGE_ROWS && WM_STUDENT_MANAGE_ROWS.length) renderStudentManageRows();
         else loadStudents();
         return;
       }
       if(scope==='records'){
+        WM_RECORD_MANAGE_PAGE = 1;
         if(WM_RECORD_MANAGE_ROWS && WM_RECORD_MANAGE_ROWS.length) renderRecordManageRows();
         else loadRecords();
         return;
@@ -2501,7 +2509,10 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     let WM_DASHBOARD_COUNSEL_ROWS = [];
     let WM_DASHBOARD_PAYMENT_ROWS = [];
     let WM_CURRENT_PROGRESS_ROWS = [];
+    let WM_STUDENT_MANAGE_PAGE = 1;
+    let WM_RECORD_MANAGE_PAGE = 1;
     let WM_CURRENT_PROGRESS_PAGE = 1;
+    const WM_MANAGE_PAGE_SIZE = 25;
     const WM_CURRENT_PROGRESS_PAGE_SIZE = 25;
     let WM_DEPLOY_MANAGE_ROWS = [];
     let WM_DASHBOARD_STATE = null;
@@ -2652,20 +2663,28 @@ function extractRecordRowsFromResponse(data){
       if(!tbody) return;
 
       const rows = getRecordManageFilteredRows(WM_RECORD_MANAGE_ROWS || []);
+      const totalRows = rows.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / WM_MANAGE_PAGE_SIZE));
+      if(WM_RECORD_MANAGE_PAGE > totalPages) WM_RECORD_MANAGE_PAGE = totalPages;
+      if(WM_RECORD_MANAGE_PAGE < 1) WM_RECORD_MANAGE_PAGE = 1;
       if(!rows.length){
         tbody.innerHTML = '<tr><td colspan="24">표시할 학습기록_DB 데이터가 없습니다.</td></tr>';
+        wmUpdateManagePager('records', 0, 1, 1);
         setManageLoading('records', false);
         return;
       }
 
+      const start = (WM_RECORD_MANAGE_PAGE - 1) * WM_MANAGE_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + WM_MANAGE_PAGE_SIZE);
       setManageLoading('records', false);
-      tbody.innerHTML = rows.map(rawRow=>{
+      tbody.innerHTML = pageRows.map(rawRow=>{
     const row = wmRepairShiftedStudentModeRow(rawRow);
         return '<tr>'+WM_RECORD_HEADERS.map(header=>{
           const value = cellValue(row, headerAliases(header));
           return '<td>'+escapeHtml(displayCellValue(value, header))+'</td>';
         }).join('')+'</tr>';
       }).join('');
+      wmUpdateManagePager('records', totalRows, totalPages, WM_RECORD_MANAGE_PAGE);
       syncRecordTableScroll();
     }
 
@@ -4557,21 +4576,78 @@ function renderDeployManageRows(){
   setManageLoading('deployManage', false);
 }
 
+
+function wmEnsureManagePager(scope){
+  const wrapId = scope === 'students' ? 'studentTableWrap' : 'recordTableWrap';
+  const pagerId = scope === 'students' ? 'studentManagePager' : 'recordManagePager';
+  const wrap = document.getElementById(wrapId);
+  if(!wrap) return null;
+  let pager = document.getElementById(pagerId);
+  if(!pager){
+    pager = document.createElement('div');
+    pager.id = pagerId;
+    pager.className = 'wm-current-progress-pager';
+    pager.innerHTML =
+      '<button type="button" data-action="prev">이전</button>' +
+      '<span class="wm-current-progress-page-info" data-role="info">1 / 1</span>' +
+      '<button type="button" data-action="next">다음</button>';
+    wrap.insertAdjacentElement('afterend', pager);
+    pager.querySelector('[data-action="prev"]').addEventListener('click', function(){ moveManagePage(scope, -1); });
+    pager.querySelector('[data-action="next"]').addEventListener('click', function(){ moveManagePage(scope, 1); });
+  }
+  return pager;
+}
+
+function wmUpdateManagePager(scope, totalRows, totalPages, page){
+  const pager = wmEnsureManagePager(scope);
+  if(!pager) return;
+  const prevBtn = pager.querySelector('[data-action="prev"]');
+  const nextBtn = pager.querySelector('[data-action="next"]');
+  const info = pager.querySelector('[data-role="info"]');
+  pager.style.display = totalRows > WM_MANAGE_PAGE_SIZE ? 'flex' : 'none';
+  if(info) info.textContent = page + ' / ' + totalPages + ' · 총 ' + totalRows + '건';
+  if(prevBtn) prevBtn.disabled = page <= 1;
+  if(nextBtn) nextBtn.disabled = page >= totalPages;
+}
+
+function moveManagePage(scope, delta){
+  if(scope === 'students'){
+    const rows = getStudentManageFilteredRows(WM_STUDENT_MANAGE_ROWS || []);
+    const totalPages = Math.max(1, Math.ceil(rows.length / WM_MANAGE_PAGE_SIZE));
+    WM_STUDENT_MANAGE_PAGE = Math.min(totalPages, Math.max(1, WM_STUDENT_MANAGE_PAGE + delta));
+    renderStudentManageRows();
+    return;
+  }
+  if(scope === 'records'){
+    const rows = getRecordManageFilteredRows(WM_RECORD_MANAGE_ROWS || []);
+    const totalPages = Math.max(1, Math.ceil(rows.length / WM_MANAGE_PAGE_SIZE));
+    WM_RECORD_MANAGE_PAGE = Math.min(totalPages, Math.max(1, WM_RECORD_MANAGE_PAGE + delta));
+    renderRecordManageRows();
+  }
+}
+
 function renderStudentManageRows(){
   const tbody = document.getElementById('studentManageTbody');
   if(!tbody) return;
 
   const rows = getStudentManageFilteredRows(WM_STUDENT_MANAGE_ROWS || []);
+  const totalRows = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / WM_MANAGE_PAGE_SIZE));
+  if(WM_STUDENT_MANAGE_PAGE > totalPages) WM_STUDENT_MANAGE_PAGE = totalPages;
+  if(WM_STUDENT_MANAGE_PAGE < 1) WM_STUDENT_MANAGE_PAGE = 1;
 
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="33">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="32">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
+    wmUpdateManagePager('students', 0, 1, 1);
     setManageLoading('students', false);
     return;
   }
 
+  const start = (WM_STUDENT_MANAGE_PAGE - 1) * WM_MANAGE_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + WM_MANAGE_PAGE_SIZE);
   setManageLoading('students', false);
   const duplicatedStudentIds = wmStudentDuplicateIdSet(WM_STUDENT_MANAGE_ROWS || []);
-  tbody.innerHTML = rows.map(rawRow=>{
+  tbody.innerHTML = pageRows.map(rawRow=>{
     const row = wmRepairShiftedStudentModeRow(rawRow);
     const studentId = row['학생ID'] || '';
     const normalizedStudentId = normalizeWordMateStudentId(studentId);
@@ -4594,7 +4670,6 @@ function renderStudentManageRows(){
       <td>${escapeHtml(row['교사명'] || '')}</td>
       <td>${escapeHtml(row['학교'] || '')}</td>
       <td>${escapeHtml(wmNormalizeGradeDisplay(row['학년'] || ''))}</td>
-      <td>${escapeHtml(row['주소'] || '')}</td>
       <td>${escapeHtml(row['학부모명'] || '')}</td>
       <td>${escapeHtml(row['학부모연락처'] || '')}</td>
       <td>${escapeHtml(displayCellValue(row['최종결제']))}</td>
@@ -4617,6 +4692,7 @@ function renderStudentManageRows(){
     </tr>`;
   }).join('');
 
+  wmUpdateManagePager('students', totalRows, totalPages, WM_STUDENT_MANAGE_PAGE);
   syncStudentTableScroll();
 }
 
