@@ -1100,7 +1100,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
           <label>교사ID
            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;">
-              <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="latin" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
+              <input type="text" id="settingTeacherId" maxlength="10" style="width:100%;pointer-events:auto!important;position:relative;z-index:10;background:#fff;" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
               <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
             </div>
           </label>
