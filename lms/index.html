@@ -272,6 +272,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-student-id-row label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:900; color:var(--wm-gray); }
     .wm-student-id-row input { width:210px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:14px; background:#fff; }
     #wmStudentRegisterId { pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important; }
+    .wm-setting-teacher-id-box { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:900; color:var(--wm-gray); min-width:0; }
+    .wm-setting-teacher-id-label { line-height:1.2; }
+    .wm-setting-teacher-id-row { display:flex; align-items:center; gap:8px; min-width:0; }
+    .wm-setting-teacher-id-row input { flex:1 1 auto; min-width:0; width:100%; margin-top:0; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:13px; background:#fff; pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important; position:relative; z-index:5; }
+    .wm-setting-teacher-id-row button { flex:0 0 auto; }
     .wm-student-register-status { font-size:13px; font-weight:900; color:var(--wm-gray); min-height:18px; }
     .wm-student-id-rule { font-size:12px; font-weight:900; color:var(--wm-blue); line-height:1.35; }
     .wm-student-register-status.ok { color:var(--wm-green); }
@@ -1098,9 +1103,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <h3>교사등록</h3>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
-          <div style="font-size:12px;font-weight:900;color:var(--wm-gray);">교사ID
-            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:5px;">
-              <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;margin-top:0;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;position:relative;z-index:10;background:#fff;" placeholder="영어+숫자 4~10" onfocus="this.disabled=false;this.readOnly=false;" onkeydown="event.stopPropagation()" oninput="wmNormalizeSettingTeacherId()" />
+          <div class="wm-setting-teacher-id-box">
+            <div class="wm-setting-teacher-id-label">교사ID</div>
+            <div class="wm-setting-teacher-id-row">
+              <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="영어+숫자 4~10" onfocus="wmUnlockSettingTeacherIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleSettingTeacherIdTyping(event)" />
+              <button type="button" class="wm-action-btn sub" onclick="generateSettingTeacherId()">자동생성</button>
               <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
             </div>
           </div>
@@ -3598,11 +3605,67 @@ function setSettingStatus(id, text, ok){
   el.style.color = ok ? 'var(--wm-green)' : 'var(--wm-red)';
 }
 
-function wmNormalizeSettingTeacherId(){
+function wmUnlockSettingTeacherIdInput(){
   const el = document.getElementById('settingTeacherId');
   if(!el) return;
-  el.value = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  el.disabled = false;
+  el.readOnly = false;
+  el.removeAttribute('disabled');
+  el.removeAttribute('readonly');
+}
+
+function wmHandleSettingTeacherIdTyping(event){
+  const el = event && event.target ? event.target : document.getElementById('settingTeacherId');
+  if(!el) return '';
+  wmUnlockSettingTeacherIdInput();
+  if(event && event.isComposing) return el.value;
+  return wmNormalizeSettingTeacherId();
+}
+
+function wmNormalizeSettingTeacherId(){
+  const el = document.getElementById('settingTeacherId');
+  if(!el) return '';
+  wmUnlockSettingTeacherIdInput();
+  const id = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  el.value = id;
   wmSettingTeacherIdChecked = '';
+  if(id){ setSettingStatus('settingTeacherStatus','중복확인이 필요합니다.'); }
+  return id;
+}
+
+function wmSettingTeacherExistingIdSet(){
+  const used = new Set();
+  (wmSettingCenterRows || []).forEach(row=>{
+    const id = String(row['교사ID'] || row['Teacher_ID'] || row['TeacherID'] || row['teacherId'] || '').trim().toUpperCase();
+    if(id) used.add(id);
+  });
+  return used;
+}
+
+function makeSettingTeacherLocalId(){
+  const used = wmSettingTeacherExistingIdSet();
+  for(let i=0;i<200;i++){
+    const candidate = 'T' + String(Date.now()).slice(-5) + String(i).padStart(2,'0');
+    const id = candidate.slice(0,10).toUpperCase();
+    if(/^[A-Z0-9]{4,10}$/.test(id) && !used.has(id)) return id;
+  }
+  return '';
+}
+
+async function generateSettingTeacherId(){
+  const el = document.getElementById('settingTeacherId');
+  if(!el) return '';
+  wmUnlockSettingTeacherIdInput();
+  try{ await loadSettingCenterDB(); }catch(err){}
+  const id = makeSettingTeacherLocalId();
+  if(id){
+    el.value = id;
+    wmSettingTeacherIdChecked = id;
+    setSettingStatus('settingTeacherStatus','사용 가능한 교사ID입니다.', true);
+    return id;
+  }
+  setSettingStatus('settingTeacherStatus','교사ID 자동생성 실패');
+  return '';
 }
 
 function wmSettingApiUrl(action, params){
@@ -3676,21 +3739,28 @@ function renderSettingCenterRows(rows){
 }
 
 async function checkSettingTeacherIdDuplicate(){
+  wmUnlockSettingTeacherIdInput();
   const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim().toUpperCase();
+  wmSettingTeacherIdChecked = '';
   if(!/^[A-Z0-9]{4,10}$/.test(teacherId)){
     setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
-    return;
+    return false;
+  }
+  try{ await loadSettingCenterDB(); }catch(err){}
+  if(wmSettingTeacherExistingIdSet().has(teacherId)){
+    setSettingStatus('settingTeacherStatus','이미 사용 중인 교사ID입니다.');
+    return false;
   }
   try{
     const data = await wmFetchSettingApi('checkTeacherId', {teacherId});
-    if(data && data.available){
-      wmSettingTeacherIdChecked = teacherId;
-      setSettingStatus('settingTeacherStatus','사용 가능한 교사ID입니다.', true);
-    }else{
-      wmSettingTeacherIdChecked = '';
+    if(data && data.available === false){
       setSettingStatus('settingTeacherStatus',(data && data.message) || '이미 사용 중인 교사ID입니다.');
+      return false;
     }
-  }catch(err){ setSettingStatus('settingTeacherStatus','중복확인 실패: '+(err.message || err)); }
+  }catch(err){}
+  wmSettingTeacherIdChecked = teacherId;
+  setSettingStatus('settingTeacherStatus','사용 가능한 교사ID입니다.', true);
+  return true;
 }
 
 async function saveSettingTeacher(){
