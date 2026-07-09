@@ -1098,12 +1098,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <h3>교사등록</h3>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
-          <label>교사ID
-           <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;">
-              <input type="text" id="settingTeacherId" maxlength="10" style="width:100%;pointer-events:auto!important;position:relative;z-index:10;background:#fff;" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
+          <div style="font-size:12px;font-weight:900;color:var(--wm-gray);">교사ID
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:5px;">
+              <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;margin-top:0;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;position:relative;z-index:10;background:#fff;" placeholder="영어+숫자 4~10" onfocus="this.disabled=false;this.readOnly=false;" onkeydown="event.stopPropagation()" oninput="wmNormalizeSettingTeacherId()" />
               <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
             </div>
-          </label>
+          </div>
           <label>비밀번호<input type="text" id="settingTeacherPw" maxlength="4" placeholder="숫자 4자리" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" /></label>
           <label>교사등급
             <select id="settingTeacherGrade">
