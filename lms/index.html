@@ -1091,178 +1091,71 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-table-wrap"><table><thead><tr><th>발송ID</th><th>학생ID</th><th>학생이름</th><th>학부모명</th><th>학부모연락처</th><th>리포트월</th><th>리포트주차</th><th>발송상태</th><th>발송일</th><th>발송시간</th><th>성적표링크</th><th>비고</th></tr></thead><tbody><tr><td colspan="12">발송기록_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-classes">
-      <h2 class="wm-panel-title">설정센터</h2>
-      <div style="display:flex;gap:10px;margin:12px 0 18px;">
-        <button id="classMgmtBtn" class="wm-action-btn" onclick="showClassSubTab('classMgmt')">7-1. 반관리</button>
-        <button id="settingsMgmtBtn" class="wm-action-btn sub" onclick="showClassSubTab('settingsMgmt')">7-2. 교사학생관리</button>
+      <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7.설정센터_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
+      <div class="wm-note">교사/반은 등록 순서와 관계없이 먼저 만들 수 있습니다. 담당반·담당교사는 선택값이 없을 때 <strong>추후선택</strong>으로 저장합니다.</div>
+
+      <div class="wm-factory-box">
+        <h3>교사등록</h3>
+        <div class="wm-filter-grid">
+          <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
+          <label>교사ID
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="settingTeacherId" maxlength="10" placeholder="영어+숫자 4~10" oninput="wmNormalizeSettingTeacherId()" />
+              <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
+            </div>
+          </label>
+          <label>비밀번호<input type="text" id="settingTeacherPw" maxlength="4" placeholder="숫자 4자리" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" /></label>
+          <label>교사등급
+            <select id="settingTeacherGrade">
+              <option>TEACHER</option><option>SUB_LEADER</option><option>SPECIAL_ADMIN</option><option>SUPER_ADMIN</option>
+            </select>
+          </label>
+          <label>담당반
+            <select id="settingTeacherClass"><option>추후선택</option></select>
+          </label>
+          <label>담당리더
+            <select id="settingTeacherLeader"><option>추후선택</option></select>
+          </label>
+        </div>
+        <div class="wm-filter-actions" style="margin-top:14px;">
+          <button type="button" class="wm-action-btn" onclick="saveSettingTeacher()">교사등록 실행</button>
+          <span id="settingTeacherStatus" class="wm-manage-loading"></span>
+        </div>
       </div>
-      <div id="classMgmtTab">
-      <p class="wm-panel-desc">연결 예정 DB: 7-1.반관리_DB / 반명, 담당교사, 담당리더, 학생수, 학생명단, 생성일, 반이동기록, 메모 기준입니다. 교사와 반은 어느 쪽을 먼저 생성해도 미배정 목록으로 연결할 수 있습니다.</p>
+
+      <div class="wm-factory-box">
+        <h3>반등록</h3>
+        <div class="wm-filter-grid">
+          <label>반명<input type="text" id="settingClassName" placeholder="예: C001 / 중1A" /></label>
+          <label>반아이디<input type="text" id="settingClassId" value="자동생성" readonly /></label>
+          <label>담당교사
+            <select id="settingClassTeacher"><option>추후선택</option></select>
+          </label>
+        </div>
+        <div class="wm-filter-actions" style="margin-top:14px;">
+          <button type="button" class="wm-action-btn sub" onclick="generateSettingClassId()">반아이디 자동생성</button>
+          <button type="button" class="wm-action-btn" onclick="saveSettingClass()">반등록 실행</button>
+          <span id="settingClassStatus" class="wm-manage-loading"></span>
+        </div>
+        <div class="wm-note">일반교사는 한 반에 한 명만 적용하고, 한 교사는 여러 반을 담당할 수 있습니다. 리더는 여러 일반교사 반을 관리할 수 있습니다.</div>
+      </div>
+
       <div class="wm-filter-box" data-filter-scope="classes">
         <div class="wm-filter-title">검색조건</div>
         <div class="wm-filter-grid">
-          <label>기간 시작<input type="date" data-filter="dateStart" /></label>
-          <label>기간 종료<input type="date" data-filter="dateEnd" /></label>
-          <label>리더<input type="text" list="leaderList" placeholder="직접입력 또는 선택" data-filter="leader" /></label>
-          <label>교사<input type="text" list="teacherList" placeholder="직접입력 또는 선택" data-filter="teacher" /></label>
-          <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
-          <label>레벨<input type="text" placeholder="예: Basic 5 / 5" data-filter="level" /></label>
-          <label>학교<input type="text" placeholder="학교명" data-filter="school" /></label>
-          <label>지역<input type="text" placeholder="지역명" data-filter="region" /></label>
+          <label>교사명<input type="text" placeholder="교사명" data-filter="teacher" /></label>
+          <label>교사ID<input type="text" placeholder="교사ID" data-filter="teacherId" /></label>
+          <label>교사등급<input type="text" placeholder="TEACHER / SUB_LEADER" data-filter="role" /></label>
+          <label>담당리더<input type="text" list="leaderList" placeholder="리더명" data-filter="leader" /></label>
+          <label>담당반<input type="text" placeholder="반명" data-filter="class" /></label>
+          <label>상태<input type="text" placeholder="Active / Inactive" data-filter="status" /></label>
         </div>
-        <div class="wm-filter-actions">
-          <button class="wm-action-btn" onclick="runFilter('classes')">검색</button>
-          <button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button>
-        </div>
-      </div>
-      <div class="wm-action-row">
-        <button id="classCreateBtn" class="wm-action-btn" onclick="showClassCreateFactory()">반생성</button>
-        <button class="wm-action-btn sub">수정</button>
-        <button class="wm-action-btn sub">조회</button>
+        <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="loadSettingCenterDB()">새로고침</button></div>
       </div>
 
-      <div id="classCreateFactory" class="wm-class-create-box">
-        <h3 class="wm-create-factory-title">반생성 Factory</h3>
-        <div class="wm-filter-grid">
-          <label>반명<input type="text" id="classNameForCreate" placeholder="예: EC001" oninput="updateClassCreatePreview()" /></label>
-          <label>담당교사
-            <select id="classTeacherForCreate" onchange="updateClassCreatePreview()">
-              <option value="미배정">미배정</option>
-              <option>홍길동</option>
-              <option>김교사</option>
-              <option>이교사</option>
-            </select>
-          </label>
-          <label>담당리더
-            <select id="classLeaderForCreate" onchange="updateClassCreatePreview()">
-              <option value="미배정">미배정</option>
-              <option>김리더</option>
-              <option>박리더</option>
-              <option>이리더</option>
-            </select>
-          </label>
-          <label>학생수<input type="text" id="classStudentCountForCreate" value="0" readonly /></label>
-          <label>학생명단<input type="text" id="classStudentListForCreate" value="하단 별도생성" readonly /></label>
-          <label>생성일<input type="text" id="classCreatedAtForCreate" value="아임웹 자동연동 예정" readonly /></label>
-          <label>반이동기록<input type="text" id="classMoveLogForCreate" value="하단 별도생성" readonly /></label>
-          <label>메모<input type="text" id="classMemoForCreate" placeholder="메모" oninput="updateClassCreatePreview()" /></label>
-        </div>
-        <div class="wm-filter-actions" style="margin-top:14px;">
-          <button id="classCreateSaveBtn" class="wm-action-btn" onclick="saveClassCreateToDB()">반생성 저장</button>
-        </div>
-        <div class="wm-note">반생성 Factory는 7-1.반관리_DB 컬럼 순서 그대로 사용합니다. 교사가 없으면 미배정으로 생성하고, 나중에 교사생성 화면에서 반을 배정할 수 있습니다.</div>
-        <div class="wm-table-wrap wm-student-preview-table"><table><thead><tr><th>반명</th><th>담당교사</th><th>담당리더</th><th>학생수</th><th>학생명단</th><th>생성일</th><th>반이동기록</th><th>메모</th></tr></thead><tbody><tr id="classCreatePreviewRow"><td></td><td>미배정</td><td>미배정</td><td>0</td><td>하단 별도생성</td><td>아임웹 자동연동 예정</td><td>하단 별도생성</td><td></td></tr></tbody></table></div>
-      </div>
-
-      <div class="wm-factory-box"><h3>반생성 Factory</h3><p>반관리는 교사별 관리반을 생성하고 학생명단 및 반이동기록을 확인하는 관리 탭입니다.</p><div class="wm-chip-row"><span>교사 선택</span><span>미배정 반</span><span>학생수 자동</span><span>학생명단</span><span>반이동기록</span></div></div>
-      <div class="wm-table-wrap"><table><thead><tr><th>반명</th><th>담당교사</th><th>담당리더</th><th>학생수</th><th>학생명단</th><th>생성일</th><th>반이동기록</th><th>메모</th></tr></thead><tbody id="classManageTbody"><tr><td>EC001</td><td>홍길동</td><td>김리더</td><td>12</td><td><button class="wm-link-btn" onclick="openClassStudentList('EC001')">학생명단</button></td><td>2026-05-30</td><td><button class="wm-link-btn" onclick="openClassMoveLog('EC001')">반이동기록</button></td><td>신규반</td></tr></tbody></table></div>
-
-      <div id="classStudentListDetail" class="wm-class-detail-box"></div>
-      <div id="classMoveLogDetail" class="wm-class-detail-box"></div>
-
-</section>
-    </div>
-<section class="wm-panel wm-hidden" id="panel-settings">
-      <div id="settingsMgmtTab" style="display:none;"><h2 class="wm-panel-title">7-2. 교사학생관리 센터</h2>
-      <p class="wm-panel-desc">연결 예정 DB: 7-2.교사학생_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영했습니다.</p>
-      <div class="wm-filter-box" data-filter-scope="settings">
-        <div class="wm-filter-title">검색조건</div>
-        <div class="wm-filter-grid">
-          <label>기간 시작<input type="date" data-filter="dateStart" /></label>
-          <label>기간 종료<input type="date" data-filter="dateEnd" /></label>
-          <label>리더<input type="text" list="leaderList" placeholder="직접입력 또는 선택" data-filter="leader" /></label>
-          <label>교사<input type="text" list="teacherList" placeholder="직접입력 또는 선택" data-filter="teacher" /></label>
-          <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
-          <label>레벨<input type="text" placeholder="예: Basic 5 / 5" data-filter="level" /></label>
-          <label>학교<input type="text" placeholder="학교명" data-filter="school" /></label>
-          <label>지역<input type="text" placeholder="지역명" data-filter="region" /></label>
-        </div>
-        <div class="wm-filter-actions">
-          <button class="wm-action-btn" onclick="runFilter('settings')">검색</button>
-          <button class="wm-action-btn sub" onclick="resetFilter('settings')">초기화</button>
-        </div>
-      </div>
-      <div class="wm-action-row">
-        <button id="teacherCreateBtn" class="wm-action-btn" onclick="showCreateFactory('teacher')">교사생성</button>
-        <button id="studentCreateBtn" class="wm-action-btn sub" onclick="showCreateFactory('student')">학생생성</button>
-        <button class="wm-action-btn sub">수정</button>
-        <button class="wm-action-btn sub">조회</button>
-      </div>
-
-      <div id="teacherCreateFactory" class="wm-create-factory-box">
-        <h3 class="wm-create-factory-title">교사생성 Factory</h3>
-        <div class="wm-filter-grid">
-          <label>권한
-            <select id="teacherRoleForCreate" onchange="previewTeacherAutoId()">
-              <option value="TEACHER">TEACHER</option>
-              <option value="SUB_LEADER">SUB_LEADER</option>
-              <option value="SPECIAL_ADMIN">SPECIAL_ADMIN</option>
-              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-            </select>
-          </label>
-          <label>학생ID<input type="text" id="teacherAutoId" value="T001" readonly /></label>
-          <label>학생명<input type="text" placeholder="예: 홍길동" /></label>
-          <label>담당리더<select><option>선택</option><option>김리더</option><option>박리더</option><option>이리더</option></select></label>
-          <label>담당교사<select><option>선택</option><option>홍길동</option><option>김교사</option></select></label>
-          <label>담당반<select id="teacherClassForCreate"><option>미배정 반 선택</option><option>EC001</option><option>EC002</option><option>MC001</option><option>HC001</option></select></label>
-          <label>활성상태<select><option>ACTIVE</option><option>INACTIVE</option></select></label>
-        </div>
-        <div class="wm-note">교사/관리자 계정 생성용 화면입니다. 반을 먼저 생성한 경우, 여기에서 미배정 반을 선택해 교사에게 배정합니다.</div>
-      </div>
-
-      <div id="studentCreateFactory" class="wm-create-factory-box">
-        <h3 class="wm-create-factory-title">학생생성 Factory</h3>
-        <div class="wm-filter-grid">
-          <label class="wm-student-seq-col">학생일련번호<input type="text" id="studentSeqForCreate" value="0001" readonly /></label>
-          <label>학생ID<input type="text" id="studentAutoId" value="자동발급 대기" maxlength="10" placeholder="영문/숫자 4~10자" oninput="wmNormalizeStudentIdInputForCreate(); updateStudentCreatePreview();" /></label>
-          <label>학생이름<input type="text" id="studentNameForCreate" placeholder="예: 김학생" oninput="updateStudentCreatePreview()" /></label>
-          <label>학교<input type="text" id="studentSchoolForCreate" placeholder="예: 샘플초" oninput="updateStudentCreatePreview()" /></label>
-          <label>학년<input type="text" id="studentGradeForCreate" placeholder="예: 4" oninput="updateStudentCreatePreview()" /></label>
-          <label>반<input type="text" id="studentClassForCreate" placeholder="예: EC001" oninput="updateStudentCreatePreview()" /></label>
-          <label>교사명<input type="text" id="studentTeacherForCreate" placeholder="예: 홍길동" oninput="updateStudentCreatePreview()" /></label>
-          <label>주소<input type="text" id="studentAddressForCreate" placeholder="예: 서울시" oninput="updateStudentCreatePreview()" /></label>
-          <label>학부모명<input type="text" id="studentParentForCreate" placeholder="예: 김학부모" oninput="updateStudentCreatePreview()" /></label>
-          <label>학부모연락처<input type="text" id="studentParentPhoneForCreate" placeholder="010-0000-0000" oninput="updateStudentCreatePreview()" /></label>
-          <label>최종결제<input type="date" id="studentPaymentForCreate" onchange="updateStudentCreatePreview()" /></label>
-          <label>등록일<input type="date" id="studentRegDateForCreate" onchange="updateStudentCreatePreview()" /></label>
-          <label>활성상태<select id="studentActiveForCreate" onchange="updateStudentCreatePreview()"><option>ACTIVE</option><option>INACTIVE</option></select></label>
-          <label>학습배정
-            <select id="studentLearningAssignForCreate" onchange="updateStudentCreatePreview()">
-              <option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option>
-            </select>
-          </label>
-          <label>S4실루엣단계
-            <select id="studentS4ForCreate" onchange="updateStudentCreatePreview()">
-              <option>전체</option><option>0단계</option><option>1단계</option><option>2단계</option><option>3단계</option>
-            </select>
-          </label>
-          <label>S6테스트모드
-            <select id="studentS6ForCreate" onchange="updateStudentCreatePreview()">
-              <option>기본전체</option><option>객관식(2개)</option><option>객관식+영한</option><option>객관식+한영</option>
-            </select>
-          </label>
-          <label>레벨완료조건
-            <select id="studentLevelCompleteForCreate" onchange="updateStudentCreatePreview()">
-              <option>1회</option><option selected>2회</option><option>3회</option>
-            </select>
-          </label>
-          <label>현재세트<input type="text" id="studentCurrentSetForCreate" placeholder="예: 3-1-1" oninput="updateStudentCreatePreview()" /></label>
-          <label>비고<input type="text" id="studentMemoForCreate" placeholder="비고" oninput="updateStudentCreatePreview()" /></label>
-        </div>
-        
-        <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn sub" onclick="generateStudentAutoIdForCreate()">학생ID 자동발급</button>
-          <button id="studentCreateSaveBtn" class="wm-action-btn" onclick="saveStudentCreateToDB()">학생생성 저장</button>
-          <span id="studentIdCreateStatus" class="wm-manage-loading"><span class="wm-loading-spinner"></span>학생ID 생성 중</span>
-        </div>
-
-        <div class="wm-note">학생ID 공식: 영문+숫자 4~10자 / 대소문자 구분 없음 / 저장은 대문자 / 중복금지입니다. 학생일련번호는 생성 순서번호이며 SUPER_ADMIN / SPECIAL_ADMIN에게만 표시됩니다.</div>
-        <div class="wm-table-wrap wm-student-preview-table"><table><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>학교</th><th>학년</th><th>반</th><th>교사명</th><th>활성상태</th><th>비고</th></tr></thead><tbody><tr id="studentCreatePreviewRow"><td class="wm-student-seq-col">0001</td><td>자동발급 대기</td><td></td><td>3레벨</td><td>전체</td><td>기본전체</td><td>2회</td><td></td><td></td><td></td><td></td><td></td><td>ACTIVE</td><td></td></tr></tbody></table></div>
-      </div>
-
-      <div class="wm-factory-box"><h3>권한 설정 Factory</h3><p>설정DB는 User_ID 기준으로 Role, Leader_ID, Teacher_ID, Class_ID, Level_Access를 부여해 권한과 접근범위를 생성하는 탭입니다.</p><div class="wm-chip-row"><span>SUPER_ADMIN</span><span>SPECIAL_ADMIN</span><span>SUB_LEADER</span><span>TEACHER</span><span>Level_Access</span></div></div>
-      <div class="wm-table-wrap"><table><thead><tr><th>User_ID</th><th>User_Name</th><th>Role</th><th>Leader_ID</th><th>Teacher_ID</th><th>Class_ID</th><th>Class_Name</th><th>Level_Access</th><th>Auto_Send_YN</th><th>Comment_Option</th><th>Report_Template</th><th>Updated_At</th></tr></thead><tbody><tr><td>admin001</td><td>전체관리자</td><td>SUPER_ADMIN</td><td></td><td></td><td></td><td></td><td>ALL</td><td>Y</td><td>AUTO</td><td>BASIC</td><td>2026-05-29</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table></div>
-    </div></section>
+      <div class="wm-table-wrap"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7.설정센터_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div id="settingClassStudentDetail" class="wm-class-detail-box"></div>
+    </section>
     <section class="wm-panel" id="panel-counsel">
       <h2 class="wm-panel-title">상담카페</h2>
       <p class="wm-panel-desc">연결 DB: 6.상담카페_DB / 학생별 상담 데이터를 관리하는 영역입니다.</p>
@@ -2206,7 +2099,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       if(!WM_STUDENT_MANAGE_ROWS || !WM_STUDENT_MANAGE_ROWS.length) tasks.push(loadStudents());
       if(!WM_RECORD_MANAGE_ROWS || !WM_RECORD_MANAGE_ROWS.length) tasks.push(loadRecords());
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_CLASS_ROWS', ['7-1.반관리_DB','반관리_DB','Class_DB','classes']));
-      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_TEACHER_ROWS', ['7-2.교사학생_DB','7-2.교사학생_DB','7-2.설정_DB','설정_DB','settings','교사학생_DB']));
+      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_TEACHER_ROWS', ['7.설정센터_DB','7-2.교사학생_DB','7-2.설정_DB','설정_DB','settings','교사학생_DB']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_SEND_LOG_ROWS', ['5-1.발송기록_DB','6.발송기록_DB','발송기록_DB','sendLog','send_log']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_COUNSEL_ROWS', ['6.상담카페_DB','상담_DB','상담카페_DB','counsel','consult']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_PAYMENT_ROWS', ['결제_DB','결제DB','Payment_DB','payments','매출_DB']));
@@ -3673,171 +3566,178 @@ function extractRecordRowsFromResponse(data){
       }).join('');
     }
 
-function showClassSubTab(tab){
- const c=document.getElementById('classMgmtTab');
- const s=document.getElementById('settingsMgmtTab');
- const p=document.getElementById('panel-settings');
- const classBtn=document.getElementById('classMgmtBtn');
- const settingsBtn=document.getElementById('settingsMgmtBtn');
- if(!c||!s)return;
+/* ===== SETTING CENTER TEACHER/CLASS MANAGEMENT V1 ===== */
+const WM_SETTING_CENTER_SHEET_NAME = '7.설정센터_DB';
+let wmSettingCenterRows = [];
+let wmSettingTeacherIdChecked = '';
 
- c.style.display=tab==='classMgmt'?'block':'none';
- s.style.display=tab==='settingsMgmt'?'block':'none';
-
- if(classBtn){
-   classBtn.classList.toggle('sub', tab!=='classMgmt');
- }
- if(settingsBtn){
-   settingsBtn.classList.toggle('sub', tab!=='settingsMgmt');
- }
-
- if(p){
-   if(tab==='settingsMgmt'){
-     p.classList.remove('wm-hidden');
-     p.style.display='block';
-   }else{
-     p.style.display='none';
-   }
- }
+function setSettingStatus(id, text, ok){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = text || '';
+  el.classList.toggle('active', !!text);
+  el.style.color = ok ? 'var(--wm-green)' : 'var(--wm-red)';
 }
 
+function wmNormalizeSettingTeacherId(){
+  const el = document.getElementById('settingTeacherId');
+  if(!el) return;
+  el.value = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  wmSettingTeacherIdChecked = '';
+}
 
+function wmSettingApiUrl(action, params){
+  const query = new URLSearchParams(Object.assign({action:action}, params || {}));
+  return WM_APPS_SCRIPT_URL + '?' + query.toString();
+}
 
-/* ===== CLASS MANAGEMENT DETAIL INLINE PANELS ===== */
-const WM_CLASS_LOCAL_DB_KEY = 'wmClassManageRowsV1';
+async function wmFetchSettingApi(action, params){
+  if(window.google && google.script && google.script.run){
+    return await fetch(wmSettingApiUrl(action, params)).then(r=>r.json());
+  }
+  return await fetch(wmSettingApiUrl(action, params)).then(r=>r.json());
+}
 
-function getClassRowsFromLocalDB(){
-  try {
-    return JSON.parse(localStorage.getItem(WM_CLASS_LOCAL_DB_KEY) || '[]');
-  } catch(err) {
-    return [];
+function splitSettingClasses(value){
+  return String(value || '').split(/[,\n·|\/]+/).map(v=>v.trim()).filter(Boolean).filter(v=>v !== '-' && v !== '추후선택');
+}
+
+function getSettingClassList(){
+  const set = new Set();
+  wmSettingCenterRows.forEach(row=>splitSettingClasses(row['담당반목록']).forEach(v=>set.add(v)));
+  return Array.from(set).sort();
+}
+
+function fillSettingSelectOptions(){
+  const classOptions = ['추후선택', ...getSettingClassList()];
+  const teacherOptions = ['추후선택', ...wmSettingCenterRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const leaderOptions = ['추후선택', ...wmSettingCenterRows.filter(r=>/LEADER|ADMIN|리더|관리자/i.test(String(r['교사등급'] || ''))).map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const setOptions = (id, list)=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const current = el.value;
+    el.innerHTML = Array.from(new Set(list)).map(v=>'<option>'+escapeHtml(v)+'</option>').join('');
+    if(current && list.includes(current)) el.value = current;
+  };
+  setOptions('settingTeacherClass', classOptions);
+  setOptions('settingClassTeacher', teacherOptions);
+  setOptions('settingTeacherLeader', leaderOptions);
+}
+
+async function loadSettingCenterDB(){
+  const tbody = document.getElementById('settingCenterTbody');
+  if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 중입니다.</td></tr>';
+  try{
+    const data = await wmFetchSettingApi('getSettingCenter', {});
+    wmSettingCenterRows = (data && data.rows) || [];
+    renderSettingCenterRows(wmSettingCenterRows);
+    fillSettingSelectOptions();
+  }catch(err){
+    if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
 }
 
-function setClassRowsToLocalDB(rows){
-  localStorage.setItem(WM_CLASS_LOCAL_DB_KEY, JSON.stringify(rows || []));
-}
-
-function showClassCreateFactory(){
-  const box = document.getElementById('classCreateFactory');
-  const btn = document.getElementById('classCreateBtn');
-  if(!box) return;
-  box.classList.toggle('active');
-  if(btn) btn.classList.toggle('active-create', box.classList.contains('active'));
-  updateClassCreatePreview();
-}
-
-function updateClassCreatePreview(){
-  const row = document.getElementById('classCreatePreviewRow');
-  if(!row) return;
-  const getValue = id => document.getElementById(id)?.value || '';
-  const values = [
-    getValue('classNameForCreate'),
-    getValue('classTeacherForCreate') || '미배정',
-    getValue('classLeaderForCreate') || '미배정',
-    getValue('classStudentCountForCreate') || '0',
-    '하단 별도생성',
-    getValue('classCreatedAtForCreate') || '아임웹 자동연동 예정',
-    '하단 별도생성',
-    getValue('classMemoForCreate')
-  ];
-  row.querySelectorAll('td').forEach((td, idx)=>{ td.textContent = values[idx] || ''; });
-}
-
-function saveClassCreateToDB(){
-  const rows = getClassRowsFromLocalDB();
-  const getValue = id => document.getElementById(id)?.value || '';
-  const className = getValue('classNameForCreate') || 'EC001';
-
-  const newRow = {
-    '반명': className,
-    '담당교사': getValue('classTeacherForCreate') || '미배정',
-    '담당리더': getValue('classLeaderForCreate') || '미배정',
-    '학생수': Number(getValue('classStudentCountForCreate') || 0),
-    '학생명단': '하단 별도생성',
-    '생성일': getValue('classCreatedAtForCreate') || '아임웹 자동연동 예정',
-    '반이동기록': '하단 별도생성',
-    '메모': getValue('classMemoForCreate')
-  };
-
-  rows.push(newRow);
-  setClassRowsToLocalDB(rows);
-  renderClassManageRows();
-  alert('반생성 저장 미리보기 완료: 반관리 목록에 반영되었습니다.');
-}
-
-function renderClassManageRows(){
-  const tbody = document.getElementById('classManageTbody');
+function renderSettingCenterRows(rows){
+  const tbody = document.getElementById('settingCenterTbody');
   if(!tbody) return;
-
-  const rows = [
-    {'반명':'EC001','담당교사':'홍길동','담당리더':'김리더','학생수':12,'학생명단':'하단 별도생성','생성일':'2026-05-30','반이동기록':'하단 별도생성','메모':'신규반'},
-    ...getClassRowsFromLocalDB()
-  ];
-
-  tbody.innerHTML = rows.map(rawRow=>{
-    const row = wmRepairShiftedStudentModeRow(rawRow);
-    const className = row['반명'] || '';
-    return `<tr>
-      <td>${row['반명'] || ''}</td>
-      <td>${row['담당교사'] || '미배정'}</td>
-      <td>${row['담당리더'] || '미배정'}</td>
-      <td>${row['학생수'] || 0}</td>
-      <td><button class="wm-link-btn" onclick="openClassStudentList('${className}')">학생명단</button></td>
-      <td>${row['생성일'] || ''}</td>
-      <td><button class="wm-link-btn" onclick="openClassMoveLog('${className}')">반이동기록</button></td>
-      <td>${row['메모'] || ''}</td>
-    </tr>`;
-  }).join('');
+  if(!rows || !rows.length){
+    tbody.innerHTML = '<tr><td colspan="13">등록된 교사/반 데이터가 없습니다.</td></tr>';
+    return;
+  }
+  const headers = ['교사명','교사ID','비밀번호','교사등급','담당리더','담당반목록','총담당반','총학생수','월학생수','월발송기록','상태','수정일','메모'];
+  tbody.innerHTML = rows.map(row=>'<tr>'+headers.map(h=>{
+    const value = row[h] || '';
+    if(h === '담당반목록'){
+      const classes = splitSettingClasses(value);
+      const html = classes.length ? classes.map(c=>'<button type="button" class="wm-link-btn" onclick="openSettingClassStudentList(\''+escapeJs(c)+'\')">'+escapeHtml(c)+'</button>').join(' ') : escapeHtml(value || '-');
+      return '<td>'+html+'</td>';
+    }
+    return '<td>'+escapeHtml(value || '-')+'</td>';
+  }).join('')+'</tr>').join('');
 }
 
-function openClassStudentList(className){
-  const box = document.getElementById('classStudentListDetail');
-  const moveBox = document.getElementById('classMoveLogDetail');
-  if(moveBox) moveBox.classList.remove('active');
+async function checkSettingTeacherIdDuplicate(){
+  const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim().toUpperCase();
+  if(!/^[A-Z0-9]{4,10}$/.test(teacherId)){
+    setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
+    return;
+  }
+  try{
+    const data = await wmFetchSettingApi('checkTeacherId', {teacherId});
+    if(data && data.available){
+      wmSettingTeacherIdChecked = teacherId;
+      setSettingStatus('settingTeacherStatus','사용 가능한 교사ID입니다.', true);
+    }else{
+      wmSettingTeacherIdChecked = '';
+      setSettingStatus('settingTeacherStatus',(data && data.message) || '이미 사용 중인 교사ID입니다.');
+    }
+  }catch(err){ setSettingStatus('settingTeacherStatus','중복확인 실패: '+(err.message || err)); }
+}
+
+async function saveSettingTeacher(){
+  const payload = {
+    teacherName: document.getElementById('settingTeacherName')?.value || '',
+    teacherId: String(document.getElementById('settingTeacherId')?.value || '').trim().toUpperCase(),
+    password: document.getElementById('settingTeacherPw')?.value || '',
+    grade: document.getElementById('settingTeacherGrade')?.value || 'TEACHER',
+    leader: document.getElementById('settingTeacherLeader')?.value || '추후선택',
+    className: document.getElementById('settingTeacherClass')?.value || '추후선택'
+  };
+  if(!payload.teacherName.trim()) return setSettingStatus('settingTeacherStatus','교사명을 입력하세요.');
+  if(!/^[A-Z0-9]{4,10}$/.test(payload.teacherId)) return setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
+  if(wmSettingTeacherIdChecked !== payload.teacherId) return setSettingStatus('settingTeacherStatus','교사ID 중복확인을 먼저 진행하세요.');
+  if(!/^[0-9]{4}$/.test(payload.password)) return setSettingStatus('settingTeacherStatus','비밀번호는 숫자 4자리입니다.');
+  setSettingStatus('settingTeacherStatus','교사등록 저장 중...', true);
+  try{
+    const data = await wmFetchSettingApi('saveSettingTeacher', payload);
+    setSettingStatus('settingTeacherStatus',(data && data.message) || '교사등록 완료', !!(data && data.success));
+    if(data && data.success){ wmSettingTeacherIdChecked = ''; await loadSettingCenterDB(); }
+  }catch(err){ setSettingStatus('settingTeacherStatus','교사등록 실패: '+(err.message || err)); }
+}
+
+function generateSettingClassId(){
+  const name = String(document.getElementById('settingClassName')?.value || '').trim();
+  const base = name ? name.replace(/[^A-Za-z0-9가-힣]/g,'').slice(0,6).toUpperCase() : 'CLS';
+  const id = base + String(Date.now()).slice(-4);
+  const el = document.getElementById('settingClassId');
+  if(el) el.value = id;
+}
+
+async function saveSettingClass(){
+  const payload = {
+    className: document.getElementById('settingClassName')?.value || '',
+    classId: document.getElementById('settingClassId')?.value || '',
+    teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택'
+  };
+  if(!payload.className.trim()) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
+  if(!payload.classId || payload.classId === '자동생성') generateSettingClassId();
+  payload.classId = document.getElementById('settingClassId')?.value || '';
+  setSettingStatus('settingClassStatus','반등록 저장 중...', true);
+  try{
+    const data = await wmFetchSettingApi('saveSettingClass', payload);
+    setSettingStatus('settingClassStatus',(data && data.message) || '반등록 완료', !!(data && data.success));
+    if(data && data.success) await loadSettingCenterDB();
+  }catch(err){ setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err)); }
+}
+
+function openSettingClassStudentList(className){
+  const box = document.getElementById('settingClassStudentDetail');
   if(!box) return;
-
-  const sample = [
-    ['0001','S0708','김학생','샘플초','4','5-2-4'],
-    ['0002','S0709','이학생','샘플초','4','5-2-3'],
-    ['0003','S0710','박학생','샘플초','5','6-1-1']
-  ];
-
-  box.innerHTML = `
-    <h3 class="wm-class-detail-title">${className} 학생명단</h3>
-    <div class="wm-table-wrap"><table><thead><tr>
-      <th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>최종학습(Set_ID)</th>
-    </tr></thead><tbody>
-      ${sample.map(row=>`<tr>${row.map((cell, idx)=>`<td class="${idx === 0 ? 'wm-student-seq-col' : ''}">${cell}</td>`).join('')}</tr>`).join('')}
-    </tbody></table></div>
-  `;
-  box.classList.add('active');
-  if(typeof applyRole === "function") applyRole(getCurrentRole());
-}
-
-function openClassMoveLog(className){
-  const box = document.getElementById('classMoveLogDetail');
-  const studentBox = document.getElementById('classStudentListDetail');
-  if(studentBox) studentBox.classList.remove('active');
-  if(!box) return;
-
-  const sample = [
-    ['2026-05-30','0001','S0708','김학생','EC001(홍길동) → EC003(김교사)'],
-    ['2026-06-02','0002','S0709','이학생','EC002(김교사) → EC001(홍길동)']
-  ];
-
-  box.innerHTML = `
-    <h3 class="wm-class-detail-title">${className} 반이동기록</h3>
-    <div class="wm-table-wrap"><table><thead><tr>
-      <th>이동일</th><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>이동내용</th>
-    </tr></thead><tbody>
-      ${sample.map(row=>`<tr>${row.map((cell, idx)=>`<td class="${idx === 0 ? 'wm-student-seq-col' : ''}">${cell}</td>`).join('')}</tr>`).join('')}
-    </tbody></table></div>
-  `;
+  const students = (window.wmDashboardRawRows || window.wmStudentManageRows || []).filter(row=>{
+    const cls = String(cellValue ? cellValue(row, headerAliases('반')) : (row['반'] || row['Class'] || row['반명'] || '')).trim();
+    return cls === className;
+  });
+  const body = students.length ? students.map(row=>{
+    const name = cellValue ? cellValue(row, headerAliases('학생이름')) : (row['학생이름'] || '');
+    const id = cellValue ? cellValue(row, headerAliases('학생ID')) : (row['학생ID'] || '');
+    const level = cellValue ? cellValue(row, headerAliases('현재레벨')) : (row['현재레벨'] || row['학습배정'] || '');
+    return '<tr><td>'+escapeHtml(name)+'</td><td>'+escapeHtml(id)+'</td><td>'+escapeHtml(level)+'</td></tr>';
+  }).join('') : '<tr><td colspan="3">학생관리_DB 조회 후 학생명단이 표시됩니다.</td></tr>';
+  box.innerHTML = '<h3 class="wm-class-detail-title">'+escapeHtml(className)+' 학생명단</h3><div class="wm-table-wrap"><table><thead><tr><th>학생이름</th><th>학생ID</th><th>현재레벨</th></tr></thead><tbody>'+body+'</tbody></table></div>';
   box.classList.add('active');
 }
 
-document.addEventListener('DOMContentLoaded', renderClassManageRows);
+document.addEventListener('DOMContentLoaded', loadSettingCenterDB);
 
 /* ===== ROLE FILTER ENGINE V2 ===== */
 const roleFilterConfig = {
@@ -3856,89 +3756,8 @@ function applyRoleDataFilterPreview(){
   console.log('권한필터 적용', getCurrentRole(), info);
 }
 
-showClassSubTab('classMgmt');
-    applyRole('SUPER_ADMIN');
+applyRole('SUPER_ADMIN');
   
-/* ===== SETTINGS DB READ TEST ONLY - DO NOT AUTO RUN ===== */
-const WM_SETTINGS_DB_SHEET_NAME = '7-2.교사학생_DB';
-
-async function testReadSettingsDBOnly() {
-  try {
-    const url = WM_APPS_SCRIPT_URL + '?action=read&sheet=' 
-      + encodeURIComponent(WM_SETTINGS_DB_SHEET_NAME);
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    console.log('교사학생_DB 읽기 테스트 성공/응답:', data);
-    return data;
-  } catch (err) {
-    console.error('교사학생_DB 읽기 테스트 실패:', err);
-    return null;
-  }
-}
-
-  
-/* ===== SETTINGS DB TEST BUTTON ONLY ===== */
-(function createSettingsDBTestButtonOnly(){
-  if(document.getElementById('wmSettingsDbTestBtn')) return;
-
-  const btn = document.createElement('button');
-  btn.id = 'wmSettingsDbTestBtn';
-  btn.textContent = '교사학생DB 테스트';
-  btn.style.position = 'fixed';
-  btn.style.right = '18px';
-  btn.style.bottom = '18px';
-  btn.style.zIndex = '9999';
-  btn.style.border = '0';
-  btn.style.borderRadius = '12px';
-  btn.style.padding = '11px 14px';
-  btn.style.fontWeight = '900';
-  btn.style.cursor = 'pointer';
-  btn.style.background = '#111827';
-  btn.style.color = '#fff';
-
-  btn.onclick = async function(){
-    const data = await testReadSettingsDBOnly();
-    alert(data && data.success ? '교사학생_DB 읽기 성공' : '교사학생_DB 읽기 확인 필요');
-  };
-
-  document.body.appendChild(btn);
-})();
-
-  
-/* ===== TEACHER / STUDENT CREATE FACTORY UI ONLY ===== */
-function showCreateFactory(type){
-  const teacherBox = document.getElementById('teacherCreateFactory');
-  const studentBox = document.getElementById('studentCreateFactory');
-  const teacherBtn = document.getElementById('teacherCreateBtn');
-  const studentBtn = document.getElementById('studentCreateBtn');
-  if(!teacherBox || !studentBox) return;
-
-  teacherBox.classList.toggle('active', type === 'teacher');
-  studentBox.classList.toggle('active', type === 'student');
-  if(teacherBtn) teacherBtn.classList.toggle('active-create', type === 'teacher');
-  if(studentBtn) studentBtn.classList.toggle('active-create', type === 'student');
-  if(type === 'student') {
-    prepareStudentCreateFactory();
-  }
-}
-
-function previewTeacherAutoId(){
-  const role = document.getElementById('teacherRoleForCreate')?.value;
-  const target = document.getElementById('teacherAutoId');
-  if(!target) return;
-
-  const sampleMap = {
-    SUPER_ADMIN: 'SA001',
-    SPECIAL_ADMIN: 'SP001',
-    SUB_LEADER: 'SL001',
-    TEACHER: 'T001'
-  };
-
-  target.value = sampleMap[role] || 'T001';
-}
-
 function setStudentIdCreateStatus(active, text){
   const el = document.getElementById('studentIdCreateStatus');
   if(!el) return;
