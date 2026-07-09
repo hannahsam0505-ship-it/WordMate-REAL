@@ -3742,7 +3742,7 @@ async function checkSettingTeacherIdDuplicate(){
   wmUnlockSettingTeacherIdInput();
   const teacherId = String(document.getElementById('settingTeacherId')?.value || '').trim();
   wmSettingTeacherIdChecked = '';
-  if(!/^[A-Z0-9]{4,10}$/.test(teacherId)){
+  if(!/^[a-zA-Z0-9]{4,10}$/.test(teacherId)){
     setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
     return false;
   }
@@ -3773,7 +3773,7 @@ async function saveSettingTeacher(){
     className: document.getElementById('settingTeacherClass')?.value || '추후선택'
   };
   if(!payload.teacherName.trim()) return setSettingStatus('settingTeacherStatus','교사명을 입력하세요.');
-  if(!/^[A-Z0-9]{4,10}$/.test(payload.teacherId)) return setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
+  if(!/^[a-zA-Z0-9]{4,10}$/.test(payload.teacherId)) return setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
   if(wmSettingTeacherIdChecked !== payload.teacherId) return setSettingStatus('settingTeacherStatus','교사ID 중복확인을 먼저 진행하세요.');
   if(!/^[0-9]{4}$/.test(payload.password)) return setSettingStatus('settingTeacherStatus','비밀번호는 숫자 4자리입니다.');
   setSettingStatus('settingTeacherStatus','교사등록 저장 중...', true);
