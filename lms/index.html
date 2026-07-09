@@ -3626,7 +3626,7 @@ function wmNormalizeSettingTeacherId(){
   const el = document.getElementById('settingTeacherId');
   if(!el) return '';
   wmUnlockSettingTeacherIdInput();
-  const id = String(el.value || '').replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
+  const id = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
   el.value = id;
   wmSettingTeacherIdChecked = '';
   if(id){ setSettingStatus('settingTeacherStatus','중복확인이 필요합니다.'); }
@@ -3647,7 +3647,7 @@ function makeSettingTeacherLocalId(){
   for(let i=0;i<200;i++){
     const candidate = 'T' + String(Date.now()).slice(-5) + String(i).padStart(2,'0');
     const id = candidate.slice(0,10).toUpperCase();
-    if(/^[A-Z0-9]{4,10}$/.test(id) && !used.has(id)) return id;
+    if(/^[a-zA-Z0-9]{4,10}$/.test(id) && !used.has(id)) return id;
   }
   return '';
 }
@@ -3865,7 +3865,7 @@ function normalizeWordMateStudentId(value){
 
 function isValidWordMateStudentId(value){
   const id = normalizeWordMateStudentId(value);
-  return /^[A-Z0-9]{4,10}$/.test(id);
+  return /^[a-zA-Z0-9]{4,10}$/.test(id);
 }
 
 function wmNormalizeStudentIdInputForCreate(){
