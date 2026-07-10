@@ -4113,6 +4113,142 @@ function resetHomeworkFilters(){
   console.groupEnd();
 })();
 
+
+/* ==========================================================
+   🔒 WM SPEED LOCK V1 - MAP VERIFIED MODULES / 실제 실행 LOCK
+   적용대상: 학습맵 초기표시·학습기록 동시표시·검색
+   제외대상: Study·학습시작·학습맵 복귀·학습히스토리
+   ========================================================== */
+(function wmApplyMapSpeedLockV1_(){
+  'use strict';
+
+  var VERSION = 'WM_SPEED_LOCK_V1.0';
+  var DATE = '2026-07-10';
+  var GROUPS = Object.freeze({
+    mapInitialSpeed: Object.freeze([
+      'wmFetchLearningMap',
+      'wmHandleLearningMapResponse',
+      'wmApplyLearningMapFromCurrentProgressCache_',
+      'wmNormalizeCurrentProgressCache_',
+      'wmStopMapLoadingState_'
+    ]),
+    learningRecordParallelSpeed: Object.freeze([
+      'wmLoadLearningRecordsDirectForMap_',
+      'wmPickLearningRecordsFromPayload_',
+      'renderHomeworkTable'
+    ]),
+    searchSpeed: Object.freeze([
+      'wmInitHomeworkSearchEnterKey',
+      'filterHomeworkRecords',
+      'resetHomeworkFilters',
+      'normalizeDateText',
+      'getWeekOfMonth',
+      'normalizeSetId',
+      'getLevelFromSetId'
+    ])
+  });
+
+  var LABELS = Object.freeze({
+    mapInitialSpeed: '학습맵 초기 표시 속도개선',
+    learningRecordParallelSpeed: '학습기록 동시 표시 속도개선',
+    searchSpeed: '검색 속도개선'
+  });
+
+  var functionResults = {};
+  var moduleResults = {};
+  var allLocked = true;
+
+  function protect(name){
+    var fn = window[name];
+    if(typeof fn !== 'function'){
+      return {locked:false, reason:'함수 없음'};
+    }
+
+    try{
+      var before = Object.getOwnPropertyDescriptor(window, name);
+      if(!before || before.configurable !== false || before.writable !== false){
+        Object.defineProperty(window, name, {
+          value: fn,
+          writable: false,
+          configurable: false,
+          enumerable: true
+        });
+      }
+    }catch(err){
+      return {locked:false, reason:err && err.message ? err.message : 'defineProperty 실패'};
+    }
+
+    var descriptor = Object.getOwnPropertyDescriptor(window, name);
+    var locked = !!descriptor && descriptor.value === fn && descriptor.writable === false && descriptor.configurable === false;
+    return {locked:locked, reason:locked ? '' : '속성 검증 실패'};
+  }
+
+  Object.keys(GROUPS).forEach(function(group){
+    var names = GROUPS[group];
+    var count = 0;
+    names.forEach(function(name){
+      var result = protect(name);
+      functionResults[name] = result;
+      if(result.locked) count += 1;
+      else allLocked = false;
+    });
+    moduleResults[group] = Object.freeze({
+      label: LABELS[group],
+      locked: count === names.length,
+      lockedCount: count,
+      totalCount: names.length
+    });
+  });
+
+  var frozenModules = Object.freeze(moduleResults);
+  var frozenFunctions = Object.freeze(functionResults);
+
+  try{
+    Object.defineProperty(window, 'WM_MAP_SPEED_LOCK_GROUPS', {value:GROUPS,writable:false,configurable:false});
+    Object.defineProperty(window, 'WM_MAP_SPEED_LOCK_RESULTS', {value:frozenModules,writable:false,configurable:false});
+    Object.defineProperty(window, 'WM_MAP_SPEED_LOCK_FUNCTION_RESULTS', {value:frozenFunctions,writable:false,configurable:false});
+    Object.defineProperty(window, 'WM_MAP_SPEED_LOCK_VERSION', {value:VERSION,writable:false,configurable:false});
+    Object.defineProperty(window, 'WM_MAP_SPEED_LOCK_DATE', {value:DATE,writable:false,configurable:false});
+  }catch(err){
+    allLocked = false;
+  }
+
+  function printStatus(){
+    var table = {};
+    Object.keys(frozenModules).forEach(function(group){
+      var item = frozenModules[group];
+      table[item.label] = item.locked
+        ? '✅ ' + item.lockedCount + '/' + item.totalCount + ' ACTUAL LOCK'
+        : '❌ ' + item.lockedCount + '/' + item.totalCount + ' LOCK CHECK';
+    });
+    table['로그인 속도개선'] = '✅ 로그인 파일에서 별도 실제 LOCK';
+    table['Study / 학습맵 복귀'] = '⏸ 이번 LOCK 제외';
+
+    console.group('🔒 WORD MATE SPEED LOCK STATUS');
+    console.log('LOCK VERSION : ' + VERSION);
+    console.log('LOCK DATE    : ' + DATE);
+    console.table(table);
+    if(!allLocked){
+      var failed = {};
+      Object.keys(frozenFunctions).forEach(function(name){
+        if(!frozenFunctions[name].locked) failed[name] = frozenFunctions[name].reason || 'LOCK 실패';
+      });
+      console.table(failed);
+    }
+    console.log(allLocked ? '🔒 SPEED LOCK VERIFIED' : '⚠️ SPEED LOCK CHECK REQUIRED');
+    console.log('LOCKED SPEED MODULES : 로그인 / 학습맵 초기표시 / 학습기록 동시표시 / 검색');
+    console.log('EXCLUDED : Study / 학습시작 / 학습맵 복귀 / 학습히스토리');
+    console.groupEnd();
+  }
+
+  try{
+    Object.defineProperty(window, 'wmLogSpeedLockStatus', {value:printStatus,writable:false,configurable:false});
+  }catch(err){}
+
+  printStatus();
+  document.addEventListener('DOMContentLoaded', printStatus, {once:true});
+})();
+
 wmForceHomeworkBottomFixedBarOnFirstView();
 wmInitHomeworkSearchEnterKey();
 wmInitLearningMap();
