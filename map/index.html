@@ -2232,6 +2232,11 @@ function wmHandleLearningMapResponse(data){
 function wmFetchLearningMap(studentId){
   wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
 
+  /* WM_SPEED_MAP_RECORDS_PARALLEL_V1_20260710
+     학습맵 현재진행_DB 조회와 하단 학습기록_DB 조회를 동시에 시작합니다.
+     기존처럼 맵 응답 완료 뒤 기록 조회를 시작하지 않아 하단 기록 대기시간을 줄입니다. */
+  wmLoadLearningRecordsDirectForMap_('parallel-initial-load');
+
   /* WM_GET_LEARNING_MAP_CACHE_ONLY_V2
      현재진행_DB 안정화: Map은 getLearningMapCacheData만 호출합니다.
      getLearningMapData fallback은 학습기록_DB 계산으로 되돌아가 속도저하/상태꼬임을 만들 수 있어 차단합니다. */
@@ -3616,8 +3621,9 @@ async function startStudy(setId){
     return;
   }
 
-  const sessionOk = await wmCheckCurrentSession();
-  if(!sessionOk) return;
+  /* WM_SPEED_STUDY_DIRECT_ROUTE_V1_20260710
+     Study 화면 자체에서 진입 즉시 세션을 다시 검증하므로, Map에서 동일 세션 API를
+     한 번 더 기다리지 않고 바로 이동합니다. 중복 네트워크 왕복만 제거합니다. */
 
   /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_67_V1
      Apps Script exec로 직접 이동하면 Google 안내 배너가 노출되므로
