@@ -909,10 +909,8 @@ let audioGapTimer = null;
 let audioRepeatCount = 0;
 let audioMaxRepeat = Infinity;
 let currentAudioItem = null;
-/* WM_STUDY_AUDIO_ENGINE_V2_20260710
-   모든 세트(10단어/20단어)에 동일 적용되는 단일 재생 공식입니다.
-   새 재생이 시작되면 이전 비동기 seek/반복/대기 작업을 토큰으로 즉시 무효화합니다. */
-let wmAudioPlayToken = 0;
+/* WM_STUDY_AUDIO_DIAGNOSTIC_READONLY_20260710
+   F12 확인용 출력만 수행하며 재생·seek·반복 흐름에는 개입하지 않습니다. */
 let wmAudioDebugEnabled = true;
 let isDbReady = false;
 let isDbLoading = false;
@@ -1478,7 +1476,6 @@ function wmAudioLog(eventName, detail = {}){
   try{
     console.log("[WM AUDIO] " + eventName, {
       setId: currentSetId,
-      token: detail.token ?? wmAudioPlayToken,
       word: detail.word || (currentAudioItem && currentAudioItem.word) || "",
       start: detail.start,
       end: detail.end,
@@ -1489,28 +1486,20 @@ function wmAudioLog(eventName, detail = {}){
   }catch(err){}
 }
 
-function wmIsAudioTokenActive(token){
-  return token === wmAudioPlayToken && !!currentAudioItem;
-}
-
-function stopWordAudio(reason = "manual-stop"){
-  wmAudioPlayToken++;
+function stopWordAudio(){
+  wmAudioLog("STOP", {reason:"stopWordAudio"});
   clearInterval(audioTimer);
   clearTimeout(audioGapTimer);
   audioTimer = null;
   audioGapTimer = null;
   audioRepeatCount = 0;
   currentAudioItem = null;
-  if(wordAudio){
-    try{ wordAudio.pause(); }catch(err){}
-  }
-  wmAudioLog("STOP", { token:wmAudioPlayToken, reason });
+  if(wordAudio) wordAudio.pause();
 }
 
-function waitForAudioReady(audio, token){
+function waitForAudioReady(audio){
   return new Promise((resolve, reject)=>{
     if(!audio){ reject(new Error("audio element 없음")); return; }
-    if(!wmIsAudioTokenActive(token)){ reject(new Error("audio token cancelled")); return; }
     if(audio.readyState >= 1){ resolve(); return; }
 
     const timer = setTimeout(()=>{
@@ -1525,11 +1514,7 @@ function waitForAudioReady(audio, token){
       audio.removeEventListener("error", onError);
     }
 
-    function onReady(){
-      cleanup();
-      if(!wmIsAudioTokenActive(token)){ reject(new Error("audio token cancelled")); return; }
-      resolve();
-    }
+    function onReady(){ cleanup(); resolve(); }
     function onError(){ cleanup(); reject(new Error("audio load error")); }
 
     audio.addEventListener("loadedmetadata", onReady, {once:true});
@@ -1539,143 +1524,65 @@ function waitForAudioReady(audio, token){
   });
 }
 
-function wmWaitForSeek(audio, targetTime, token){
-  return new Promise((resolve, reject)=>{
-    if(!wmIsAudioTokenActive(token)){ reject(new Error("audio token cancelled")); return; }
-
-    let finished = false;
-    const timeoutId = setTimeout(()=>finish(false, new Error("audio seek timeout")), 2500);
-
-    function cleanup(){
-      clearTimeout(timeoutId);
-      audio.removeEventListener("seeked", onSeeked);
-      audio.removeEventListener("error", onError);
-    }
-    function finish(ok, error){
-      if(finished) return;
-      finished = true;
-      cleanup();
-      if(error) reject(error); else resolve(ok);
-    }
-    function onSeeked(){
-      if(!wmIsAudioTokenActive(token)){ finish(false, new Error("audio token cancelled")); return; }
-      finish(true);
-    }
-    function onError(){ finish(false, new Error("audio seek error")); }
-
-    audio.addEventListener("seeked", onSeeked, {once:true});
-    audio.addEventListener("error", onError, {once:true});
-
-    try{
-      if(Math.abs(Number(audio.currentTime || 0) - targetTime) <= 0.015){
-        finish(true);
-        return;
-      }
-      audio.currentTime = targetTime;
-    }catch(error){
-      finish(false, error);
-    }
-  });
-}
-
-function wmWaitForAudioEnd(audio, endTime, token){
-  return new Promise(resolve=>{
-    let finished = false;
-    const startedAt = performance.now();
-    const expectedMs = Math.max(250, (endTime - Number(audio.currentTime || 0)) * 1000 + 700);
-
-    function cleanup(){
-      if(audioTimer){ clearInterval(audioTimer); audioTimer = null; }
-    }
-    function finish(reason){
-      if(finished) return;
-      finished = true;
-      cleanup();
-      resolve(reason);
-    }
-
-    audioTimer = setInterval(()=>{
-      if(!wmIsAudioTokenActive(token)){ finish("token-cancelled"); return; }
-      const now = Number(audio.currentTime || 0);
-      if(now >= endTime - 0.015){ finish("segment-end"); return; }
-      if(audio.ended){ finish("audio-ended"); return; }
-      if(performance.now() - startedAt > expectedMs){ finish("watch-timeout"); }
-    }, 20);
-  });
-}
-
-function wmAudioDelay(ms, token){
-  return new Promise(resolve=>{
-    audioGapTimer = setTimeout(()=>{
-      audioGapTimer = null;
-      resolve(wmIsAudioTokenActive(token));
-    }, ms);
-  });
-}
-
 async function playWordSegment(item, maxRepeat = 5){
   if(!item) return;
 
   const start = Number(item.start);
   const end = Number(item.end);
-  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start){
-    wmAudioLog("INVALID_RANGE", {word:item.word, start, end, reason:"invalid start/end"});
-    return;
-  }
-  if(!wordAudio || !wordAudio.src){
-    wmAudioLog("NO_SOURCE", {word:item.word, start, end, reason:"audio source missing"});
-    return;
-  }
+  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+  if(!wordAudio || !wordAudio.src) return;
 
-  stopWordAudio("new-play-request");
-  const token = ++wmAudioPlayToken;
+  wmAudioLog("REQUEST", {word:item.word, start, end, repeat:maxRepeat});
+  stopWordAudio();
+
   currentAudioItem = item;
   audioRepeatCount = 0;
-  audioMaxRepeat = Math.max(1, Number(maxRepeat) || 1);
+  audioMaxRepeat = maxRepeat;
   wordAudio.playbackRate = 1;
 
-  wmAudioLog("REQUEST", {token, word:item.word, start, end, repeat:audioMaxRepeat});
-
   try{
-    await waitForAudioReady(wordAudio, token);
+    await waitForAudioReady(wordAudio);
   }catch(error){
-    if(String(error && error.message || "").includes("cancelled")) return;
-    console.error("[WM AUDIO] READY ERROR", error);
+    console.error(error);
     return;
   }
 
-  for(let round = 1; round <= audioMaxRepeat; round++){
-    if(!wmIsAudioTokenActive(token)) return;
+  async function playOneRound(){
+    if(!currentAudioItem) return;
 
     try{
       wordAudio.pause();
-      await wmWaitForSeek(wordAudio, start, token);
-      if(!wmIsAudioTokenActive(token)) return;
-
-      wmAudioLog("SEEK_OK", {token, word:item.word, start, end, repeat:round});
+      wordAudio.currentTime = start;
       await wordAudio.play();
-      wmAudioLog("PLAY", {token, word:item.word, start, end, repeat:round});
+      wmAudioLog("PLAY", {word:item.word, start, end, repeat:audioRepeatCount + 1});
     }catch(error){
-      if(String(error && error.message || "").includes("cancelled")) return;
-      console.error("[WM AUDIO] PLAY ERROR", error);
+      console.error(error);
       return;
     }
 
-    const endReason = await wmWaitForAudioEnd(wordAudio, end, token);
-    if(!wmIsAudioTokenActive(token)) return;
+    while(currentAudioItem && wordAudio.currentTime < end){
+      await new Promise(resolve => setTimeout(resolve, 80));
+    }
 
-    try{ wordAudio.pause(); }catch(err){}
-    audioRepeatCount = round;
-    wmAudioLog("ROUND_END", {token, word:item.word, start, end, repeat:round, reason:endReason});
+    if(!currentAudioItem) return;
+    wordAudio.pause();
+    audioRepeatCount++;
+    wmAudioLog("ROUND_END", {word:item.word, start, end, repeat:audioRepeatCount});
 
-    if(round >= audioMaxRepeat){
-      stopWordAudio("repeat-complete");
+    if(audioRepeatCount >= audioMaxRepeat){
+      stopWordAudio();
       return;
     }
 
-    const stillActive = await wmAudioDelay(1000, token);
-    if(!stillActive) return;
+    await new Promise(resolve=>{
+      audioGapTimer = setTimeout(resolve, 1000);
+    });
+
+    if(!currentAudioItem) return;
+    playOneRound();
   }
+
+  playOneRound();
 }
 
 
