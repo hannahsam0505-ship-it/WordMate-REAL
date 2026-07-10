@@ -43,7 +43,7 @@ const WM_ENV = 'REAL';
     search: true,                 // 검색 기능 LOCK
     studentInfo: true,            // 학생정보 표시·연결 LOCK
     currentProgressDB: true,       // 현재진행_DB 연동 LOCK
-    learningHistory: true,         // 학습히스토리 표시·계산 LOCK
+    learningHistory: false,        // 학습히스토리 LOCK 보류(기능 작업 중)
     learningRecordDB: true,        // 학습기록_DB 연동 LOCK
     studyStart: true,              // 학습시작 및 진입 조건 LOCK
     mapReturn: true,               // 학습맵 복귀 경로 LOCK
@@ -3787,25 +3787,32 @@ function resetHomeworkFilters(){
 
 
 /* ==========================================================
-   🔒 MAP ACTUAL FUNCTION LOCK - PHASE 1 / 수정 금지
+   🔒 MAP ACTUAL FUNCTION LOCK - PHASE 1 + PHASE 2 / 수정 금지
 
-   [이번 실제 LOCK 범위]
-   1) 검색 모듈
-   2) 학생정보 로딩 모듈
-   3) 현재진행_DB 연동 모듈
+   [실제 LOCK 완료 범위]
+   1) 검색
+   2) 학생정보 로딩
+   3) 현재진행_DB
+   4) 학습기록_DB
+   5) 진행률 계산
+   6) 학습시작
+   7) 학습맵 진입·이탈 경로
+
+   [LOCK 보류]
+   - 학습히스토리: 기능 작업 완료 후 마지막에 실제 LOCK 적용
 
    [보호 방식]
    - 아래 핵심 전역 함수의 현재 실행본을 그대로 유지합니다.
    - 함수명 재할당 및 delete를 차단합니다.
    - 기존 함수 내부 로직·호출 순서·반환값은 변경하지 않습니다.
-   - F12 Console에서 함수별 실제 속성(writable/configurable)을 검사합니다.
+   - F12 Console에서 모듈별 함수 수와 실제 속성을 검사합니다.
 
-   ⚠️ 이 영역은 세 모듈의 정상 동작 검증 후 수정하지 않습니다.
+   ⚠️ 이 영역은 정상 동작 검증 후 수정하지 않습니다.
    ========================================================== */
-(function wmApplyMapActualLockPhase1_(){
+(function wmApplyMapActualLockPhase1And2_(){
   'use strict';
 
-  var WM_MAP_ACTUAL_LOCK_VERSION = 'MAP_ACTUAL_LOCK_PHASE1_V1.0';
+  var WM_MAP_ACTUAL_LOCK_VERSION = 'MAP_ACTUAL_LOCK_PHASE1_2_V1.0';
   var WM_MAP_ACTUAL_LOCK_DATE = '2026-07-10';
 
   var WM_MAP_ACTUAL_LOCK_GROUPS = Object.freeze({
@@ -3838,13 +3845,58 @@ function resetHomeworkFilters(){
       'wmApplyLearningMapFromCurrentProgressCache_',
       'wmHandleLearningMapResponse',
       'wmFetchLearningMap'
+    ]),
+    learningRecordDB: Object.freeze([
+      'wmLoadLearningRecordsDirectForMap_',
+      'wmNormalizeLearningRecordForBottomTable_',
+      'wmGetLearningRecordSortTime_',
+      'wmSortLearningRecordsDesc_',
+      'updateRecentScore',
+      'wmNormalizeLearningRecordDateText_',
+      'wmGetHomeworkPeriodRange_',
+      'wmGetHomeworkPeriodDateTextByMonthsAgo_',
+      'wmApplyHomeworkDefaultPeriod_',
+      'wmRenderCurrentProgressGuide_',
+      'wmUpdateHomeworkPager_',
+      'wmMoveHomeworkPage_',
+      'renderHomeworkTable',
+      'wmBuildEmptyLearningRecordFromProfile',
+      'wmGetFirstSetIdForCurrentLevel',
+      'wmFormatScoreWithPoint_',
+      'wmRenderHomeworkRow',
+      'wmInitHomeworkTopScrollbar',
+      'wmForceHomeworkBottomFixedBarOnFirstView',
+      'showSetDetail',
+      'printRecords'
+    ]),
+    progressCalculation: Object.freeze([
+      'wmBuildSequentialDisplayRoundMapForMap_',
+      'wmGetDisplayRoundForBlock_',
+      'wmApplyLearningMapStatus',
+      'getRepeatCountFromRecords',
+      'getProgressFromStatus',
+      'updateProgress'
+    ]),
+    studyStart: Object.freeze([
+      'wmCheckCurrentSession',
+      'startStudy'
+    ]),
+    mapReturn: Object.freeze([
+      'wmInitLearningMap',
+      'wmBuildLoginUrl',
+      'wmGoLoginAfterSessionExpired',
+      'wmLogout'
     ])
   });
 
   var WM_MAP_ACTUAL_LOCK_LABELS = Object.freeze({
     search: '검색',
     studentInfo: '학생정보 로딩',
-    currentProgressDB: '현재진행_DB'
+    currentProgressDB: '현재진행_DB',
+    learningRecordDB: '학습기록_DB',
+    progressCalculation: '진행률 계산',
+    studyStart: '학습시작',
+    mapReturn: '학습맵 진입·이탈 경로'
   });
 
   function wmProtectGlobalFunction_(functionName){
@@ -3888,7 +3940,7 @@ function resetHomeworkFilters(){
 
   var functionResults = {};
   var moduleResults = {};
-  var allPhase1Locked = true;
+  var allCompletedModulesLocked = true;
 
   Object.keys(WM_MAP_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
     var names = WM_MAP_ACTUAL_LOCK_GROUPS[groupKey];
@@ -3901,7 +3953,7 @@ function resetHomeworkFilters(){
       if(result.locked){
         lockedCount += 1;
       }else{
-        allPhase1Locked = false;
+        allCompletedModulesLocked = false;
       }
     });
 
@@ -3947,7 +3999,7 @@ function resetHomeworkFilters(){
       configurable: false
     });
   }catch(err){
-    allPhase1Locked = false;
+    allCompletedModulesLocked = false;
     console.error('MAP ACTUAL LOCK REGISTRY ERROR:', err && err.message ? err.message : err);
   }
 
@@ -3958,13 +4010,14 @@ function resetHomeworkFilters(){
       ? '✅ ' + item.lockedCount + '/' + item.totalCount + ' ACTUAL LOCK'
       : '❌ ' + item.lockedCount + '/' + item.totalCount + ' LOCK CHECK';
   });
+  moduleConsole['학습히스토리'] = '⏸ LOCK 보류 (기능 작업 중)';
 
   console.group('🔒 WORD MATE MAP ACTUAL FUNCTION LOCK STATUS');
   console.log('LOCK VERSION : ' + WM_MAP_ACTUAL_LOCK_VERSION);
   console.log('LOCK DATE    : ' + WM_MAP_ACTUAL_LOCK_DATE);
   console.table(moduleConsole);
 
-  if(!allPhase1Locked){
+  if(!allCompletedModulesLocked){
     var failedConsole = {};
     Object.keys(frozenFunctionResults).forEach(function(functionName){
       var item = frozenFunctionResults[functionName];
@@ -3975,13 +4028,13 @@ function resetHomeworkFilters(){
     console.table(failedConsole);
   }
 
-  console.log(allPhase1Locked
-    ? '🔒 PHASE 1 ALL LOCK VERIFIED (검색 · 학생정보 로딩 · 현재진행_DB)'
-    : '⚠️ PHASE 1 LOCK CHECK REQUIRED');
-  console.log('FULL MAP ACTUAL LOCK PROGRESS : 3 / 8 MODULES');
+  console.log(allCompletedModulesLocked
+    ? '🔒 COMPLETED MODULES ALL LOCK VERIFIED (학습히스토리 제외)'
+    : '⚠️ ACTUAL LOCK CHECK REQUIRED');
+  console.log('FULL MAP ACTUAL LOCK PROGRESS : 7 / 8 MODULES');
+  console.log('PENDING MODULE : 학습히스토리');
   console.groupEnd();
 })();
-
 
 wmForceHomeworkBottomFixedBarOnFirstView();
 wmInitHomeworkSearchEnterKey();
