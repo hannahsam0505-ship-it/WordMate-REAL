@@ -1786,6 +1786,21 @@ function wmApplyCurrentProgressDisplayOverrideToSetData_(){
   }
 }
 
+/* ==========================================================
+   WM HISTORY RULE V1 / 학습히스토리 공식 규칙
+   ----------------------------------------------------------
+   1. 학습히스토리는 현재진행_DB 한 행만 사용합니다.
+   2. 히스토리레벨과 히스토리횟수는 같은 인덱스로 1:1 매칭합니다.
+   3. 히스토리레벨의 마지막 값은 현재레벨입니다.
+   4. 마지막 이전 레벨은 모두 완료레벨이며 항상 초록으로 표시합니다.
+   5. 히스토리횟수는 색상 판정값이 아니라 완료횟수 표시값입니다.
+   6. 마지막 현재레벨은 완료횟수 대신 레벨진행률을 표시합니다.
+   7. 학습기록_DB에서 히스토리를 재계산하거나 보정하지 않습니다.
+   8. 실제 기능 검증 완료 전 learningHistory LOCK은 false를 유지합니다.
+   ========================================================== */
+const WM_HISTORY_RULE_VERSION = 'WM_HISTORY_RULE_V1.0';
+const WM_HISTORY_RULE_DATE = '2026-07-10';
+
 function wmParsePipeNumberListForHistory_(value, keepZero){
   if(Array.isArray(value)){
     return value.map(function(item){ return Number(String(item || '').match(/\d+/) ? String(item || '').match(/\d+/)[0] : item); }).filter(function(n){ return Number.isFinite(n) && (keepZero ? n >= 0 : n > 0); });
@@ -1801,9 +1816,9 @@ function wmParsePipeNumberListForHistory_(value, keepZero){
 function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   raw = raw || {};
 
-  /* WM_CURRENT_PROGRESS_HISTORY_DIRECT_RENDER_26070739
-     학습히스토리는 현재진행_DB가 이미 계산해 둔 히스토리레벨/히스토리횟수만 사용합니다.
-     학습기록_DB 재계산, 레벨 중복제거, 완료조건 재판단을 여기서 하지 않습니다. */
+  /* WM_CURRENT_PROGRESS_HISTORY_DIRECT_RENDER_V1
+     현재진행_DB가 저장한 히스토리레벨/히스토리횟수를 그대로 사용합니다.
+     학습기록_DB 재조회·중복제거·색상 재판정은 금지합니다. */
   let levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(
     raw.히스토리레벨,
     raw['히스토리레벨'],
@@ -1827,22 +1842,60 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   ), true);
 
   const latest = Number(String(wmPickFirstValue_(raw.현재레벨, raw.currentLevel, raw.level, latestLevel, 0)).replace(/[^0-9]/g, '')) || 0;
+  const warnings = [];
+
+  if(levels.length !== rounds.length){
+    warnings.push('HISTORY LEVEL/COUNT LENGTH MISMATCH');
+  }
+
+  /* 길이가 다르면 존재하는 레벨 수에 맞춰 누락 횟수만 0으로 보완합니다.
+     레벨 자체를 학습기록_DB에서 만들거나 추측하지 않습니다. */
+  rounds = levels.map(function(level, index){
+    const round = Number(rounds[index] || 0);
+    return Number.isFinite(round) && round >= 0 ? round : 0;
+  });
 
   if(!levels.length && latest && WM_LEVEL_CONFIG[latest]){
     levels = [latest];
-    rounds = [Number(wmPickFirstValue_(raw.순차완주회차, raw.sequentialRound, raw.완료회차, 0)) || 0];
+    rounds = [Number(wmPickFirstValue_(raw.레벨완료횟수, raw.levelCompleteCount, raw.순차완주회차, raw.sequentialRound, 0)) || 0];
+    warnings.push('HISTORY LEVEL EMPTY - CURRENT LEVEL ONLY');
   }
 
   const pairs = levels.map(function(level, index){
     return { level:Number(level), round:Number(rounds[index] || 0) };
-  }).filter(function(item){ return !!WM_LEVEL_CONFIG[item.level]; });
+  }).filter(function(item){
+    return !!WM_LEVEL_CONFIG[item.level];
+  });
 
-  return {
+  const historyCurrentLevel = pairs.length ? pairs[pairs.length - 1].level : latest;
+  if(latest && historyCurrentLevel && latest !== historyCurrentLevel){
+    warnings.push('HISTORY LAST LEVEL/CURRENT LEVEL MISMATCH');
+  }
+
+  const result = {
     levels: pairs.map(function(item){ return item.level; }),
+    rounds: pairs.map(function(item){ return item.round; }),
     roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {}),
-    currentLevel: pairs.length ? pairs[pairs.length - 1].level : latest,
-    levelProgress: wmParseProgressPercentNumber_(wmPickFirstValue_(raw.레벨진행률, raw.levelProgress, raw.progressPercent, 0))
+    currentLevel: historyCurrentLevel || latest,
+    officialCurrentLevel: latest,
+    levelProgress: wmParseProgressPercentNumber_(wmPickFirstValue_(raw.레벨진행률, raw.levelProgress, raw.progressPercent, 0)),
+    valid: warnings.length === 0,
+    warnings: warnings
   };
+
+  if(warnings.length){
+    console.warn('⚠️ WM HISTORY DATA CHECK', warnings, result);
+  }else{
+    console.log('📚 WM HISTORY DATA VERIFIED', {
+      version: WM_HISTORY_RULE_VERSION,
+      levels: result.levels.join('|'),
+      rounds: result.rounds.join('|'),
+      currentLevel: result.currentLevel,
+      levelProgress: result.levelProgress + '%'
+    });
+  }
+
+  return result;
 }
 
 function wmParseRecent30Records_(value){
@@ -2898,34 +2951,25 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     : null;
 
   const latestLevel = Number(
-    latestLevelOverride ||
     (cacheHistory && cacheHistory.currentLevel) ||
+    latestLevelOverride ||
     currentLevelNumber ||
     0
   );
 
+  /* WM_HISTORY_CURRENT_PROGRESS_DB_ONLY_V1
+     히스토리 버튼 목록은 현재진행_DB의 히스토리레벨만 사용합니다.
+     records/setStatusMap은 함수 호환을 위해 인자로 남겨두되 히스토리 생성에는 사용하지 않습니다. */
   let levels = cacheHistory
     ? cacheHistory.levels.map(function(level){ return Number(level || 0); })
     : [];
-
-  if(!levels.length){
-    levels = wmGetRecordLevelListForHistory_(records, latestLevel);
-  }
-
-  const seen = {};
-  levels = levels.filter(function(level){
-    const n = Number(level || 0);
-    if(!WM_LEVEL_CONFIG[n] || seen[n]) return false;
-    seen[n] = true;
-    return true;
-  }).sort(function(a,b){ return a-b; });
 
   if(!levels.length && WM_LEVEL_CONFIG[latestLevel]){
     levels = [latestLevel];
   }
   if(!levels.length) return;
 
-  const currentHistoryLevel = levels.indexOf(latestLevel) >= 0 ? latestLevel : levels[levels.length - 1];
+  const currentHistoryLevel = levels[levels.length - 1];
   const levelProgress = Math.max(0, Math.min(100, Math.round(Number(
     (cacheHistory && cacheHistory.levelProgress) ||
     (wmCurrentProgressDisplayOverride && wmCurrentProgressDisplayOverride.levelProgress) ||
@@ -2933,14 +2977,10 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   ))));
   const roundsByLevel = (cacheHistory && cacheHistory.roundsByLevel) || {};
 
-  /* WM_HISTORY_DIRECT_DB_RENDER_FIX_26070748
-     원인: 이전 함수는 히스토리레벨을 읽은 뒤에도 records/levelDone 공식으로 다시 판정했습니다.
-     그래서 현재진행_DB에 4|5가 있어도 과거 버튼 렌더가 공식 결과에 묶였습니다.
-     수정: 히스토리레벨 값이 있으면 그 값 자체를 버튼 목록으로 확정하고, 현재 레벨이 아닌 과거 레벨은 초록 버튼으로 렌더합니다. */
-  bar.innerHTML = levels.map(function(level){
-    const isCurrentHistory = Number(level) === Number(currentHistoryLevel);
+  bar.innerHTML = levels.map(function(level, index){
+    const isCurrentHistory = index === levels.length - 1;
     const isActive = Number(currentLevelNumber) === Number(level);
-    const round = Math.max(0, Math.min(3, Number(roundsByLevel[level] || 0)));
+    const round = Math.max(0, Number(roundsByLevel[level] || 0));
     const cls = isCurrentHistory ? 'level-current' : 'level-done';
     const activeCls = isActive ? ' level-history-active' : '';
     const strongId = isCurrentHistory ? ' id="levelPercent"' : '';
@@ -2953,9 +2993,17 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
   }).join('');
 
   wmSaveLevelHistoryList_(levels);
-  wmHistoryCompletedLevel = levels.length >= 2 ? levels[0] : 0;
+  wmHistoryCompletedLevel = levels.length >= 2 ? levels[levels.length - 2] : 0;
   wmHistoryCurrentLevel = currentHistoryLevel;
+
+  console.log('📚 WM HISTORY RENDERED', {
+    completedLevels: levels.slice(0, -1),
+    currentLevel: currentHistoryLevel,
+    levelProgress: levelProgress + '%',
+    rule: '완료레벨=초록+완료횟수 / 마지막 현재레벨=진행률'
+  });
 }
+
 function wmSwitchHistoryLevel_(levelNumber, completedView){
   levelNumber = Number(levelNumber || 0);
   if(!WM_LEVEL_CONFIG[levelNumber] || !wmLastLearningMapData) return;
