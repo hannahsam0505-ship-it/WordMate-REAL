@@ -3805,6 +3805,18 @@ function wmApplySettingCenterRoleUI(role, allowedGrades){
   }
   if(teacherBox) teacherBox.style.display = canRegister ? '' : 'none';
   if(classBox) classBox.style.display = canRegister ? '' : 'none';
+  const leaderSelect = document.getElementById('settingTeacherLeader');
+  if(leaderSelect){
+    const teacher = window.WM_LMS_AUTH_TEACHER || {};
+    if(normalizedRole === 'SUB_LEADER'){
+      const ownLeader = String(teacher.이름 || teacher.교사ID || '').trim();
+      leaderSelect.innerHTML = '<option value="'+escapeHtml(ownLeader)+'">'+escapeHtml(ownLeader)+'</option>';
+      leaderSelect.value = ownLeader;
+      leaderSelect.disabled = true;
+    }else{
+      leaderSelect.disabled = false;
+    }
+  }
 }
 
 function fillSettingSelectOptions(allowedGrades){
@@ -3953,25 +3965,6 @@ document.addEventListener('DOMContentLoaded', function(){
   if(document.body.classList.contains('wm-lms-authenticated')) loadSettingCenterDB();
 });
 
-/* ===== ROLE FILTER ENGINE V2 ===== */
-const roleFilterConfig = {
-  SUPER_ADMIN:{mode:'ALL'},
-  SPECIAL_ADMIN:{mode:'ALL'},
-  SUB_LEADER:{leader:'김리더'},
-  TEACHER:{teacher:'홍길동'}
-};
-
-function getCurrentRoleFilter(){
-  return roleFilterConfig[getCurrentRole()] || {mode:'ALL'};
-}
-
-function applyRoleDataFilterPreview(){
-  const info = getCurrentRoleFilter();
-  console.log('권한필터 적용', getCurrentRole(), info);
-}
-
-applyRole('SUPER_ADMIN');
-  
 function setStudentIdCreateStatus(active, text){
   const el = document.getElementById('studentIdCreateStatus');
   if(!el) return;
