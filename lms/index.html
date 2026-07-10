@@ -1465,10 +1465,21 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       });
     }
 
+    function wmApplyTeacherTopRoleAccess(authRole){
+      if(String(authRole || '').trim().toUpperCase() !== 'TEACHER') return;
+      roleButtons.forEach(function(btn){
+        const targetRole = String(btn.dataset.role || '').trim().toUpperCase();
+        btn.disabled = targetRole !== 'TEACHER';
+        btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+      });
+    }
+
     function applyRole(role){
       const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
       if(authRole === 'SUB_LEADER' && (role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN')) role = 'SUB_LEADER';
+      if(authRole === 'TEACHER') role = 'TEACHER';
       wmApplySubLeaderTopRoleAccess(authRole);
+      wmApplyTeacherTopRoleAccess(authRole);
       const roleEl = document.getElementById('currentRoleText');
       const rangeEl = document.getElementById('viewRangeText');
       if(roleEl) roleEl.textContent = role;
@@ -1487,14 +1498,13 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
               : [];
         wmApplySettingCenterRoleUI(role, localAllowed);
       }
-      if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', role === 'TEACHER'); }
+      if(settingsMenuBtn && authRole === 'TEACHER'){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       const devPanel = document.getElementById('panel-dev');
       const settingPanel = document.getElementById('panel-classes');
       if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
-      if(role === 'TEACHER' && settingPanel && settingPanel.classList.contains('active')) showPanel('dashboard');
     }
 
     function getFilterValue(scope, filterName){
