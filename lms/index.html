@@ -1316,9 +1316,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
       if(visibleViewRangeText) visibleViewRangeText.textContent = (typeof roleViewText !== 'undefined' && roleViewText[role]) ? roleViewText[role] : '허용된 LMS 범위';
-      if((role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN') && typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
+      if(typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
       if(typeof wmApplySettingCenterRoleUI === 'function') wmApplySettingCenterRoleUI(role, []);
-      if(role === 'SUB_LEADER' || role === 'TEACHER') showPanel('classes');
     }
     function wmRestoreLmsAuth(){
       try{
@@ -1415,8 +1414,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       TEACHER:'자기 Teacher_ID에 연결된 반과 학생'
     };
     function showPanel(panelName){
-      const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
-      if((authRole === 'SUB_LEADER' || authRole === 'TEACHER') && panelName !== 'classes') panelName = 'classes';
       panels.forEach(panel=>panel.classList.remove('active'));
       menuButtons.forEach(btn=>btn.classList.remove('active'));
       const targetPanel=document.getElementById('panel-'+panelName);
@@ -1476,29 +1473,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
               : [];
         wmApplySettingCenterRoleUI(role, localAllowed);
       }
-      if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
-      if(role === 'SUB_LEADER' || role === 'TEACHER'){
-        menuButtons.forEach(function(btn){
-          btn.classList.toggle('wm-hidden', btn.dataset.panel !== 'classes');
-        });
-        const roleSelect = document.querySelector('.wm-role-select');
-        if(roleSelect) roleSelect.classList.add('wm-hidden');
-      }else{
-        menuButtons.forEach(function(btn){
-          if(btn.dataset.panel !== 'dev') btn.classList.remove('wm-hidden');
-        });
-        const roleSelect = document.querySelector('.wm-role-select');
-        if(roleSelect) roleSelect.classList.remove('wm-hidden');
-      }
+      if(settingsMenuBtn){ settingsMenuBtn.classList.toggle('wm-hidden', role === 'TEACHER'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       const devPanel = document.getElementById('panel-dev');
-      if(role === 'SUB_LEADER' || role === 'TEACHER'){
-        showPanel('classes');
-      }else if(!adminLike && (devPanel && devPanel.classList.contains('active'))){
-        showPanel('dashboard');
-      }
+      const settingPanel = document.getElementById('panel-classes');
+      if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
+      if(role === 'TEACHER' && settingPanel && settingPanel.classList.contains('active')) showPanel('dashboard');
     }
 
     function getFilterValue(scope, filterName){
@@ -2176,7 +2158,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       ensureDashboardDefaultDates();
 
       try{
-        const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=dashboard&ts=' + Date.now(), {method:'GET', cache:'no-store'});
+        const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=dashboard&ts=' + Date.now() + wmLmsActorQuery(), {method:'GET', cache:'no-store'});
         const data = await res.json();
 
         const students = normalizeRows(data && data.students ? data.students : []);
@@ -2743,7 +2725,7 @@ function extractRecordRowsFromResponse(data){
       try{
         let rows = [];
         const urls = [
-          WM_APPS_SCRIPT_URL + '?mode=records&ts=' + Date.now(),
+          WM_APPS_SCRIPT_URL + '?mode=records&ts=' + Date.now() + wmLmsActorQuery(),
           WM_APPS_SCRIPT_URL + '?mode=profile&ts=' + Date.now(),
           WM_APPS_SCRIPT_URL + '?studentId=&studentName=&ts=' + Date.now()
         ];
@@ -2851,7 +2833,7 @@ function extractRecordRowsFromResponse(data){
          평소에는 속도 개선 구조를 유지하고, 누락 케이스에서만 전체 DB에서 다시 필터링합니다. */
       if(!collected.length){
         const fallbackUrls = [
-          WM_APPS_SCRIPT_URL + '?mode=records&ts=' + Date.now()
+          WM_APPS_SCRIPT_URL + '?mode=records&ts=' + Date.now() + wmLmsActorQuery()
         ];
         for(const fallbackUrl of fallbackUrls){
           const fallbackRows = await fetchRecordRowsByUrl(fallbackUrl);
@@ -3068,7 +3050,7 @@ function extractRecordRowsFromResponse(data){
       if(tbody) tbody.innerHTML = '<tr><td colspan="32">학생관리_DB 조회 중입니다.</td></tr>';
 
       try {
-        const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now());
+        const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now() + wmLmsActorQuery());
         const data = await res.json();
         WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
         renderStudentManageRows();
@@ -3639,7 +3621,7 @@ function extractRecordRowsFromResponse(data){
         let rows = [];
         const urls = [
           WM_APPS_SCRIPT_URL + '?mode=reports&ts=' + Date.now(),
-          WM_APPS_SCRIPT_URL + '?mode=dashboard&ts=' + Date.now()
+          WM_APPS_SCRIPT_URL + '?mode=dashboard&ts=' + Date.now() + wmLmsActorQuery()
         ];
 
         for(const url of urls){
@@ -3778,6 +3760,12 @@ async function generateSettingTeacherId(){
 function wmGetSettingActorTeacherId(){
   const teacher = window.WM_LMS_AUTH_TEACHER || {};
   return String(teacher.교사ID || '').trim();
+}
+
+
+function wmLmsActorQuery(){
+  const id = wmGetSettingActorTeacherId();
+  return id ? '&actorTeacherId=' + encodeURIComponent(id) : '';
 }
 
 function wmSettingApiUrl(action, params){
@@ -4686,7 +4674,7 @@ async function loadCurrentProgressRows(){
     let rows = [];
 
     try{
-      const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=currentProgress&ts=' + Date.now(), {method:'GET', cache:'no-store'});
+      const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=currentProgress&ts=' + Date.now() + wmLmsActorQuery(), {method:'GET', cache:'no-store'});
       const data = await res.json();
       rows = normalizeRows(data && (data.currentProgress || data.currentProgressRows || data.rows || data.data) ? (data.currentProgress || data.currentProgressRows || data.rows || data.data) : data);
     }catch(modeErr){
