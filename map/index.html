@@ -1819,29 +1819,10 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   /* WM_CURRENT_PROGRESS_HISTORY_DIRECT_RENDER_V1
      현재진행_DB가 저장한 히스토리레벨/히스토리횟수를 그대로 사용합니다.
      학습기록_DB 재조회·중복제거·색상 재판정은 금지합니다. */
-  let levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(
-    raw.히스토리레벨,
-    raw['히스토리레벨'],
-    raw['히스토리 레벨'],
-    raw.historyLevels,
-    raw.historyLevel,
-    raw.levelHistoryLevels,
-    raw.levelHistory,
-    raw.historyLevelList
-  ), false);
-
-  let rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(
-    raw.히스토리횟수,
-    raw['히스토리횟수'],
-    raw['히스토리 횟수'],
-    raw.historyRounds,
-    raw.historyRound,
-    raw.levelHistoryRounds,
-    raw.levelHistoryRound,
-    raw.historyRoundList
-  ), true);
-
-  const latest = Number(String(wmPickFirstValue_(raw.현재레벨, raw.currentLevel, raw.level, latestLevel, 0)).replace(/[^0-9]/g, '')) || 0;
+  /* 현재진행_DB 공식 4개 컬럼만 사용합니다. */
+  let levels = wmParsePipeNumberListForHistory_(raw.히스토리레벨, false);
+  let rounds = wmParsePipeNumberListForHistory_(raw.히스토리횟수, true);
+  const latest = Number(String(raw.현재레벨 || latestLevel || 0).replace(/[^0-9]/g, '')) || 0;
   const warnings = [];
 
   if(levels.length !== rounds.length){
@@ -1857,8 +1838,25 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
 
   if(!levels.length && latest && WM_LEVEL_CONFIG[latest]){
     levels = [latest];
-    rounds = [Number(wmPickFirstValue_(raw.레벨완료횟수, raw.levelCompleteCount, raw.순차완주회차, raw.sequentialRound, 0)) || 0];
+    rounds = [0];
     warnings.push('HISTORY LEVEL EMPTY - CURRENT LEVEL ONLY');
+  }
+
+  /* 현재레벨은 항상 가장 오른쪽에 한 번만 표시합니다. */
+  if(latest && WM_LEVEL_CONFIG[latest]){
+    const currentIndex = levels.indexOf(latest);
+    if(currentIndex === -1){
+      levels.push(latest);
+      rounds.push(0);
+      warnings.push('CURRENT LEVEL APPENDED');
+    }else if(currentIndex !== levels.length - 1){
+      const currentRound = Number(rounds[currentIndex] || 0);
+      levels.splice(currentIndex, 1);
+      rounds.splice(currentIndex, 1);
+      levels.push(latest);
+      rounds.push(currentRound);
+      warnings.push('CURRENT LEVEL MOVED TO LAST');
+    }
   }
 
   const pairs = levels.map(function(level, index){
@@ -1867,10 +1865,7 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
     return !!WM_LEVEL_CONFIG[item.level];
   });
 
-  const historyCurrentLevel = pairs.length ? pairs[pairs.length - 1].level : latest;
-  if(latest && historyCurrentLevel && latest !== historyCurrentLevel){
-    warnings.push('HISTORY LAST LEVEL/CURRENT LEVEL MISMATCH');
-  }
+  const historyCurrentLevel = latest || (pairs.length ? pairs[pairs.length - 1].level : 0);
 
   const result = {
     levels: pairs.map(function(item){ return item.level; }),
@@ -1878,7 +1873,7 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
     roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {}),
     currentLevel: historyCurrentLevel || latest,
     officialCurrentLevel: latest,
-    levelProgress: wmParseProgressPercentNumber_(wmPickFirstValue_(raw.레벨진행률, raw.levelProgress, raw.progressPercent, 0)),
+    levelProgress: wmParseProgressPercentNumber_(raw.레벨진행률),
     valid: warnings.length === 0,
     warnings: warnings
   };
@@ -2985,11 +2980,11 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     const activeCls = isActive ? ' level-history-active' : '';
     const strongId = isCurrentHistory ? ' id="levelPercent"' : '';
     const spanId = isCurrentHistory ? ' id="currentLevelLabel"' : '';
-    const label = isCurrentHistory ? (levelProgress + '%') : (round > 0 ? (round + '회완료') : '완료');
+    const label = isCurrentHistory ? (levelProgress + '%') : (round > 0 ? (round + '회 완료') : '완료');
     const completedView = !isCurrentHistory;
 
     return '<button class="level-block ' + cls + activeCls + '" type="button" onclick="wmSwitchHistoryLevel_(' + level + ', ' + (completedView ? 'true' : 'false') + ')">'
-      + '<span' + spanId + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
+      + '<span' + spanId + '>Level' + level + '</span><br><strong' + strongId + '>' + label + '</strong></button>';
   }).join('');
 
   wmSaveLevelHistoryList_(levels);
