@@ -182,16 +182,20 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 </script>
 
 <!-- ==========================================================
-     🔒 WM SPEED LOCK V1.0 - F12 INDEPENDENT BOOT LOCK
+     🔒 WM SPEED LOCK V1.1 - MAP INITIAL ACTUAL LOCK
      기존 MAP LOCK 및 학습맵 기능과 완전 분리
+     현재 단계: LOGIN + MAP INITIAL LOCK 완료
      ========================================================== -->
 <script>
-(function wmSpeedLockBootV1_(){
+(function wmSpeedLockBootV11_(){
   'use strict';
 
-  var VERSION = 'WM_SPEED_LOCK_V1.0';
+  var VERSION = 'WM_SPEED_LOCK_V1.1_MAP_INITIAL';
   var DATE = '2026-07-10';
   var printedFinal = false;
+  var retryCount = 0;
+  var MAX_RETRY = 100;
+  var RETRY_DELAY = 100;
 
   var GROUPS = Object.freeze({
     login: Object.freeze([]),
@@ -212,6 +216,14 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
       'filterHomeworkRecords',
       'resetHomeworkFilters'
     ])
+  });
+
+  /* 단계별 LOCK 적용 상태: 다음 작업 전까지 RECORD/SEARCH는 의도적으로 보류 */
+  var ENABLED_GROUPS = Object.freeze({
+    login:true,
+    mapInitial:true,
+    recordParallel:false,
+    search:false
   });
 
   var LABELS = Object.freeze({
@@ -240,19 +252,35 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     }
   }
 
+  function allFunctionsReady_(group){
+    return GROUPS[group].every(function(name){
+      return typeof window[name] === 'function';
+    });
+  }
+
   function lockFunction_(name){
     var fn = window[name];
     if(typeof fn !== 'function'){
       return Object.freeze({locked:false, reason:'함수 없음'});
     }
+    var locked = defineLocked_(name, fn);
     return Object.freeze({
-      locked:defineLocked_(name, fn),
-      reason:'defineProperty 검증 실패'
+      locked:locked,
+      reason:locked ? 'LOCK 완료' : 'defineProperty 검증 실패'
     });
   }
 
   function verifyAndPrint_(){
     if(printedFinal) return;
+
+    /* 공통코드가 늦게 삽입되는 환경에서도 MAP 함수 선언 완료 후 실제 LOCK */
+    if(!allFunctionsReady_('mapInitial')){
+      retryCount += 1;
+      if(retryCount < MAX_RETRY){
+        window.setTimeout(verifyAndPrint_, RETRY_DELAY);
+        return;
+      }
+    }
 
     var functionResults = {};
     var moduleResults = {
@@ -260,6 +288,14 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     };
 
     ['mapInitial','recordParallel','search'].forEach(function(group){
+      if(!ENABLED_GROUPS[group]){
+        GROUPS[group].forEach(function(name){
+          functionResults[name] = Object.freeze({locked:false, reason:'다음 단계 LOCK 보류'});
+        });
+        moduleResults[group] = Object.freeze({label:LABELS[group], locked:false});
+        return;
+      }
+
       var all = true;
       GROUPS[group].forEach(function(name){
         var result = lockFunction_(name);
@@ -281,18 +317,25 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     var globalsOK = [
       defineLocked_('WM_SPEED_LOCK_REGISTRY', REGISTRY),
       defineLocked_('WM_SPEED_LOCK_GROUPS', GROUPS),
+      defineLocked_('WM_SPEED_LOCK_ENABLED_GROUPS', ENABLED_GROUPS),
       defineLocked_('WM_SPEED_LOCK_RESULTS', MODULES),
       defineLocked_('WM_SPEED_LOCK_FUNCTION_RESULTS', FUNCTIONS),
       defineLocked_('WM_SPEED_LOCK_VERSION', VERSION),
       defineLocked_('WM_SPEED_LOCK_DATE', DATE)
     ].every(function(v){ return v === true; });
 
-    var verified = globalsOK &&
+    var currentStageVerified = globalsOK &&
       Object.isFrozen(GROUPS) &&
+      Object.isFrozen(ENABLED_GROUPS) &&
       Object.isFrozen(REGISTRY) &&
       Object.isFrozen(MODULES) &&
       Object.isFrozen(FUNCTIONS) &&
-      Object.keys(REGISTRY).every(function(key){ return REGISTRY[key].locked === true; });
+      REGISTRY.login.locked === true &&
+      REGISTRY.mapInitial.locked === true;
+
+    var allStagesVerified = currentStageVerified &&
+      REGISTRY.recordParallel.locked === true &&
+      REGISTRY.search.locked === true;
 
     console.group('🔒 WORD MATE SPEED LOCK STATUS');
     console.log('LOCK VERSION : ' + VERSION);
@@ -301,25 +344,26 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     console.log((REGISTRY.mapInitial.locked ? '✅ ' : '❌ ') + LABELS.mapInitial);
     console.log((REGISTRY.recordParallel.locked ? '✅ ' : '❌ ') + LABELS.recordParallel);
     console.log((REGISTRY.search.locked ? '✅ ' : '❌ ') + LABELS.search);
-    console.log(verified ? '🔒 SPEED LOCK VERIFIED' : '⚠️ SPEED LOCK CHECK REQUIRED');
+    console.log(allStagesVerified ? '🔒 SPEED LOCK VERIFIED' :
+      (currentStageVerified ? '✅ MAP INITIAL LOCK VERIFIED / NEXT LOCK REQUIRED' : '⚠️ SPEED LOCK CHECK REQUIRED'));
     console.groupEnd();
 
     printedFinal = true;
   }
 
-  /* 첫 번째 스크립트에서 실행 연결을 먼저 확보합니다. */
-  window.addEventListener('load', verifyAndPrint_, {once:true});
+  /* 파싱·동적삽입 환경 모두 대응하여 실제 함수 생성 이후 검증 */
   document.addEventListener('DOMContentLoaded', function(){
     window.setTimeout(verifyAndPrint_, 0);
   }, {once:true});
+  window.addEventListener('load', function(){
+    window.setTimeout(verifyAndPrint_, 0);
+  }, {once:true});
 
-  /* 이미 로드된 환경에서도 즉시 실행합니다. */
-  if(document.readyState === 'complete'){
-    verifyAndPrint_();
+  if(document.readyState === 'interactive' || document.readyState === 'complete'){
+    window.setTimeout(verifyAndPrint_, 0);
   }
 })();
 </script>
-
 
 <!-- ==========================================================
    ✅ 여기 아래부터는 TEST/REAL 공통 코드 영역
