@@ -1299,6 +1299,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     }
     function wmApplyLmsAuth(teacher){
       teacher = teacher || {};
+      window.WM_LMS_AUTH_TEACHER = teacher;
       document.body.classList.add('wm-lms-authenticated');
       const role = teacher.권한 || 'TEACHER';
       const name = teacher.이름 || teacher.교사ID || 'LMS 사용자';
@@ -1316,6 +1317,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       if(visibleRoleText) visibleRoleText.textContent = role;
       if(visibleViewRangeText) visibleViewRangeText.textContent = (typeof roleViewText !== 'undefined' && roleViewText[role]) ? roleViewText[role] : '허용된 LMS 범위';
       if(typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
+      if(typeof wmApplySettingCenterRoleUI === 'function') wmApplySettingCenterRoleUI(role, []);
     }
     function wmRestoreLmsAuth(){
       try{
@@ -1437,6 +1439,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           else if(typeof renderReportManageRows === 'function') renderReportManageRows();
         }, 0);
       }
+      if(panelName === 'classes'){
+        setTimeout(function(){
+          if(typeof loadSettingCenterDB === 'function') loadSettingCenterDB();
+        }, 0);
+      }
       if(panelName === 'currentProgress'){
         setTimeout(function(){
           if(typeof loadCurrentProgressRows === 'function' && (!WM_CURRENT_PROGRESS_ROWS || !WM_CURRENT_PROGRESS_ROWS.length)){
@@ -1447,34 +1454,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         }, 0);
       }
     }
-    /* WM_SETTING_CENTER_GRADE_DROPDOWN_ROLE_V1
-     * 설정센터 교사등급 드롭다운만 로그인 권한에 따라 차등 적용합니다.
-     * SUPER_ADMIN 4개 / SPECIAL_ADMIN 3개 / SUB_LEADER 2개 / TEACHER 0개
-     */
-    function wmApplySettingCenterGradeDropdown(role){
-      const gradeSelect = document.getElementById('settingTeacherGrade');
-      const teacherBox = document.getElementById('wmSettingTeacherRegisterBox');
-      const classBox = document.getElementById('wmSettingClassRegisterBox');
-      const roleOptions = {
-        SUPER_ADMIN:['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
-        SPECIAL_ADMIN:['SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
-        SUB_LEADER:['SUB_LEADER','TEACHER'],
-        TEACHER:[]
-      };
-      const options = roleOptions[role] || [];
-      if(gradeSelect){
-        const previous = gradeSelect.value;
-        gradeSelect.innerHTML = options.map(function(value){
-          return '<option value="'+value+'">'+value+'</option>';
-        }).join('');
-        if(previous && options.indexOf(previous) !== -1) gradeSelect.value = previous;
-        else if(options.length) gradeSelect.value = options[options.length - 1];
-      }
-      const canRegister = options.length > 0;
-      if(teacherBox) teacherBox.style.display = canRegister ? '' : 'none';
-      if(classBox) classBox.style.display = canRegister ? '' : 'none';
-    }
-
     function applyRole(role){
       const roleEl = document.getElementById('currentRoleText');
       const rangeEl = document.getElementById('viewRangeText');
@@ -1484,14 +1463,23 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
       if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
-      wmApplySettingCenterGradeDropdown(role);
+      if(typeof wmApplySettingCenterRoleUI === 'function'){
+        const localAllowed = role==='SUPER_ADMIN'
+          ? ['TEACHER','SUB_LEADER','SPECIAL_ADMIN','SUPER_ADMIN']
+          : role==='SPECIAL_ADMIN'
+            ? ['TEACHER','SUB_LEADER','SPECIAL_ADMIN']
+            : role==='SUB_LEADER'
+              ? ['TEACHER','SUB_LEADER']
+              : [];
+        wmApplySettingCenterRoleUI(role, localAllowed);
+      }
       if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       const devPanel = document.getElementById('panel-dev');
       const settingPanel = document.getElementById('panel-classes');
-      if(!adminLike && ((devPanel && devPanel.classList.contains('active')) || (settingPanel && settingPanel.classList.contains('active')))) showPanel('dashboard');
+      if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
     }
 
     function getFilterValue(scope, filterName){
@@ -3768,8 +3756,14 @@ async function generateSettingTeacherId(){
   return '';
 }
 
+function wmGetSettingActorTeacherId(){
+  const teacher = window.WM_LMS_AUTH_TEACHER || {};
+  return String(teacher.교사ID || '').trim();
+}
+
 function wmSettingApiUrl(action, params){
-  const query = new URLSearchParams(Object.assign({action:action}, params || {}));
+  const authParams = {action:action, actorTeacherId:wmGetSettingActorTeacherId()};
+  const query = new URLSearchParams(Object.assign(authParams, params || {}));
   return WM_APPS_SCRIPT_URL + '?' + query.toString();
 }
 
@@ -3790,7 +3784,23 @@ function getSettingClassList(){
   return Array.from(set).sort();
 }
 
-function fillSettingSelectOptions(){
+function wmApplySettingCenterRoleUI(role, allowedGrades){
+  const normalizedRole = String(role || 'TEACHER').trim().toUpperCase();
+  const grades = Array.isArray(allowedGrades) ? allowedGrades : [];
+  const gradeSelect = document.getElementById('settingTeacherGrade');
+  const teacherBox = document.getElementById('wmSettingTeacherRegisterBox');
+  const classBox = document.getElementById('wmSettingClassRegisterBox');
+  const canRegister = grades.length > 0;
+
+  if(gradeSelect){
+    gradeSelect.innerHTML = grades.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('');
+    gradeSelect.disabled = !canRegister;
+  }
+  if(teacherBox) teacherBox.style.display = canRegister ? '' : 'none';
+  if(classBox) classBox.style.display = canRegister ? '' : 'none';
+}
+
+function fillSettingSelectOptions(allowedGrades){
   const classOptions = ['추후선택', ...getSettingClassList()];
   const teacherOptions = ['추후선택', ...wmSettingCenterRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
   const leaderOptions = ['추후선택', ...wmSettingCenterRows.filter(r=>/LEADER|ADMIN|리더|관리자/i.test(String(r['교사등급'] || ''))).map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
@@ -3804,6 +3814,7 @@ function fillSettingSelectOptions(){
   setOptions('settingTeacherClass', classOptions);
   setOptions('settingClassTeacher', teacherOptions);
   setOptions('settingTeacherLeader', leaderOptions);
+  wmApplySettingCenterRoleUI((window.WM_LMS_AUTH_TEACHER || {}).권한 || getCurrentRole(), allowedGrades || []);
 }
 
 async function loadSettingCenterDB(){
@@ -3814,7 +3825,7 @@ async function loadSettingCenterDB(){
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
     renderSettingCenterRows(wmSettingCenterRows);
-    fillSettingSelectOptions();
+    fillSettingSelectOptions((data && data.allowedGrades) || []);
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
@@ -3931,7 +3942,9 @@ function openSettingClassStudentList(className){
   box.classList.add('active');
 }
 
-document.addEventListener('DOMContentLoaded', loadSettingCenterDB);
+document.addEventListener('DOMContentLoaded', function(){
+  if(document.body.classList.contains('wm-lms-authenticated')) loadSettingCenterDB();
+});
 
 /* ===== ROLE FILTER ENGINE V2 ===== */
 const roleFilterConfig = {
