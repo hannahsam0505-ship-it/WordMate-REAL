@@ -182,22 +182,15 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 </script>
 
 <!-- ==========================================================
-     🔒 WM SPEED LOCK V1.1 - MAP INITIAL ACTUAL LOCK
-     기존 MAP LOCK 및 학습맵 기능과 완전 분리
-     현재 단계: LOGIN + MAP INITIAL LOCK 완료
+     🔒 WM SPEED LOCK V1.0 - EARLY REGISTER / 기존 MAP LOCK 수정 없음
      ========================================================== -->
 <script>
-(function wmSpeedLockBootV11_(){
+(function(){
   'use strict';
 
-  var VERSION = 'WM_SPEED_LOCK_V1.1_MAP_INITIAL';
-  var DATE = '2026-07-10';
-  var printedFinal = false;
-  var retryCount = 0;
-  var MAX_RETRY = 100;
-  var RETRY_DELAY = 100;
-
-  var GROUPS = Object.freeze({
+  var SPEED_VERSION = 'WM_SPEED_LOCK_V1.0';
+  var SPEED_DATE = '2026-07-10';
+  var SPEED_GROUPS = Object.freeze({
     login: Object.freeze([]),
     mapInitial: Object.freeze([
       'wmFetchLearningMap',
@@ -218,152 +211,81 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     ])
   });
 
-  /* 단계별 LOCK 적용 상태: 다음 작업 전까지 RECORD/SEARCH는 의도적으로 보류 */
-  var ENABLED_GROUPS = Object.freeze({
-    login:true,
-    mapInitial:true,
-    recordParallel:false,
-    search:false
-  });
-
-  var LABELS = Object.freeze({
-    login: 'LOGIN',
-    mapInitial: 'MAP INITIAL',
-    recordParallel: 'RECORD PARALLEL',
-    search: 'SEARCH'
-  });
-
   function defineLocked_(name, value){
     try{
-      var old = Object.getOwnPropertyDescriptor(window, name);
-      if(old && old.configurable === false){
-        return old.value === value && old.writable === false;
+      var d = Object.getOwnPropertyDescriptor(window, name);
+      if(d && d.configurable === false){
+        return d.value === value && d.writable === false;
       }
       Object.defineProperty(window, name, {
-        value:value,
-        writable:false,
-        configurable:false,
-        enumerable:true
+        value:value, writable:false, configurable:false, enumerable:true
       });
-      var d = Object.getOwnPropertyDescriptor(window, name);
+      d = Object.getOwnPropertyDescriptor(window, name);
       return !!d && d.value === value && d.writable === false && d.configurable === false;
     }catch(err){
       return false;
     }
   }
 
-  function allFunctionsReady_(group){
-    return GROUPS[group].every(function(name){
-      return typeof window[name] === 'function';
-    });
-  }
-
-  function lockFunction_(name){
-    var fn = window[name];
-    if(typeof fn !== 'function'){
-      return Object.freeze({locked:false, reason:'함수 없음'});
-    }
-    var locked = defineLocked_(name, fn);
-    return Object.freeze({
-      locked:locked,
-      reason:locked ? 'LOCK 완료' : 'defineProperty 검증 실패'
-    });
-  }
-
-  function verifyAndPrint_(){
-    if(printedFinal) return;
-
-    /* 공통코드가 늦게 삽입되는 환경에서도 MAP 함수 선언 완료 후 실제 LOCK */
-    if(!allFunctionsReady_('mapInitial')){
-      retryCount += 1;
-      if(retryCount < MAX_RETRY){
-        window.setTimeout(verifyAndPrint_, RETRY_DELAY);
-        return;
-      }
-    }
-
+  function runSpeedLockVerification_(){
+    var labels = {login:'LOGIN',mapInitial:'MAP INITIAL',recordParallel:'RECORD PARALLEL',search:'SEARCH'};
     var functionResults = {};
-    var moduleResults = {
-      login:Object.freeze({label:LABELS.login, locked:true})
-    };
+    var moduleResults = {};
 
-    ['mapInitial','recordParallel','search'].forEach(function(group){
-      if(!ENABLED_GROUPS[group]){
-        GROUPS[group].forEach(function(name){
-          functionResults[name] = Object.freeze({locked:false, reason:'다음 단계 LOCK 보류'});
-        });
-        moduleResults[group] = Object.freeze({label:LABELS[group], locked:false});
+    Object.keys(SPEED_GROUPS).forEach(function(groupKey){
+      var names = SPEED_GROUPS[groupKey];
+      var lockedCount = 0;
+      if(groupKey === 'login' && names.length === 0){
+        moduleResults[groupKey] = Object.freeze({label:labels[groupKey],locked:true,lockedCount:1,totalCount:1});
         return;
       }
-
-      var all = true;
-      GROUPS[group].forEach(function(name){
-        var result = lockFunction_(name);
-        functionResults[name] = result;
-        if(!result.locked) all = false;
+      names.forEach(function(name){
+        var fn = window[name];
+        var locked = typeof fn === 'function' && defineLocked_(name, fn);
+        functionResults[name] = Object.freeze({locked:locked,reason:typeof fn !== 'function' ? '함수 없음' : (locked ? '' : 'defineProperty 검증 실패')});
+        if(locked) lockedCount += 1;
       });
-      moduleResults[group] = Object.freeze({label:LABELS[group], locked:all});
+      moduleResults[groupKey] = Object.freeze({label:labels[groupKey],locked:lockedCount === names.length,lockedCount:lockedCount,totalCount:names.length});
     });
 
-    var FUNCTIONS = Object.freeze(functionResults);
-    var MODULES = Object.freeze(moduleResults);
-    var REGISTRY = Object.freeze({
-      login:MODULES.login,
-      mapInitial:MODULES.mapInitial,
-      recordParallel:MODULES.recordParallel,
-      search:MODULES.search
-    });
-
-    var globalsOK = [
-      defineLocked_('WM_SPEED_LOCK_REGISTRY', REGISTRY),
-      defineLocked_('WM_SPEED_LOCK_GROUPS', GROUPS),
-      defineLocked_('WM_SPEED_LOCK_ENABLED_GROUPS', ENABLED_GROUPS),
-      defineLocked_('WM_SPEED_LOCK_RESULTS', MODULES),
-      defineLocked_('WM_SPEED_LOCK_FUNCTION_RESULTS', FUNCTIONS),
-      defineLocked_('WM_SPEED_LOCK_VERSION', VERSION),
-      defineLocked_('WM_SPEED_LOCK_DATE', DATE)
+    var FUNCTION_RESULTS = Object.freeze(functionResults);
+    var MODULE_RESULTS = Object.freeze(moduleResults);
+    var REGISTRY = Object.freeze({login:MODULE_RESULTS.login,mapInitial:MODULE_RESULTS.mapInitial,recordParallel:MODULE_RESULTS.recordParallel,search:MODULE_RESULTS.search});
+    var globalsVerified = [
+      defineLocked_('WM_SPEED_LOCK_VERSION', SPEED_VERSION),
+      defineLocked_('WM_SPEED_LOCK_DATE', SPEED_DATE),
+      defineLocked_('WM_SPEED_LOCK_GROUPS', SPEED_GROUPS),
+      defineLocked_('WM_SPEED_LOCK_FUNCTION_RESULTS', FUNCTION_RESULTS),
+      defineLocked_('WM_SPEED_LOCK_RESULTS', MODULE_RESULTS),
+      defineLocked_('WM_SPEED_LOCK_REGISTRY', REGISTRY)
     ].every(function(v){ return v === true; });
-
-    var currentStageVerified = globalsOK &&
-      Object.isFrozen(GROUPS) &&
-      Object.isFrozen(ENABLED_GROUPS) &&
-      Object.isFrozen(REGISTRY) &&
-      Object.isFrozen(MODULES) &&
-      Object.isFrozen(FUNCTIONS) &&
-      REGISTRY.login.locked === true &&
-      REGISTRY.mapInitial.locked === true;
-
-    var allStagesVerified = currentStageVerified &&
-      REGISTRY.recordParallel.locked === true &&
-      REGISTRY.search.locked === true;
+    var verified = globalsVerified && Object.isFrozen(SPEED_GROUPS) && Object.isFrozen(FUNCTION_RESULTS) && Object.isFrozen(MODULE_RESULTS) && Object.isFrozen(REGISTRY) && Object.keys(REGISTRY).every(function(key){ return REGISTRY[key].locked === true; });
 
     console.group('🔒 WORD MATE SPEED LOCK STATUS');
-    console.log('LOCK VERSION : ' + VERSION);
-    console.log('LOCK DATE    : ' + DATE);
-    console.log((REGISTRY.login.locked ? '✅ ' : '❌ ') + LABELS.login);
-    console.log((REGISTRY.mapInitial.locked ? '✅ ' : '❌ ') + LABELS.mapInitial);
-    console.log((REGISTRY.recordParallel.locked ? '✅ ' : '❌ ') + LABELS.recordParallel);
-    console.log((REGISTRY.search.locked ? '✅ ' : '❌ ') + LABELS.search);
-    console.log(allStagesVerified ? '🔒 SPEED LOCK VERIFIED' :
-      (currentStageVerified ? '✅ MAP INITIAL LOCK VERIFIED / NEXT LOCK REQUIRED' : '⚠️ SPEED LOCK CHECK REQUIRED'));
+    console.log('LOCK VERSION : ' + SPEED_VERSION);
+    console.log('LOCK DATE    : ' + SPEED_DATE);
+    console.log((REGISTRY.login.locked ? '✅ ' : '❌ ') + labels.login);
+    console.log((REGISTRY.mapInitial.locked ? '✅ ' : '❌ ') + labels.mapInitial);
+    console.log((REGISTRY.recordParallel.locked ? '✅ ' : '❌ ') + labels.recordParallel);
+    console.log((REGISTRY.search.locked ? '✅ ' : '❌ ') + labels.search);
+    if(!verified){
+      var failed = {};
+      Object.keys(FUNCTION_RESULTS).forEach(function(name){ if(!FUNCTION_RESULTS[name].locked) failed[name] = FUNCTION_RESULTS[name].reason; });
+      if(!globalsVerified) failed.REGISTRY = '전역 보호 검증 실패';
+      console.table(failed);
+    }
+    console.log(verified ? '🔒 SPEED LOCK VERIFIED' : '⚠️ SPEED LOCK CHECK REQUIRED');
     console.groupEnd();
-
-    printedFinal = true;
+    return verified;
   }
 
-  /* 파싱·동적삽입 환경 모두 대응하여 실제 함수 생성 이후 검증 */
-  document.addEventListener('DOMContentLoaded', function(){
-    window.setTimeout(verifyAndPrint_, 0);
-  }, {once:true});
-  window.addEventListener('load', function(){
-    window.setTimeout(verifyAndPrint_, 0);
-  }, {once:true});
-
-  if(document.readyState === 'interactive' || document.readyState === 'complete'){
-    window.setTimeout(verifyAndPrint_, 0);
-  }
+  defineLocked_('wmRunSpeedLockVerification', runSpeedLockVerification_);
+  console.log('🔒 SPEED LOCK REGISTERED');
+  if(document.readyState === 'complete'){ setTimeout(runSpeedLockVerification_, 0); }
+  else{ window.addEventListener('load', runSpeedLockVerification_, {once:true}); }
 })();
 </script>
+
 
 <!-- ==========================================================
    ✅ 여기 아래부터는 TEST/REAL 공통 코드 영역
@@ -4296,7 +4218,6 @@ function resetHomeworkFilters(){
   console.log('PENDING MODULE : 학습히스토리');
   console.groupEnd();
 })();
-
 
 
 wmForceHomeworkBottomFixedBarOnFirstView();
