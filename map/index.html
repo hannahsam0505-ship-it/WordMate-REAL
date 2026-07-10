@@ -1195,6 +1195,8 @@ let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
+let wmBottomRecordsRequestStudentId_ = '';
+let wmBottomRecordsLoadedStudentId_ = '';
 let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
 const WM_HOMEWORK_PAGE_SIZE = 25;
@@ -1684,6 +1686,11 @@ function wmInitLearningMap(){
   wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
     if(!valid) return;
     wmRevealAuthenticatedMap_();
+
+    /* WM_MAP_SAFE_PARALLEL_RECORDS_LOAD_V1
+       현재진행_DB 학습맵 조회와 학습기록_DB 조회를 서로 기다리지 않고 동시에 시작합니다.
+       기존 초기화·LOCK·맵 렌더링 순서는 변경하지 않습니다. */
+    wmLoadLearningRecordsDirectForMap_('initial-parallel-load');
     wmFetchLearningMap(wmCurrentStudent.학생ID);
     wmStartSessionWatcher();
   });
@@ -2041,19 +2048,24 @@ function wmLoadLearningRecordsDirectForMap_(reason){
   /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
      getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
      하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
-  if(wmBottomRecordsDirectLoading) return;
-
   const student = wmCurrentStudent || wmStudentProfile || {};
   const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
   if(!studentId) return;
 
+  /* 같은 학생의 동시·중복 학습기록 조회를 차단합니다. */
+  if(wmBottomRecordsDirectLoading && wmBottomRecordsRequestStudentId_ === studentId) return;
+  if(wmBottomRecordsLoadedStudentId_ === studentId && wmLearningRecords.length) return;
+
   wmBottomRecordsDirectLoading = true;
+  wmBottomRecordsRequestStudentId_ = studentId;
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
+    wmBottomRecordsRequestStudentId_ = '';
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     if(!directRecords.length) return;
 
+    wmBottomRecordsLoadedStudentId_ = studentId;
     wmLearningRecords = directRecords;
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
@@ -2064,6 +2076,7 @@ function wmLoadLearningRecordsDirectForMap_(reason){
 
   function failPayload(){
     wmBottomRecordsDirectLoading = false;
+    wmBottomRecordsRequestStudentId_ = '';
   }
 
   if(window.google && google.script && google.script.run){
