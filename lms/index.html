@@ -276,7 +276,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     tr:last-child td { border-bottom:0; }
     .wm-note { background:#fffbeb; border:1px solid #fde68a; border-radius:14px; padding:14px 16px; font-size:14px; color:#92400e; line-height:1.6; margin-top:18px; }
     .wm-factory-box { background:#f8fafc; border:1px solid var(--wm-line); border-radius:16px; padding:16px; margin:0 0 18px; }
-    #settingTeacherRegisterBox,#settingClassRegisterBox { display:none; }
     .wm-factory-box h3 { margin:0 0 6px; font-size:17px; }
     .wm-factory-box p { margin:0 0 12px; color:var(--wm-gray); font-size:13px; line-height:1.6; }
     .wm-chip-row span { background:#fff; border:1px solid var(--wm-line); border-radius:999px; padding:8px 12px; font-size:12px; font-weight:900; }
@@ -400,7 +399,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-role-select">
         <button class="wm-role-btn active" data-role="SUPER_ADMIN">SUPER_ADMIN</button>
         <button class="wm-role-btn" data-role="SPECIAL_ADMIN">SPECIAL_ADMIN</button>
-        <button class="wm-role-btn" data-role="SUB_LEADER">LEADER</button>
+        <button class="wm-role-btn" data-role="SUB_LEADER">SUB_LEADER</button>
         <button class="wm-role-btn" data-role="TEACHER">TEACHER</button>
       </div>
       <button type="button" class="wm-lms-logout-btn" id="wmLmsLogoutBtn">LMS 로그아웃</button>
@@ -1169,7 +1168,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7.설정센터_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
       <div class="wm-note">교사/반은 등록 순서와 관계없이 먼저 만들 수 있습니다. 담당반·담당교사는 선택값이 없을 때 <strong>추후선택</strong>으로 저장합니다.</div>
 
-      <div class="wm-factory-box" id="settingTeacherRegisterBox">
+      <div class="wm-factory-box" id="wmSettingTeacherRegisterBox">
         <h3>교사등록</h3>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
@@ -1200,7 +1199,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-factory-box" id="settingClassRegisterBox">
+      <div class="wm-factory-box">
         <h3>반등록</h3>
         <div class="wm-filter-grid">
           <label>반명<input type="text" id="settingClassName" placeholder="예: C001 / 중1A" /></label>
@@ -1217,7 +1216,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-note">일반교사는 한 반에 한 명만 적용하고, 한 교사는 여러 반을 담당할 수 있습니다. 리더는 여러 일반교사 반을 관리할 수 있습니다.</div>
       </div>
 
-      <div class="wm-filter-box" id="settingCenterSearchBox" data-filter-scope="classes">
+      <div class="wm-filter-box" data-filter-scope="classes">
         <div class="wm-filter-title">검색조건</div>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" placeholder="교사명" data-filter="teacher" /></label>
@@ -1292,8 +1291,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
      * 실행 연결: DOMContentLoaded에서 wmLockStatusMessage('LMS_Login_V1_LOCK', ...) 출력.
      */
     const WM_LMS_AUTH_STORAGE_KEY = 'wm_lms_auth_teacher_v1';
-    let WM_LMS_CURRENT_TEACHER = null;
-    let WM_LMS_AUTH_TOKEN = '';
     function wmSetLmsLoginMessage(message, isOk){
       const el = document.getElementById('wmLmsLoginMsg');
       if(!el) return;
@@ -1302,7 +1299,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     }
     function wmApplyLmsAuth(teacher){
       teacher = teacher || {};
-      WM_LMS_CURRENT_TEACHER = teacher;
       document.body.classList.add('wm-lms-authenticated');
       const role = teacher.권한 || 'TEACHER';
       const name = teacher.이름 || teacher.교사ID || 'LMS 사용자';
@@ -1315,7 +1311,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         window.viewRangeText = document.getElementById('viewRangeText');
       }
       if(typeof applyRole === 'function') applyRole(role);
-      if(typeof wmApplySettingCenterRoleUI_ === 'function') wmApplySettingCenterRoleUI_();
       const visibleRoleText = document.querySelector('.wm-user-info #currentRoleText');
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
@@ -1337,8 +1332,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         wmSetLmsLoginMessage((res && res.message) || '로그인 실패');
         return;
       }
-      WM_LMS_AUTH_TOKEN = String(res.authToken || '');
-      localStorage.setItem(WM_LMS_AUTH_STORAGE_KEY, JSON.stringify({ teacher:res.teacher, authToken:WM_LMS_AUTH_TOKEN, loginAt:new Date().toISOString() }));
+      localStorage.setItem(WM_LMS_AUTH_STORAGE_KEY, JSON.stringify({ teacher:res.teacher, loginAt:new Date().toISOString() }));
       wmApplyLmsAuth(res.teacher);
     }
 
@@ -1401,7 +1395,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const teacherInput = document.getElementById('wmLmsTeacherId');
       if(loginBtn) loginBtn.addEventListener('click', wmSubmitLmsLogin);
       [teacherInput, passwordInput].forEach(function(el){ if(el) el.addEventListener('keydown', function(e){ if(e.key === 'Enter') wmSubmitLmsLogin(); }); });
-      if(logoutBtn) logoutBtn.addEventListener('click', function(){ WM_LMS_AUTH_TOKEN=''; WM_LMS_CURRENT_TEACHER=null; localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY); location.reload(); });
+      if(logoutBtn) logoutBtn.addEventListener('click', function(){ localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY); location.reload(); });
     });
 
     const roleButtons = document.querySelectorAll('.wm-role-btn');
@@ -1453,6 +1447,33 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         }, 0);
       }
     }
+    /* WM_SETTING_ROLE_DROPDOWN_V1
+       로그인 권한별 교사등급 드롭다운 공식:
+       SUPER_ADMIN 4개 / SPECIAL_ADMIN 3개 / SUB_LEADER 2개 / TEACHER 등록 없음 */
+    function wmApplySettingTeacherGradeOptions(role){
+      const gradeSelect = document.getElementById('settingTeacherGrade');
+      const teacherRegisterBox = document.getElementById('wmSettingTeacherRegisterBox');
+      const roleOptions = {
+        SUPER_ADMIN:['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
+        SPECIAL_ADMIN:['SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
+        SUB_LEADER:['SUB_LEADER','TEACHER'],
+        TEACHER:[]
+      };
+      const options = roleOptions[role] || [];
+
+      if(teacherRegisterBox){
+        teacherRegisterBox.style.display = options.length ? '' : 'none';
+      }
+      if(!gradeSelect) return;
+
+      const previous = gradeSelect.value;
+      gradeSelect.innerHTML = options.map(function(value){
+        return '<option value="'+value+'">'+value+'</option>';
+      }).join('');
+      if(options.includes(previous)) gradeSelect.value = previous;
+      else if(options.length) gradeSelect.value = options[options.length - 1];
+    }
+
     function applyRole(role){
       const roleEl = document.getElementById('currentRoleText');
       const rangeEl = document.getElementById('viewRangeText');
@@ -1462,14 +1483,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
       if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
-      if(typeof wmApplySettingCenterRoleUI_ === 'function') wmApplySettingCenterRoleUI_();
+      wmApplySettingTeacherGradeOptions(role);
       if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       const devPanel = document.getElementById('panel-dev');
       const settingPanel = document.getElementById('panel-classes');
-      if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
+      if(!adminLike && ((devPanel && devPanel.classList.contains('active')) || (settingPanel && settingPanel.classList.contains('active')))) showPanel('dashboard');
     }
 
     function getFilterValue(scope, filterName){
@@ -2581,7 +2602,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       });
     }
     function openTeacherDetail(teacherName){ alert(teacherName+' 교사 상세 운영현황 조회 예정입니다.'); }
-    roleButtons.forEach(button=>{ button.disabled=true; button.title='로그인 계정의 실제 권한만 적용됩니다.'; });
+    roleButtons.forEach(button=>button.addEventListener('click',()=>applyRole(button.dataset.role)));
     menuButtons.forEach(button=>button.addEventListener('click',()=>showPanel(button.dataset.panel)));
     let WM_STUDENT_MANAGE_ROWS = [];
     let WM_RECORD_MANAGE_ROWS = [];
@@ -3724,7 +3745,7 @@ function makeSettingTeacherLocalId(){
   for(let i=0;i<200;i++){
     const candidate = 'T' + String(Date.now()).slice(-5) + String(i).padStart(2,'0');
     const id = candidate.slice(0,10).toUpperCase();
-    if(/^[a-zA-Z0-9]{4,10}$/.test(id) && !used.has(id.toLowerCase())) return id;
+    if(/^[a-zA-Z0-9]{4,10}$/.test(id) && !used.has(id)) return id;
   }
   return '';
 }
@@ -3747,7 +3768,7 @@ async function generateSettingTeacherId(){
 }
 
 function wmSettingApiUrl(action, params){
-  const query = new URLSearchParams(Object.assign({action:action, authToken:WM_LMS_AUTH_TOKEN}, params || {}));
+  const query = new URLSearchParams(Object.assign({action:action}, params || {}));
   return WM_APPS_SCRIPT_URL + '?' + query.toString();
 }
 
@@ -3769,67 +3790,19 @@ function getSettingClassList(){
 }
 
 function fillSettingSelectOptions(){
-  const role = wmSettingCurrentRole_();
   const classOptions = ['추후선택', ...getSettingClassList()];
-  const teacherRows = wmSettingCenterRows.filter(r=>String(r['교사등급'] || '').toUpperCase() === 'TEACHER');
-  const leaderRows = wmSettingCenterRows.filter(r=>/^(SUB_LEADER|SPECIAL_ADMIN|SUPER_ADMIN)$/i.test(String(r['교사등급'] || '')));
-  const teacherOptions = ['추후선택', ...teacherRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
-  const leaderOptions = ['추후선택', ...leaderRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const teacherOptions = ['추후선택', ...wmSettingCenterRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const leaderOptions = ['추후선택', ...wmSettingCenterRows.filter(r=>/LEADER|ADMIN|리더|관리자/i.test(String(r['교사등급'] || ''))).map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
   const setOptions = (id, list)=>{
     const el = document.getElementById(id);
     if(!el) return;
     const current = el.value;
-    const unique = Array.from(new Set(list));
-    el.innerHTML = unique.map(v=>'<option>'+escapeHtml(v)+'</option>').join('');
-    if(current && unique.includes(current)) el.value = current;
+    el.innerHTML = Array.from(new Set(list)).map(v=>'<option>'+escapeHtml(v)+'</option>').join('');
+    if(current && list.includes(current)) el.value = current;
   };
   setOptions('settingTeacherClass', classOptions);
   setOptions('settingClassTeacher', teacherOptions);
   setOptions('settingTeacherLeader', leaderOptions);
-  const leaderSelect = document.getElementById('settingTeacherLeader');
-  if(role === 'SUB_LEADER' && leaderSelect){
-    const ownName = String((WM_LMS_CURRENT_TEACHER && (WM_LMS_CURRENT_TEACHER.이름 || WM_LMS_CURRENT_TEACHER.교사ID)) || '').trim();
-    leaderSelect.innerHTML = '<option>'+escapeHtml(ownName || '현재 리더')+'</option>';
-    leaderSelect.disabled = true;
-  }else if(leaderSelect){
-    leaderSelect.disabled = false;
-  }
-}
-
-
-function wmSettingCurrentRole_(){
-  const raw = String((WM_LMS_CURRENT_TEACHER && WM_LMS_CURRENT_TEACHER.권한) || 'TEACHER').trim().toUpperCase();
-  const compact = raw.replace(/[\s_-]+/g,'');
-  if(raw === 'SUPER_ADMIN' || raw === 'SUPER ADMIN' || raw === 'SUPER' || compact === 'SUPERADMIN') return 'SUPER_ADMIN';
-  if(raw === 'SPECIAL_ADMIN' || raw === 'SPECIAL ADMIN' || raw === 'ADMIN' || compact === 'SPECIALADMIN') return 'SPECIAL_ADMIN';
-  if(raw === 'SUB_LEADER' || raw === 'SUB LEADER' || raw === 'LEADER' || compact === 'SUBLEADER') return 'SUB_LEADER';
-  return 'TEACHER';
-}
-
-function wmApplySettingCenterRoleUI_(){
-  const role = wmSettingCurrentRole_();
-  const gradeSelect = document.getElementById('settingTeacherGrade');
-  const teacherRegisterBox = document.getElementById('settingTeacherRegisterBox');
-  const classRegisterBox = document.getElementById('settingClassRegisterBox');
-  const allowed = role === 'SUPER_ADMIN'
-    ? ['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER']
-    : role === 'SPECIAL_ADMIN'
-      ? ['SPECIAL_ADMIN','SUB_LEADER','TEACHER']
-      : role === 'SUB_LEADER' ? ['TEACHER'] : [];
-  if(gradeSelect){
-    gradeSelect.innerHTML = allowed.map(v=>'<option value="'+v+'">'+(v === 'SUB_LEADER' ? 'LEADER' : v)+'</option>').join('');
-    gradeSelect.disabled = allowed.length === 0;
-  }
-  if(teacherRegisterBox) teacherRegisterBox.style.display = allowed.length ? 'block' : 'none';
-  if(classRegisterBox) classRegisterBox.style.display = role === 'TEACHER' ? 'none' : 'block';
-  const settingSearchBox = document.getElementById('settingCenterSearchBox');
-  if(settingSearchBox) settingSearchBox.style.display = role === 'TEACHER' ? 'none' : 'block';
-  if(role === 'TEACHER'){
-    const teacherStatus = document.getElementById('settingTeacherStatus');
-    const classStatus = document.getElementById('settingClassStatus');
-    if(teacherStatus) teacherStatus.textContent = '';
-    if(classStatus) classStatus.textContent = '';
-  }
 }
 
 async function loadSettingCenterDB(){
@@ -3838,9 +3811,7 @@ async function loadSettingCenterDB(){
   if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 중입니다.</td></tr>';
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
-    if(!data || data.success === false) throw new Error((data && data.message) || '설정센터 조회 권한이 없습니다.');
     wmSettingCenterRows = (data && data.rows) || [];
-    wmApplySettingCenterRoleUI_();
     renderSettingCenterRows(wmSettingCenterRows);
     fillSettingSelectOptions();
   }catch(err){
@@ -3896,8 +3867,6 @@ async function checkSettingTeacherIdDuplicate(){
 
 async function saveSettingTeacher(){
   wmLockStatusMessage('SettingCenter_TeacherRegister_LOCK','설정센터 교사등록');
-  const currentRole = wmSettingCurrentRole_();
-  if(currentRole === 'TEACHER') return setSettingStatus('settingTeacherStatus','일반 교사는 교사를 등록할 수 없습니다.');
   const payload = {
     teacherName: document.getElementById('settingTeacherName')?.value || '',
     teacherId: String(document.getElementById('settingTeacherId')?.value || '').trim(),
@@ -3909,7 +3878,6 @@ async function saveSettingTeacher(){
   if(!payload.teacherName.trim()) return setSettingStatus('settingTeacherStatus','교사명을 입력하세요.');
   if(!/^[a-zA-Z0-9]{4,10}$/.test(payload.teacherId)) return setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
   if(wmSettingTeacherIdChecked !== payload.teacherId) return setSettingStatus('settingTeacherStatus','교사ID 중복확인을 먼저 진행하세요.');
-  if(!String(payload.password || '').trim()) return setSettingStatus('settingTeacherStatus','비밀번호를 입력하세요.');
   if(!/^[0-9]{4}$/.test(payload.password)) return setSettingStatus('settingTeacherStatus','비밀번호는 숫자 4자리입니다.');
   setSettingStatus('settingTeacherStatus','교사등록 저장 중...', true);
   try{
@@ -3929,7 +3897,6 @@ function generateSettingClassId(){
 
 async function saveSettingClass(){
   wmLockStatusMessage('SettingCenter_ClassRegister_LOCK','설정센터 반등록');
-  if(wmSettingCurrentRole_() === 'TEACHER') return setSettingStatus('settingClassStatus','일반 교사는 반을 등록할 수 없습니다.');
   const payload = {
     className: document.getElementById('settingClassName')?.value || '',
     classId: document.getElementById('settingClassId')?.value || '',
@@ -3982,7 +3949,7 @@ function applyRoleDataFilterPreview(){
   console.log('권한필터 적용', getCurrentRole(), info);
 }
 
-/* 실제 로그인 성공 시 wmApplyLmsAuth → applyRole 실행 */
+applyRole('SUPER_ADMIN');
   
 function setStudentIdCreateStatus(active, text){
   const el = document.getElementById('studentIdCreateStatus');
