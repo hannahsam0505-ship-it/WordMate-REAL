@@ -1178,8 +1178,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
             <div class="wm-setting-teacher-id-label">교사ID</div>
             <div class="wm-setting-teacher-id-row">
               <input type="text" id="settingTeacherId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="영어+숫자 4~10" onfocus="wmUnlockSettingTeacherIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleSettingTeacherIdTyping(event)" />
-              <button type="button" class="wm-action-btn sub" onclick="generateSettingTeacherId()">자동생성</button>
-              <button type="button" class="wm-action-btn sub" onclick="checkSettingTeacherIdDuplicate()">중복확인</button>
+              <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.generateTeacherId()">자동생성</button>
+              <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.checkTeacherId()">중복확인</button>
             </div>
           </div>
           <label>비밀번호<input type="text" id="settingTeacherPw" maxlength="4" placeholder="숫자 4자리" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,4)" /></label>
@@ -1196,7 +1196,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           </label>
         </div>
         <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn" onclick="saveSettingTeacher()">교사등록 실행</button>
+          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveTeacher()">교사등록 실행</button>
           <span id="settingTeacherStatus" class="wm-manage-loading"></span>
         </div>
       </div>
@@ -1211,8 +1211,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           </label>
         </div>
         <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn sub" onclick="generateSettingClassId()">반아이디 자동생성</button>
-          <button type="button" class="wm-action-btn" onclick="saveSettingClass()">반등록 실행</button>
+          <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.generateClassId()">반아이디 자동생성</button>
+          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button>
           <span id="settingClassStatus" class="wm-manage-loading"></span>
         </div>
         <div class="wm-note">일반교사는 한 반에 한 명만 적용하고, 한 교사는 여러 반을 담당할 수 있습니다. 리더는 여러 일반교사 반을 관리할 수 있습니다.</div>
@@ -1228,7 +1228,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>담당반<input type="text" placeholder="반명" data-filter="class" /></label>
           <label>상태<input type="text" placeholder="Active / Inactive" data-filter="status" /></label>
         </div>
-        <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="loadSettingCenterDB()">새로고침</button></div>
+        <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">새로고침</button></div>
       </div>
 
       <div class="wm-table-wrap"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7.설정센터_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
@@ -3784,7 +3784,7 @@ async function generateSettingTeacherId(){
   const el = document.getElementById('settingTeacherId');
   if(!el) return '';
   wmUnlockSettingTeacherIdInput();
-  try{ await loadSettingCenterDB(); }catch(err){}
+  try{ await WM_SETTING_CENTER_LOCK_V1.load(); }catch(err){}
   const id = makeSettingTeacherLocalId();
   if(id){
     el.value = id;
@@ -3883,8 +3883,8 @@ async function loadSettingCenterDB(){
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
     wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
-    renderSettingCenterRows(wmSettingCenterRows);
-    fillSettingSelectOptions((data && data.allowedGrades) || []);
+    WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
+    WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
@@ -3904,7 +3904,7 @@ function renderSettingCenterRows(rows){
     const value = row[h] || '';
     if(h === '담당반목록'){
       const classes = splitSettingClasses(value);
-      const html = classes.length ? classes.map(c=>'<button type="button" class="wm-link-btn" onclick="openSettingClassStudentList(\''+escapeJs(c)+'\')">'+escapeHtml(c)+'</button>').join(' ') : escapeHtml(value || '-');
+      const html = classes.length ? classes.map(c=>'<button type="button" class="wm-link-btn" onclick="WM_SETTING_CENTER_LOCK_V1.openClassStudents(\''+escapeJs(c)+'\')">'+escapeHtml(c)+'</button>').join(' ') : escapeHtml(value || '-');
       return '<td>'+html+'</td>';
     }
     if(h === '상태' && canChangeStatus){
@@ -3913,7 +3913,7 @@ function renderSettingCenterRows(rows){
       return '<td><select class="wm-mode-select wm-setting-status-select" data-teacher-id="'+escapeHtml(teacherId)+'">'
         +'<option value="Active"'+(currentStatus === 'Active' ? ' selected' : '')+'>Active</option>'
         +'<option value="Inactive"'+(currentStatus === 'Inactive' ? ' selected' : '')+'>Inactive</option>'
-        +'</select> <button type="button" class="wm-mode-save-btn" onclick="saveSettingTeacherStatus(this)">저장</button></td>';
+        +'</select> <button type="button" class="wm-mode-save-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveTeacherStatus(this)">저장</button></td>';
     }
     return '<td>'+escapeHtml(value || '-')+'</td>';
   }).join('')+'</tr>').join('');
@@ -3930,7 +3930,7 @@ async function saveSettingTeacherStatus(button){
     const data = await wmFetchSettingApi('saveSettingTeacherStatus', {teacherId, status});
     if(!data || !data.success) throw new Error((data && data.message) || '교사 상태 저장 실패');
     alert(data.message || '교사 상태 저장 완료');
-    await loadSettingCenterDB();
+    await WM_SETTING_CENTER_LOCK_V1.load();
   }catch(err){
     alert(err.message || err);
   }finally{
@@ -3947,7 +3947,7 @@ async function checkSettingTeacherIdDuplicate(){
     setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
     return false;
   }
-  try{ await loadSettingCenterDB(); }catch(err){}
+  try{ await WM_SETTING_CENTER_LOCK_V1.load(); }catch(err){}
   if(wmSettingTeacherExistingIdSet().has(teacherId.toLowerCase())){
     setSettingStatus('settingTeacherStatus','이미 사용 중인 교사ID입니다.');
     return false;
@@ -3982,7 +3982,7 @@ async function saveSettingTeacher(){
   try{
     const data = await wmFetchSettingApi('saveSettingTeacher', payload);
     setSettingStatus('settingTeacherStatus',(data && data.message) || '교사등록 완료', !!(data && data.success));
-    if(data && data.success){ wmSettingTeacherIdChecked = ''; await loadSettingCenterDB(); }
+    if(data && data.success){ wmSettingTeacherIdChecked = ''; await WM_SETTING_CENTER_LOCK_V1.load(); }
   }catch(err){ setSettingStatus('settingTeacherStatus','교사등록 실패: '+(err.message || err)); }
 }
 
@@ -4008,7 +4008,7 @@ async function saveSettingClass(){
   try{
     const data = await wmFetchSettingApi('saveSettingClass', payload);
     setSettingStatus('settingClassStatus',(data && data.message) || '반등록 완료', !!(data && data.success));
-    if(data && data.success) await loadSettingCenterDB();
+    if(data && data.success) await WM_SETTING_CENTER_LOCK_V1.load();
   }catch(err){ setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err)); }
 }
 
@@ -4029,8 +4029,97 @@ function openSettingClassStudentList(className){
   box.classList.add('active');
 }
 
+
+/* ============================================================
+   🔒 WM SETTING CENTER LOCK V1 / 실제 실행 연결
+   설정센터의 현재 완성 기능을 동결 Registry에 연결하고
+   F12 Console에서 전체 연결 상태를 자동 검증합니다.
+   ============================================================ */
+const WM_SETTING_CENTER_LOCK_V1 = Object.freeze({
+  version: 'WM_SETTING_CENTER_LOCK_V1.0',
+  date: '2026-07-10',
+  load: loadSettingCenterDB,
+  render: renderSettingCenterRows,
+  roleUI: wmApplySettingCenterRoleUI,
+  fillOptions: fillSettingSelectOptions,
+  normalizeTeacherId: wmNormalizeSettingTeacherId,
+  generateTeacherId: generateSettingTeacherId,
+  checkTeacherId: checkSettingTeacherIdDuplicate,
+  saveTeacher: saveSettingTeacher,
+  saveTeacherStatus: saveSettingTeacherStatus,
+  generateClassId: generateSettingClassId,
+  saveClass: saveSettingClass,
+  openClassStudents: openSettingClassStudentList
+});
+
+function wmGetSettingCenterClientLockStatus(){
+  const registry = WM_SETTING_CENTER_LOCK_V1;
+  const status = {
+    version: registry.version,
+    date: registry.date,
+    load: typeof registry.load === 'function',
+    render: typeof registry.render === 'function',
+    roleUI: typeof registry.roleUI === 'function',
+    fillOptions: typeof registry.fillOptions === 'function',
+    normalizeTeacherId: typeof registry.normalizeTeacherId === 'function',
+    generateTeacherId: typeof registry.generateTeacherId === 'function',
+    checkTeacherId: typeof registry.checkTeacherId === 'function',
+    saveTeacher: typeof registry.saveTeacher === 'function',
+    saveTeacherStatus: typeof registry.saveTeacherStatus === 'function',
+    generateClassId: typeof registry.generateClassId === 'function',
+    saveClass: typeof registry.saveClass === 'function',
+    openClassStudents: typeof registry.openClassStudents === 'function',
+    frozen: Object.isFrozen(registry)
+  };
+  status.verified = Object.keys(status).every(key =>
+    key === 'version' || key === 'date' || status[key] === true
+  );
+  return status;
+}
+
+async function wmLogSettingCenterLockStatus(){
+  const client = wmGetSettingCenterClientLockStatus();
+  let server = null;
+  try{
+    server = await wmFetchSettingApi('settingCenterLockStatus', {});
+  }catch(err){
+    server = {verified:false, error:String(err && err.message ? err.message : err)};
+  }
+
+  console.group('🔒 SETTING CENTER LOCK STATUS');
+  console.info('LOCK VERSION :', client.version);
+  console.info('LOCK DATE    :', client.date);
+  console.info('CLIENT LOCKED MODULES');
+  console.table({
+    '설정센터 조회': client.load,
+    '목록 렌더링': client.render,
+    '권한별 UI': client.roleUI,
+    '드롭다운 구성': client.fillOptions,
+    '교사ID 입력': client.normalizeTeacherId,
+    '교사ID 자동생성': client.generateTeacherId,
+    '교사ID 중복확인': client.checkTeacherId,
+    '교사등록': client.saveTeacher,
+    '교사상태 저장': client.saveTeacherStatus,
+    '반ID 자동생성': client.generateClassId,
+    '반등록': client.saveClass,
+    '담당반 학생조회': client.openClassStudents,
+    'CLIENT REGISTRY FROZEN': client.frozen
+  });
+  console.info('SERVER LOCK VERIFIED :', !!(server && server.verified));
+  if(server && server.error) console.error('SERVER LOCK ERROR :', server.error);
+  if(client.verified && server && server.verified){
+    console.info('🔒 SETTING CENTER ALL LOCK VERIFIED');
+  }else{
+    console.error('❌ SETTING CENTER LOCK VERIFY FAILED');
+  }
+  console.groupEnd();
+  return {client, server};
+}
+
+
 document.addEventListener('DOMContentLoaded', function(){
-  if(document.body.classList.contains('wm-lms-authenticated')) loadSettingCenterDB();
+  wmLogSettingCenterLockStatus();
+  if(document.body.classList.contains('wm-lms-authenticated')) WM_SETTING_CENTER_LOCK_V1.load();
 });
 
 function setStudentIdCreateStatus(active, text){
