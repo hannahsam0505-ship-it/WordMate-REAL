@@ -164,6 +164,16 @@ const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
+/* WM_MAP_LOGIN_ENTRY_GUARD_V1
+   로그인 세션 확인 전에는 학습맵 화면을 노출하지 않습니다. */
+(function(){
+  const authStyle = document.createElement('style');
+  authStyle.id = 'wmMapAuthGuardStyle';
+  authStyle.textContent = 'html.wm-map-auth-pending body{visibility:hidden !important;}';
+  (document.head || document.documentElement).appendChild(authStyle);
+  document.documentElement.classList.add('wm-map-auth-pending');
+})();
+
 ['APPS_SCRIPT_URL','LOGIN_URL','MAP_URL','STUDY_URL','LMS_URL'].forEach(function(key){
   if (!WM_CONFIG[key]) {
     throw new Error('WM_ENV_CONFIG.' + WM_ENV + '.' + key + ' 값이 비어 있습니다.');
@@ -1460,6 +1470,20 @@ function wmBuildLoginUrl(){
   return WM_TEST_LOGIN_PAGE_URL;
 }
 
+function wmRevealAuthenticatedMap_(){
+  document.documentElement.classList.remove('wm-map-auth-pending');
+}
+
+function wmRedirectToLogin_(){
+  wmClearLoginStorage();
+  const loginUrl = wmBuildLoginUrl();
+  try{
+    window.top.location.replace(loginUrl);
+  }catch(err){
+    window.location.replace(loginUrl);
+  }
+}
+
 function wmClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
   try{ localStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
@@ -1492,11 +1516,16 @@ function wmGoLoginAfterSessionExpired(){
   window.top.location.href = wmBuildLoginUrl();
 }
 
-async function wmCheckCurrentSession(){
+async function wmCheckCurrentSession(options){
+  options = options || {};
   const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
   const sessionToken = wmGetCurrentSessionToken();
 
   if(!studentId || !sessionToken){
+    if(options.redirectOnInvalid){
+      wmRedirectToLogin_();
+      return false;
+    }
     return true;
   }
 
@@ -1511,7 +1540,11 @@ async function wmCheckCurrentSession(){
     const data = await res.json();
 
     if(data && data.success && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
-      wmShowSessionExpiredModal();
+      if(options.redirectOnInvalid){
+        wmRedirectToLogin_();
+      }else{
+        wmShowSessionExpiredModal();
+      }
       return false;
     }
   }catch(err){
@@ -1596,14 +1629,14 @@ function wmInitLearningMap(){
       .getStudentMapProfile(wmCurrentStudent.학생ID);
   }
 
-  if(!wmCurrentStudent.학생ID){
-    wmShowMapMessage('학생ID를 찾을 수 없습니다. 학습맵 URL에 ?studentId=S4821 형태로 학생ID를 붙이거나, 로그인 후 학습맵을 열어주세요.');
-    renderHomeworkTable([]);
+  if(!wmCurrentStudent.학생ID || !wmGetCurrentSessionToken()){
+    wmRedirectToLogin_();
     return;
   }
 
-  wmCheckCurrentSession().then(function(valid){
+  wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
     if(!valid) return;
+    wmRevealAuthenticatedMap_();
     wmFetchLearningMap(wmCurrentStudent.학생ID);
     wmStartSessionWatcher();
   });
