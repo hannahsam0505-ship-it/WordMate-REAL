@@ -1316,8 +1316,9 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
       if(visibleViewRangeText) visibleViewRangeText.textContent = (typeof roleViewText !== 'undefined' && roleViewText[role]) ? roleViewText[role] : '허용된 LMS 범위';
-      if(typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
+      if((role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN') && typeof wmScheduleDashboardFirstLoad === 'function') wmScheduleDashboardFirstLoad();
       if(typeof wmApplySettingCenterRoleUI === 'function') wmApplySettingCenterRoleUI(role, []);
+      if(role === 'SUB_LEADER' || role === 'TEACHER') showPanel('classes');
     }
     function wmRestoreLmsAuth(){
       try{
@@ -1414,6 +1415,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       TEACHER:'자기 Teacher_ID에 연결된 반과 학생'
     };
     function showPanel(panelName){
+      const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
+      if((authRole === 'SUB_LEADER' || authRole === 'TEACHER') && panelName !== 'classes') panelName = 'classes';
       panels.forEach(panel=>panel.classList.remove('active'));
       menuButtons.forEach(btn=>btn.classList.remove('active'));
       const targetPanel=document.getElementById('panel-'+panelName);
@@ -1474,12 +1477,28 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         wmApplySettingCenterRoleUI(role, localAllowed);
       }
       if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
+      if(role === 'SUB_LEADER' || role === 'TEACHER'){
+        menuButtons.forEach(function(btn){
+          btn.classList.toggle('wm-hidden', btn.dataset.panel !== 'classes');
+        });
+        const roleSelect = document.querySelector('.wm-role-select');
+        if(roleSelect) roleSelect.classList.add('wm-hidden');
+      }else{
+        menuButtons.forEach(function(btn){
+          if(btn.dataset.panel !== 'dev') btn.classList.remove('wm-hidden');
+        });
+        const roleSelect = document.querySelector('.wm-role-select');
+        if(roleSelect) roleSelect.classList.remove('wm-hidden');
+      }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
       if(typeof renderStudentManageRows === "function") renderStudentManageRows();
       const devPanel = document.getElementById('panel-dev');
-      const settingPanel = document.getElementById('panel-classes');
-      if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
+      if(role === 'SUB_LEADER' || role === 'TEACHER'){
+        showPanel('classes');
+      }else if(!adminLike && (devPanel && devPanel.classList.contains('active'))){
+        showPanel('dashboard');
+      }
     }
 
     function getFilterValue(scope, filterName){
