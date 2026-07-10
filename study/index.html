@@ -2951,4 +2951,13 @@ document.addEventListener("keydown",function(e){
 });
 
 renderStart();
+
+/* WM_SPEED_STUDY_PRELOAD_V1_20260710
+   Study 페이지가 열린 즉시 세트 DB와 음원을 미리 불러옵니다.
+   사용자가 [학습 시작]을 누르면 이미 진행 중인 동일 요청을 재사용합니다. */
+setTimeout(function(){
+  if(!isDbReady && !isDbLoading){
+    loadSetFromDB();
+  }
+}, 0);
 </script>
