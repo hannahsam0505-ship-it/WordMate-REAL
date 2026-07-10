@@ -1470,6 +1470,37 @@ function wmBuildLoginUrl(){
   return WM_TEST_LOGIN_PAGE_URL;
 }
 
+/* WM_MAP_DIRECT_ENTRY_GUARD_V1
+   로그인 성공 또는 Study 복귀로 들어온 경우만 허용합니다.
+   승인 후 URL의 wmEntry는 제거하되 history.state에 승인 상태를 남겨 새로고침은 허용합니다. */
+function wmAuthorizeMapEntry_(){
+  let entry = '';
+  try{
+    entry = String(new URLSearchParams(window.location.search || '').get('wmEntry') || '').trim().toLowerCase();
+  }catch(err){}
+
+  const validEntry = entry === 'login' || entry === 'study';
+  const historyAuthorized = !!(window.history && window.history.state && window.history.state.wmMapAuthorized === true);
+
+  if(!validEntry && !historyAuthorized){
+    return false;
+  }
+
+  if(validEntry){
+    try{
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('wmEntry');
+      const nextState = Object.assign({}, window.history.state || {}, {
+        wmMapAuthorized: true,
+        wmMapEntrySource: entry
+      });
+      window.history.replaceState(nextState, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    }catch(err){}
+  }
+
+  return true;
+}
+
 function wmRevealAuthenticatedMap_(){
   document.documentElement.classList.remove('wm-map-auth-pending');
 }
@@ -1611,6 +1642,13 @@ function wmRenderInstantMapFromStudentCache_(){
 
 function wmInitLearningMap(){
   wmMapDataReady = false;
+
+  /* 주소창 직접 /map 진입 차단: 로그인 또는 Study 복귀 표시가 없으면 로그인 화면으로 이동 */
+  if(!wmAuthorizeMapEntry_()){
+    wmRedirectToLogin_();
+    return;
+  }
+
   wmCurrentStudent = wmResolveStudentInfo();
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
