@@ -1195,8 +1195,6 @@ let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
-let wmBottomRecordsRequestStudentId_ = '';
-let wmBottomRecordsLoadedStudentId_ = '';
 let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
 const WM_HOMEWORK_PAGE_SIZE = 25;
@@ -1226,18 +1224,9 @@ function wmGetApiBaseUrl(){
   return WM_APPS_SCRIPT_URL;
 }
 
-/* WM_MAP_SPEED_PHASE1_URL_PARAMS_CACHE_V1
-   같은 주소의 URLSearchParams를 매 호출마다 다시 생성하지 않고 1회 캐시합니다. */
-let wmUrlParamsCacheSearch_ = null;
-let wmUrlParamsCache_ = null;
-
 function wmGetUrlParam(name){
-  const currentSearch = String(window.location.search || '');
-  if(!wmUrlParamsCache_ || wmUrlParamsCacheSearch_ !== currentSearch){
-    wmUrlParamsCacheSearch_ = currentSearch;
-    wmUrlParamsCache_ = new URLSearchParams(currentSearch);
-  }
-  return String(wmUrlParamsCache_.get(name) || '').trim();
+  const params = new URLSearchParams(window.location.search || '');
+  return String(params.get(name) || '').trim();
 }
 
 function wmSafeJsonParse(value){
@@ -1686,11 +1675,6 @@ function wmInitLearningMap(){
   wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
     if(!valid) return;
     wmRevealAuthenticatedMap_();
-
-    /* WM_MAP_SAFE_PARALLEL_RECORDS_LOAD_V1
-       현재진행_DB 학습맵 조회와 학습기록_DB 조회를 서로 기다리지 않고 동시에 시작합니다.
-       기존 초기화·LOCK·맵 렌더링 순서는 변경하지 않습니다. */
-    wmLoadLearningRecordsDirectForMap_('initial-parallel-load');
     wmFetchLearningMap(wmCurrentStudent.학생ID);
     wmStartSessionWatcher();
   });
@@ -1704,19 +1688,11 @@ function wmShowMapLoadingState_(){
   }
   if(map){
     const seconds = Math.max(0, Math.floor((Date.now() - wmMapLoadingStartAt) / 1000));
-    const secondsText = document.getElementById('wmMapLoadingSeconds');
-
-    /* WM_MAP_SPEED_PHASE1_LOADING_DOM_REUSE_V1
-       1초마다 로딩영역 전체 innerHTML을 다시 만들지 않고 경과시간 텍스트만 갱신합니다. */
-    if(secondsText && map.contains(secondsText)){
-      secondsText.textContent = String(seconds);
-    }else{
-      map.innerHTML = '<div class="wm-map-loading-block" aria-live="polite">'
-        + '<div class="wm-map-loading-spinner" aria-hidden="true"></div>'
-        + '<div>학습맵을 불러오는 중입니다.</div>'
-        + '<div class="wm-map-loading-sub">DB 확인 중입니다. 세트 버튼은 로딩 완료 후 활성화됩니다. (<span id="wmMapLoadingSeconds">' + seconds + '</span>초)</div>'
-        + '</div>';
-    }
+    map.innerHTML = '<div class="wm-map-loading-block" aria-live="polite">'
+      + '<div class="wm-map-loading-spinner" aria-hidden="true"></div>'
+      + '<div>학습맵을 불러오는 중입니다.</div>'
+      + '<div class="wm-map-loading-sub">DB 확인 중입니다. 세트 버튼은 로딩 완료 후 활성화됩니다. (' + seconds + '초)</div>'
+      + '</div>';
   }
   setText('summaryTotalSet', '-');
   setText('summaryCompleteSet', '-');
@@ -2048,24 +2024,19 @@ function wmLoadLearningRecordsDirectForMap_(reason){
   /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
      getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
      하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
+  if(wmBottomRecordsDirectLoading) return;
+
   const student = wmCurrentStudent || wmStudentProfile || {};
   const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
   if(!studentId) return;
 
-  /* 같은 학생의 동시·중복 학습기록 조회를 차단합니다. */
-  if(wmBottomRecordsDirectLoading && wmBottomRecordsRequestStudentId_ === studentId) return;
-  if(wmBottomRecordsLoadedStudentId_ === studentId && wmLearningRecords.length) return;
-
   wmBottomRecordsDirectLoading = true;
-  wmBottomRecordsRequestStudentId_ = studentId;
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
-    wmBottomRecordsRequestStudentId_ = '';
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     if(!directRecords.length) return;
 
-    wmBottomRecordsLoadedStudentId_ = studentId;
     wmLearningRecords = directRecords;
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
@@ -2076,7 +2047,6 @@ function wmLoadLearningRecordsDirectForMap_(reason){
 
   function failPayload(){
     wmBottomRecordsDirectLoading = false;
-    wmBottomRecordsRequestStudentId_ = '';
   }
 
   if(window.google && google.script && google.script.run){
@@ -3573,9 +3543,6 @@ function wmRenderHomeworkRow(record){
   `;
 }
 
-let wmHomeworkScrollbarSyncFrame_ = 0;
-let wmHomeworkScrollbarSyncTimer_ = 0;
-
 function wmInitHomeworkTopScrollbar(){
   /* WM_HOMEWORK_INNER_SCROLLBAR_PAGING_V1
      하단 학습기록 테이블 내부에서 상단/하단 가로바와 본문 스크롤을 동기화합니다. */
@@ -3589,28 +3556,19 @@ function wmInitHomeworkTopScrollbar(){
 
   function syncWidth(){
     const tableWidth = Math.max(table.scrollWidth || 0, table.offsetWidth || 0, 1500);
-    const widthText = tableWidth + 'px';
-    if(topInner.style.width !== widthText) topInner.style.width = widthText;
-    if(bottomInner.style.width !== widthText) bottomInner.style.width = widthText;
+    topInner.style.width = tableWidth + 'px';
+    bottomInner.style.width = tableWidth + 'px';
   }
 
   syncWidth();
 
-  /* WM_MAP_SPEED_PHASE1_SCROLLBAR_COALESCE_V1
-     반복 호출을 한 프레임과 한 번의 지연 확인으로 합쳐 불필요한 레이아웃 측정을 줄입니다. */
   if(window.requestAnimationFrame){
-    if(wmHomeworkScrollbarSyncFrame_) cancelAnimationFrame(wmHomeworkScrollbarSyncFrame_);
-    wmHomeworkScrollbarSyncFrame_ = requestAnimationFrame(function(){
-      wmHomeworkScrollbarSyncFrame_ = 0;
-      syncWidth();
-    });
+    requestAnimationFrame(syncWidth);
+    requestAnimationFrame(function(){ requestAnimationFrame(syncWidth); });
   }
 
-  if(wmHomeworkScrollbarSyncTimer_) clearTimeout(wmHomeworkScrollbarSyncTimer_);
-  wmHomeworkScrollbarSyncTimer_ = setTimeout(function(){
-    wmHomeworkScrollbarSyncTimer_ = 0;
-    syncWidth();
-  }, 120);
+  setTimeout(syncWidth, 50);
+  setTimeout(syncWidth, 300);
 
   if(tableScroll.dataset.wmSynced === '1') return;
   tableScroll.dataset.wmSynced = '1';
@@ -3622,15 +3580,15 @@ function wmInitHomeworkTopScrollbar(){
       syncing = true;
       targets.forEach(function(target){ target.scrollLeft = source.scrollLeft; });
       syncing = false;
-    }, {passive:true});
+    });
   }
 
   bindScroll(topBar, [tableScroll, bottomBar]);
   bindScroll(tableScroll, [topBar, bottomBar]);
   bindScroll(bottomBar, [topBar, tableScroll]);
 
-  window.addEventListener('resize', syncWidth, {passive:true});
-  window.addEventListener('load', syncWidth, {once:true});
+  window.addEventListener('resize', syncWidth);
+  window.addEventListener('load', syncWidth);
 }
 
 function wmForceHomeworkBottomFixedBarOnFirstView(){
@@ -3639,6 +3597,9 @@ function wmForceHomeworkBottomFixedBarOnFirstView(){
   if(window.requestAnimationFrame){
     requestAnimationFrame(wmInitHomeworkTopScrollbar);
   }
+
+  setTimeout(wmInitHomeworkTopScrollbar, 0);
+  setTimeout(wmInitHomeworkTopScrollbar, 100);
 }
 
 async function startStudy(setId){
