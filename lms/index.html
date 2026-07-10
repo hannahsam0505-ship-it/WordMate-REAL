@@ -1474,10 +1474,21 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       });
     }
 
+    function wmApplySpecialAdminTopRoleAccess(authRole){
+      if(String(authRole || '').trim().toUpperCase() !== 'SPECIAL_ADMIN') return;
+      roleButtons.forEach(function(btn){
+        const targetRole = String(btn.dataset.role || '').trim().toUpperCase();
+        btn.disabled = targetRole === 'SUPER_ADMIN';
+        btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+      });
+    }
+
     function applyRole(role){
       const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
+      if(authRole === 'SPECIAL_ADMIN' && role === 'SUPER_ADMIN') role = 'SPECIAL_ADMIN';
       if(authRole === 'SUB_LEADER' && (role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN')) role = 'SUB_LEADER';
       if(authRole === 'TEACHER') role = 'TEACHER';
+      wmApplySpecialAdminTopRoleAccess(authRole);
       wmApplySubLeaderTopRoleAccess(authRole);
       wmApplyTeacherTopRoleAccess(authRole);
       const roleEl = document.getElementById('currentRoleText');
