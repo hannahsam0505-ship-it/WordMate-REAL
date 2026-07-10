@@ -276,6 +276,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     tr:last-child td { border-bottom:0; }
     .wm-note { background:#fffbeb; border:1px solid #fde68a; border-radius:14px; padding:14px 16px; font-size:14px; color:#92400e; line-height:1.6; margin-top:18px; }
     .wm-factory-box { background:#f8fafc; border:1px solid var(--wm-line); border-radius:16px; padding:16px; margin:0 0 18px; }
+    #settingTeacherRegisterBox,#settingClassRegisterBox { display:none; }
     .wm-factory-box h3 { margin:0 0 6px; font-size:17px; }
     .wm-factory-box p { margin:0 0 12px; color:var(--wm-gray); font-size:13px; line-height:1.6; }
     .wm-chip-row span { background:#fff; border:1px solid var(--wm-line); border-radius:999px; padding:8px 12px; font-size:12px; font-weight:900; }
@@ -1314,6 +1315,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         window.viewRangeText = document.getElementById('viewRangeText');
       }
       if(typeof applyRole === 'function') applyRole(role);
+      if(typeof wmApplySettingCenterRoleUI_ === 'function') wmApplySettingCenterRoleUI_();
       const visibleRoleText = document.querySelector('.wm-user-info #currentRoleText');
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
@@ -1460,6 +1462,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
       if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
+      if(typeof wmApplySettingCenterRoleUI_ === 'function') wmApplySettingCenterRoleUI_();
       if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
@@ -3766,19 +3769,31 @@ function getSettingClassList(){
 }
 
 function fillSettingSelectOptions(){
+  const role = wmSettingCurrentRole_();
   const classOptions = ['추후선택', ...getSettingClassList()];
-  const teacherOptions = ['추후선택', ...wmSettingCenterRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
-  const leaderOptions = ['추후선택', ...wmSettingCenterRows.filter(r=>/LEADER|ADMIN|리더|관리자/i.test(String(r['교사등급'] || ''))).map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const teacherRows = wmSettingCenterRows.filter(r=>String(r['교사등급'] || '').toUpperCase() === 'TEACHER');
+  const leaderRows = wmSettingCenterRows.filter(r=>/^(SUB_LEADER|SPECIAL_ADMIN|SUPER_ADMIN)$/i.test(String(r['교사등급'] || '')));
+  const teacherOptions = ['추후선택', ...teacherRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
+  const leaderOptions = ['추후선택', ...leaderRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
   const setOptions = (id, list)=>{
     const el = document.getElementById(id);
     if(!el) return;
     const current = el.value;
-    el.innerHTML = Array.from(new Set(list)).map(v=>'<option>'+escapeHtml(v)+'</option>').join('');
-    if(current && list.includes(current)) el.value = current;
+    const unique = Array.from(new Set(list));
+    el.innerHTML = unique.map(v=>'<option>'+escapeHtml(v)+'</option>').join('');
+    if(current && unique.includes(current)) el.value = current;
   };
   setOptions('settingTeacherClass', classOptions);
   setOptions('settingClassTeacher', teacherOptions);
   setOptions('settingTeacherLeader', leaderOptions);
+  const leaderSelect = document.getElementById('settingTeacherLeader');
+  if(role === 'SUB_LEADER' && leaderSelect){
+    const ownName = String((WM_LMS_CURRENT_TEACHER && (WM_LMS_CURRENT_TEACHER.이름 || WM_LMS_CURRENT_TEACHER.교사ID)) || '').trim();
+    leaderSelect.innerHTML = '<option>'+escapeHtml(ownName || '현재 리더')+'</option>';
+    leaderSelect.disabled = true;
+  }else if(leaderSelect){
+    leaderSelect.disabled = false;
+  }
 }
 
 
@@ -3792,16 +3807,22 @@ function wmApplySettingCenterRoleUI_(){
   const teacherRegisterBox = document.getElementById('settingTeacherRegisterBox');
   const classRegisterBox = document.getElementById('settingClassRegisterBox');
   const allowed = role === 'SUPER_ADMIN'
-    ? ['TEACHER','SUB_LEADER','SPECIAL_ADMIN','SUPER_ADMIN']
+    ? ['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER']
     : role === 'SPECIAL_ADMIN'
-      ? ['TEACHER','SUB_LEADER','SPECIAL_ADMIN']
+      ? ['SPECIAL_ADMIN','SUB_LEADER','TEACHER']
       : role === 'SUB_LEADER' ? ['TEACHER'] : [];
   if(gradeSelect){
     gradeSelect.innerHTML = allowed.map(v=>'<option>'+v+'</option>').join('');
     gradeSelect.disabled = allowed.length === 0;
   }
-  if(teacherRegisterBox) teacherRegisterBox.style.display = allowed.length ? '' : 'none';
-  if(classRegisterBox) classRegisterBox.style.display = role === 'TEACHER' ? 'none' : '';
+  if(teacherRegisterBox) teacherRegisterBox.style.display = allowed.length ? 'block' : 'none';
+  if(classRegisterBox) classRegisterBox.style.display = role === 'TEACHER' ? 'none' : 'block';
+  if(role === 'TEACHER'){
+    const teacherStatus = document.getElementById('settingTeacherStatus');
+    const classStatus = document.getElementById('settingClassStatus');
+    if(teacherStatus) teacherStatus.textContent = '';
+    if(classStatus) classStatus.textContent = '';
+  }
 }
 
 async function loadSettingCenterDB(){
@@ -3881,6 +3902,7 @@ async function saveSettingTeacher(){
   if(!payload.teacherName.trim()) return setSettingStatus('settingTeacherStatus','교사명을 입력하세요.');
   if(!/^[a-zA-Z0-9]{4,10}$/.test(payload.teacherId)) return setSettingStatus('settingTeacherStatus','교사ID는 영어+숫자 4~10자리입니다.');
   if(wmSettingTeacherIdChecked !== payload.teacherId) return setSettingStatus('settingTeacherStatus','교사ID 중복확인을 먼저 진행하세요.');
+  if(!String(payload.password || '').trim()) return setSettingStatus('settingTeacherStatus','비밀번호를 입력하세요.');
   if(!/^[0-9]{4}$/.test(payload.password)) return setSettingStatus('settingTeacherStatus','비밀번호는 숫자 4자리입니다.');
   setSettingStatus('settingTeacherStatus','교사등록 저장 중...', true);
   try{
