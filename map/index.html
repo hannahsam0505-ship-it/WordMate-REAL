@@ -1195,6 +1195,7 @@ let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
+let wmBottomRecordsDirectLoadedStudentId_ = '';
 let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
 const WM_HOMEWORK_PAGE_SIZE = 25;
@@ -1684,6 +1685,12 @@ function wmInitLearningMap(){
   wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
     if(!valid) return;
     wmRevealAuthenticatedMap_();
+
+    /* WM_MAP_RECORDS_PARALLEL_LOAD_V1
+       현재진행_DB 학습맵 조회와 학습기록_DB 조회를 동시에 시작합니다.
+       학습맵 응답을 기다린 뒤 기록을 조회하던 순차 구조를 제거하여
+       학습맵과 하단 학습기록이 거의 같은 시점에 표시되도록 합니다. */
+    wmLoadLearningRecordsDirectForMap_('parallel-initial-load');
     wmFetchLearningMap(wmCurrentStudent.학생ID);
     wmStartSessionWatcher();
   });
@@ -2047,6 +2054,11 @@ function wmLoadLearningRecordsDirectForMap_(reason){
   const studentId = String(student.학생ID || student.studentId || '').trim().toUpperCase();
   if(!studentId) return;
 
+  /* WM_MAP_RECORDS_PARALLEL_DEDUPE_V1
+     같은 학생의 학습기록이 이미 직접 조회로 반영되었으면
+     현재진행_DB 응답 후 동일 API를 다시 호출하지 않습니다. */
+  if(wmBottomRecordsDirectLoadedStudentId_ === studentId) return;
+
   wmBottomRecordsDirectLoading = true;
 
   function applyPayload(payload){
@@ -2054,6 +2066,7 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     if(!directRecords.length) return;
 
+    wmBottomRecordsDirectLoadedStudentId_ = studentId;
     wmLearningRecords = directRecords;
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
