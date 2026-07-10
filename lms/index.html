@@ -400,7 +400,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-role-select">
         <button class="wm-role-btn active" data-role="SUPER_ADMIN">SUPER_ADMIN</button>
         <button class="wm-role-btn" data-role="SPECIAL_ADMIN">SPECIAL_ADMIN</button>
-        <button class="wm-role-btn" data-role="SUB_LEADER">SUB_LEADER</button>
+        <button class="wm-role-btn" data-role="SUB_LEADER">LEADER</button>
         <button class="wm-role-btn" data-role="TEACHER">TEACHER</button>
       </div>
       <button type="button" class="wm-lms-logout-btn" id="wmLmsLogoutBtn">LMS 로그아웃</button>
@@ -1217,7 +1217,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-note">일반교사는 한 반에 한 명만 적용하고, 한 교사는 여러 반을 담당할 수 있습니다. 리더는 여러 일반교사 반을 관리할 수 있습니다.</div>
       </div>
 
-      <div class="wm-filter-box" data-filter-scope="classes">
+      <div class="wm-filter-box" id="settingCenterSearchBox" data-filter-scope="classes">
         <div class="wm-filter-title">검색조건</div>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" placeholder="교사명" data-filter="teacher" /></label>
@@ -3798,7 +3798,12 @@ function fillSettingSelectOptions(){
 
 
 function wmSettingCurrentRole_(){
-  return String((WM_LMS_CURRENT_TEACHER && WM_LMS_CURRENT_TEACHER.권한) || 'TEACHER').toUpperCase();
+  const raw = String((WM_LMS_CURRENT_TEACHER && WM_LMS_CURRENT_TEACHER.권한) || 'TEACHER').trim().toUpperCase();
+  const compact = raw.replace(/[\s_-]+/g,'');
+  if(raw === 'SUPER_ADMIN' || raw === 'SUPER ADMIN' || raw === 'SUPER' || compact === 'SUPERADMIN') return 'SUPER_ADMIN';
+  if(raw === 'SPECIAL_ADMIN' || raw === 'SPECIAL ADMIN' || raw === 'ADMIN' || compact === 'SPECIALADMIN') return 'SPECIAL_ADMIN';
+  if(raw === 'SUB_LEADER' || raw === 'SUB LEADER' || raw === 'LEADER' || compact === 'SUBLEADER') return 'SUB_LEADER';
+  return 'TEACHER';
 }
 
 function wmApplySettingCenterRoleUI_(){
@@ -3812,11 +3817,13 @@ function wmApplySettingCenterRoleUI_(){
       ? ['SPECIAL_ADMIN','SUB_LEADER','TEACHER']
       : role === 'SUB_LEADER' ? ['TEACHER'] : [];
   if(gradeSelect){
-    gradeSelect.innerHTML = allowed.map(v=>'<option>'+v+'</option>').join('');
+    gradeSelect.innerHTML = allowed.map(v=>'<option value="'+v+'">'+(v === 'SUB_LEADER' ? 'LEADER' : v)+'</option>').join('');
     gradeSelect.disabled = allowed.length === 0;
   }
   if(teacherRegisterBox) teacherRegisterBox.style.display = allowed.length ? 'block' : 'none';
   if(classRegisterBox) classRegisterBox.style.display = role === 'TEACHER' ? 'none' : 'block';
+  const settingSearchBox = document.getElementById('settingCenterSearchBox');
+  if(settingSearchBox) settingSearchBox.style.display = role === 'TEACHER' ? 'none' : 'block';
   if(role === 'TEACHER'){
     const teacherStatus = document.getElementById('settingTeacherStatus');
     const classStatus = document.getElementById('settingClassStatus');
