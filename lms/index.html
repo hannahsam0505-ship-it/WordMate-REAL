@@ -3696,7 +3696,7 @@ function wmNormalizeSettingTeacherId(){
   const el = document.getElementById('settingTeacherId');
   if(!el) return '';
   wmUnlockSettingTeacherIdInput();
-  const id = String(el.value || '').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+  const id = String(el.value || '').replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
   el.value = id;
   wmSettingTeacherIdChecked = '';
   if(id){ setSettingStatus('settingTeacherStatus','중복확인이 필요합니다.'); }
@@ -3707,7 +3707,7 @@ function wmSettingTeacherExistingIdSet(){
   const used = new Set();
   (wmSettingCenterRows || []).forEach(row=>{
     const id = String(row['교사ID'] || row['Teacher_ID'] || row['TeacherID'] || row['teacherId'] || '').trim();
-    if(id) used.add(id);
+    if(id) used.add(id.toLowerCase());
   });
   return used;
 }
@@ -3821,7 +3821,7 @@ async function checkSettingTeacherIdDuplicate(){
     return false;
   }
   try{ await loadSettingCenterDB(); }catch(err){}
-  if(wmSettingTeacherExistingIdSet().has(teacherId)){
+  if(wmSettingTeacherExistingIdSet().has(teacherId.toLowerCase())){
     setSettingStatus('settingTeacherStatus','이미 사용 중인 교사ID입니다.');
     return false;
   }
@@ -4204,7 +4204,7 @@ function wmStudentRegisterExistingIdSet(){
   const used = new Set();
   (WM_STUDENT_MANAGE_ROWS || []).forEach(row=>{
     const id = wmStudentRegisterIdCompareKey(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
-    if(id) used.add(id);
+    if(id) used.add(id.toLowerCase());
   });
   return used;
 }
