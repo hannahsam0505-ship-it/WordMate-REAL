@@ -3785,6 +3785,204 @@ function resetHomeworkFilters(){
   wmRenderHomeworkForActiveLevel_();
 }
 
+
+/* ==========================================================
+   🔒 MAP ACTUAL FUNCTION LOCK - PHASE 1 / 수정 금지
+
+   [이번 실제 LOCK 범위]
+   1) 검색 모듈
+   2) 학생정보 로딩 모듈
+   3) 현재진행_DB 연동 모듈
+
+   [보호 방식]
+   - 아래 핵심 전역 함수의 현재 실행본을 그대로 유지합니다.
+   - 함수명 재할당 및 delete를 차단합니다.
+   - 기존 함수 내부 로직·호출 순서·반환값은 변경하지 않습니다.
+   - F12 Console에서 함수별 실제 속성(writable/configurable)을 검사합니다.
+
+   ⚠️ 이 영역은 세 모듈의 정상 동작 검증 후 수정하지 않습니다.
+   ========================================================== */
+(function wmApplyMapActualLockPhase1_(){
+  'use strict';
+
+  var WM_MAP_ACTUAL_LOCK_VERSION = 'MAP_ACTUAL_LOCK_PHASE1_V1.0';
+  var WM_MAP_ACTUAL_LOCK_DATE = '2026-07-10';
+
+  var WM_MAP_ACTUAL_LOCK_GROUPS = Object.freeze({
+    search: Object.freeze([
+      'wmInitHomeworkSearchEnterKey',
+      'filterHomeworkRecords',
+      'resetHomeworkFilters',
+      'normalizeDateText',
+      'getWeekOfMonth',
+      'normalizeSetId',
+      'getLevelFromSetId'
+    ]),
+    studentInfo: Object.freeze([
+      'wmReadStudentFromStorage',
+      'wmReadStudentFromRootData',
+      'wmNormalizeStudentObject',
+      'wmMergeStudentPreserveValues_',
+      'wmResolveStudentInfo'
+    ]),
+    currentProgressDB: Object.freeze([
+      'wmParseProgressPercentNumber_',
+      'wmApplyCurrentProgressDisplayOverrideToSetData_',
+      'wmBuildCurrentProgressHistoryCacheForMap_',
+      'wmParseRecent30Records_',
+      'wmHasCurrentProgressHistoryValue_',
+      'wmFindCurrentProgressCache_',
+      'wmNormalizeCurrentProgressCache_',
+      'wmNormalizeScoreForMap_',
+      'wmPickLearningRecordsFromPayload_',
+      'wmApplyLearningMapFromCurrentProgressCache_',
+      'wmHandleLearningMapResponse',
+      'wmFetchLearningMap'
+    ])
+  });
+
+  var WM_MAP_ACTUAL_LOCK_LABELS = Object.freeze({
+    search: '검색',
+    studentInfo: '학생정보 로딩',
+    currentProgressDB: '현재진행_DB'
+  });
+
+  function wmProtectGlobalFunction_(functionName){
+    var currentFunction = window[functionName];
+
+    if(typeof currentFunction !== 'function'){
+      return {
+        name: functionName,
+        locked: false,
+        reason: '함수 없음'
+      };
+    }
+
+    try{
+      Object.defineProperty(window, functionName, {
+        value: currentFunction,
+        writable: false,
+        configurable: false,
+        enumerable: true
+      });
+    }catch(err){
+      return {
+        name: functionName,
+        locked: false,
+        reason: err && err.message ? err.message : 'defineProperty 실패'
+      };
+    }
+
+    var descriptor = Object.getOwnPropertyDescriptor(window, functionName);
+    var locked = !!descriptor &&
+      descriptor.value === currentFunction &&
+      descriptor.writable === false &&
+      descriptor.configurable === false;
+
+    return {
+      name: functionName,
+      locked: locked,
+      reason: locked ? '' : '속성 검증 실패'
+    };
+  }
+
+  var functionResults = {};
+  var moduleResults = {};
+  var allPhase1Locked = true;
+
+  Object.keys(WM_MAP_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
+    var names = WM_MAP_ACTUAL_LOCK_GROUPS[groupKey];
+    var lockedCount = 0;
+
+    names.forEach(function(functionName){
+      var result = wmProtectGlobalFunction_(functionName);
+      functionResults[functionName] = result;
+
+      if(result.locked){
+        lockedCount += 1;
+      }else{
+        allPhase1Locked = false;
+      }
+    });
+
+    moduleResults[groupKey] = Object.freeze({
+      label: WM_MAP_ACTUAL_LOCK_LABELS[groupKey] || groupKey,
+      locked: lockedCount === names.length,
+      lockedCount: lockedCount,
+      totalCount: names.length
+    });
+  });
+
+  var frozenModuleResults = Object.freeze(moduleResults);
+  var frozenFunctionResults = Object.freeze(functionResults);
+
+  try{
+    Object.defineProperty(window, 'WM_MAP_ACTUAL_LOCK_GROUPS', {
+      value: WM_MAP_ACTUAL_LOCK_GROUPS,
+      writable: false,
+      configurable: false
+    });
+
+    Object.defineProperty(window, 'WM_MAP_ACTUAL_LOCK_RESULTS', {
+      value: frozenModuleResults,
+      writable: false,
+      configurable: false
+    });
+
+    Object.defineProperty(window, 'WM_MAP_ACTUAL_LOCK_FUNCTION_RESULTS', {
+      value: frozenFunctionResults,
+      writable: false,
+      configurable: false
+    });
+
+    Object.defineProperty(window, 'WM_MAP_ACTUAL_LOCK_VERSION', {
+      value: WM_MAP_ACTUAL_LOCK_VERSION,
+      writable: false,
+      configurable: false
+    });
+
+    Object.defineProperty(window, 'WM_MAP_ACTUAL_LOCK_DATE', {
+      value: WM_MAP_ACTUAL_LOCK_DATE,
+      writable: false,
+      configurable: false
+    });
+  }catch(err){
+    allPhase1Locked = false;
+    console.error('MAP ACTUAL LOCK REGISTRY ERROR:', err && err.message ? err.message : err);
+  }
+
+  var moduleConsole = {};
+  Object.keys(frozenModuleResults).forEach(function(groupKey){
+    var item = frozenModuleResults[groupKey];
+    moduleConsole[item.label] = item.locked
+      ? '✅ ' + item.lockedCount + '/' + item.totalCount + ' ACTUAL LOCK'
+      : '❌ ' + item.lockedCount + '/' + item.totalCount + ' LOCK CHECK';
+  });
+
+  console.group('🔒 WORD MATE MAP ACTUAL FUNCTION LOCK STATUS');
+  console.log('LOCK VERSION : ' + WM_MAP_ACTUAL_LOCK_VERSION);
+  console.log('LOCK DATE    : ' + WM_MAP_ACTUAL_LOCK_DATE);
+  console.table(moduleConsole);
+
+  if(!allPhase1Locked){
+    var failedConsole = {};
+    Object.keys(frozenFunctionResults).forEach(function(functionName){
+      var item = frozenFunctionResults[functionName];
+      if(!item.locked){
+        failedConsole[functionName] = item.reason || 'LOCK 실패';
+      }
+    });
+    console.table(failedConsole);
+  }
+
+  console.log(allPhase1Locked
+    ? '🔒 PHASE 1 ALL LOCK VERIFIED (검색 · 학생정보 로딩 · 현재진행_DB)'
+    : '⚠️ PHASE 1 LOCK CHECK REQUIRED');
+  console.log('FULL MAP ACTUAL LOCK PROGRESS : 3 / 8 MODULES');
+  console.groupEnd();
+})();
+
+
 wmForceHomeworkBottomFixedBarOnFirstView();
 wmInitHomeworkSearchEnterKey();
 wmInitLearningMap();
