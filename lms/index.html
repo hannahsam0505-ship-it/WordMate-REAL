@@ -1168,7 +1168,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7.설정센터_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
       <div class="wm-note">교사/반은 등록 순서와 관계없이 먼저 만들 수 있습니다. 담당반·담당교사는 선택값이 없을 때 <strong>추후선택</strong>으로 저장합니다.</div>
 
-      <div class="wm-factory-box">
+      <div class="wm-factory-box" id="wmSettingTeacherRegisterBox">
         <h3>교사등록</h3>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
@@ -1199,7 +1199,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-factory-box">
+      <div class="wm-factory-box" id="wmSettingClassRegisterBox">
         <h3>반등록</h3>
         <div class="wm-filter-grid">
           <label>반명<input type="text" id="settingClassName" placeholder="예: C001 / 중1A" /></label>
@@ -1297,39 +1297,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       el.textContent = message || '';
       el.style.color = isOk ? 'var(--wm-green)' : 'var(--wm-red)';
     }
-    /* WM_SETTING_GRADE_DROPDOWN_ONLY_V2
-     * 기존 아이디별 화면·메뉴·데이터 차등적용은 건드리지 않습니다.
-     * 로그인 권한에 따라 설정센터 교사등급 select의 option만 다시 구성합니다.
-     */
-    function wmApplySettingGradeDropdownOnly(role){
-      const select = document.getElementById('settingTeacherGrade');
-      if(!select) return;
-
-      const rawRole = String(role || '').trim().toUpperCase();
-      const normalizedRole = rawRole === 'LEADER' ? 'SUB_LEADER' : rawRole;
-      const optionsByRole = {
-        SUPER_ADMIN:['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
-        SPECIAL_ADMIN:['SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
-        SUB_LEADER:['SUB_LEADER','TEACHER'],
-        TEACHER:[]
-      };
-      const options = optionsByRole[normalizedRole];
-      if(!options) return;
-
-      const previousValue = String(select.value || '').trim();
-      select.innerHTML = options.map(function(value){
-        return '<option value="'+value+'">'+value+'</option>';
-      }).join('');
-
-      if(options.indexOf(previousValue) >= 0){
-        select.value = previousValue;
-      }else if(options.indexOf('TEACHER') >= 0){
-        select.value = 'TEACHER';
-      }else if(options.length){
-        select.value = options[options.length - 1];
-      }
-    }
-
     function wmApplyLmsAuth(teacher){
       teacher = teacher || {};
       document.body.classList.add('wm-lms-authenticated');
@@ -1344,7 +1311,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         window.viewRangeText = document.getElementById('viewRangeText');
       }
       if(typeof applyRole === 'function') applyRole(role);
-      if(typeof wmApplySettingGradeDropdownOnly === 'function') wmApplySettingGradeDropdownOnly(role);
       const visibleRoleText = document.querySelector('.wm-user-info #currentRoleText');
       const visibleViewRangeText = document.querySelector('.wm-user-info #viewRangeText');
       if(visibleRoleText) visibleRoleText.textContent = role;
@@ -1481,6 +1447,34 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         }, 0);
       }
     }
+    /* WM_SETTING_CENTER_GRADE_DROPDOWN_ROLE_V1
+     * 설정센터 교사등급 드롭다운만 로그인 권한에 따라 차등 적용합니다.
+     * SUPER_ADMIN 4개 / SPECIAL_ADMIN 3개 / SUB_LEADER 2개 / TEACHER 0개
+     */
+    function wmApplySettingCenterGradeDropdown(role){
+      const gradeSelect = document.getElementById('settingTeacherGrade');
+      const teacherBox = document.getElementById('wmSettingTeacherRegisterBox');
+      const classBox = document.getElementById('wmSettingClassRegisterBox');
+      const roleOptions = {
+        SUPER_ADMIN:['SUPER_ADMIN','SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
+        SPECIAL_ADMIN:['SPECIAL_ADMIN','SUB_LEADER','TEACHER'],
+        SUB_LEADER:['SUB_LEADER','TEACHER'],
+        TEACHER:[]
+      };
+      const options = roleOptions[role] || [];
+      if(gradeSelect){
+        const previous = gradeSelect.value;
+        gradeSelect.innerHTML = options.map(function(value){
+          return '<option value="'+value+'">'+value+'</option>';
+        }).join('');
+        if(previous && options.indexOf(previous) !== -1) gradeSelect.value = previous;
+        else if(options.length) gradeSelect.value = options[options.length - 1];
+      }
+      const canRegister = options.length > 0;
+      if(teacherBox) teacherBox.style.display = canRegister ? '' : 'none';
+      if(classBox) classBox.style.display = canRegister ? '' : 'none';
+    }
+
     function applyRole(role){
       const roleEl = document.getElementById('currentRoleText');
       const rangeEl = document.getElementById('viewRangeText');
@@ -1490,6 +1484,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const adminLike = role==='SUPER_ADMIN' || role==='SPECIAL_ADMIN';
       if(devCenterBtn){ devCenterBtn.style.display = adminLike ? 'block' : 'none'; }
       wmApplyRoleUI(role);
+      wmApplySettingCenterGradeDropdown(role);
       if(settingsMenuBtn){ settingsMenuBtn.classList.remove('wm-hidden'); }
       document.body.classList.toggle('wm-show-student-serial', adminLike);
       updateStudentCreatePreview();
