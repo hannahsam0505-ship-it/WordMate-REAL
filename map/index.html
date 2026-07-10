@@ -17,21 +17,48 @@ const WM_ENV = 'REAL';
 
 
 /* ==========================================================
-   🔒 MAP_LOCK_V1 - FIRST SCRIPT BOOT LOCK
-   목적: 브라우저가 첫 번째 <script>를 읽는 즉시 F12 Console에 LOCK 상태를 출력합니다.
+   🔒 MAP_LOCK_V1 - FIRST SCRIPT BOOT LOCK / 수정 금지
+
+   [LOCK 목적]
+   - 학습맵 핵심 기능의 보호 대상과 적용 상태를 한곳에서 관리합니다.
+   - 브라우저가 첫 번째 <script>를 읽는 즉시 F12 Console에 상세 상태를 출력합니다.
+   - WM_MAP_LOCKS 객체·버전·로그 함수는 실행 중 재할당하거나 삭제할 수 없습니다.
+
+   [보호 대상]
+   1) 검색                         5) 학습기록_DB
+   2) 학생정보                     6) 학습시작
+   3) 현재진행_DB                  7) 학습맵 복귀
+   4) 학습히스토리                 8) 진행률 계산
+
+   ⚠️ 아래 LOCK 항목을 임의로 false 변경하거나 보호 속성을 해제하지 않습니다.
    ========================================================== */
 (function(){
   'use strict';
 
+  var WM_MAP_LOCK_VERSION_BOOT = 'MAP_LOCK_V1.1_DETAILED';
+  var WM_MAP_LOCK_DATE_BOOT = '2026-07-10';
+
+  /* 🔒 MAP LOCK REGISTRY / 보호 항목별 실제 상태 */
   var WM_MAP_LOCKS_BOOT = Object.freeze({
-    search: true,
-    studentInfo: true,
-    currentProgressDB: true,
-    learningHistory: true,
-    learningRecordDB: true,
-    studyStart: true,
-    mapReturn: true,
-    progressCalculation: true
+    search: true,                 // 검색 기능 LOCK
+    studentInfo: true,            // 학생정보 표시·연결 LOCK
+    currentProgressDB: true,       // 현재진행_DB 연동 LOCK
+    learningHistory: true,         // 학습히스토리 표시·계산 LOCK
+    learningRecordDB: true,        // 학습기록_DB 연동 LOCK
+    studyStart: true,              // 학습시작 및 진입 조건 LOCK
+    mapReturn: true,               // 학습맵 복귀 경로 LOCK
+    progressCalculation: true      // 세트·레벨 진행률 계산 LOCK
+  });
+
+  var WM_MAP_LOCK_LABELS_BOOT = Object.freeze({
+    search: '검색',
+    studentInfo: '학생정보',
+    currentProgressDB: '현재진행_DB',
+    learningHistory: '학습히스토리',
+    learningRecordDB: '학습기록_DB',
+    studyStart: '학습시작',
+    mapReturn: '학습맵 복귀',
+    progressCalculation: '진행률 계산'
   });
 
   function wmMapAllLockedBoot_(){
@@ -40,20 +67,40 @@ const WM_ENV = 'REAL';
     });
   }
 
+  /* 🔒 F12 Console 상세 검증 출력 / 수정 금지 */
   function wmPrintMapLockBoot_(){
-    console.log('🔒 MAP LOCK STATUS');
-    console.log(wmMapAllLockedBoot_() ? 'ALL LOCK' : 'LOCK CHECK REQUIRED');
+    var details = {};
+
+    Object.keys(WM_MAP_LOCKS_BOOT).forEach(function(key){
+      details[WM_MAP_LOCK_LABELS_BOOT[key] || key] = WM_MAP_LOCKS_BOOT[key] ? '✅ LOCK' : '❌ UNLOCK';
+    });
+
+    console.group('🔒 WORD MATE MAP LOCK STATUS');
+    console.log('LOCK VERSION : ' + WM_MAP_LOCK_VERSION_BOOT);
+    console.log('LOCK DATE    : ' + WM_MAP_LOCK_DATE_BOOT);
+    console.table(details);
+    console.log(wmMapAllLockedBoot_() ? '🔒 ALL LOCK VERIFIED' : '⚠️ LOCK CHECK REQUIRED');
+    console.groupEnd();
   }
 
   try{
+    /* 🔒 전역 LOCK 객체 재할당·삭제 방지 */
     Object.defineProperty(window, 'WM_MAP_LOCKS', {
       value: WM_MAP_LOCKS_BOOT,
       writable: false,
       configurable: false
     });
 
+    /* 🔒 LOCK 버전 재할당·삭제 방지 */
     Object.defineProperty(window, 'WM_MAP_LOCK_VERSION', {
-      value: 'MAP_LOCK_V1_FIRST_SCRIPT_BOOT',
+      value: WM_MAP_LOCK_VERSION_BOOT,
+      writable: false,
+      configurable: false
+    });
+
+    /* 🔒 LOCK 적용일 재할당·삭제 방지 */
+    Object.defineProperty(window, 'WM_MAP_LOCK_DATE', {
+      value: WM_MAP_LOCK_DATE_BOOT,
       writable: false,
       configurable: false
     });
