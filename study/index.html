@@ -2178,6 +2178,9 @@ function wmBuildReturnToMapUrl(){
     }
   }catch(err){}
 
+  /* WM_MAP_DIRECT_ENTRY_GUARD_V1: Study 정상 복귀 표시 */
+  params.set("wmEntry", "study");
+
   return WM_MAP_URL + "?" + params.toString();
 }
 
