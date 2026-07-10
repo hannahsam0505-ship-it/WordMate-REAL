@@ -3721,6 +3721,7 @@ function extractRecordRowsFromResponse(data){
 /* ===== SETTING CENTER TEACHER/CLASS MANAGEMENT V1 ===== */
 const WM_SETTING_CENTER_SHEET_NAME = '7.설정센터_DB';
 let wmSettingCenterRows = [];
+let wmSettingCenterActorRole = '';
 let wmSettingTeacherIdChecked = '';
 
 function setSettingStatus(id, text, ok){
@@ -3881,6 +3882,7 @@ async function loadSettingCenterDB(){
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
+    wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
     renderSettingCenterRows(wmSettingCenterRows);
     fillSettingSelectOptions((data && data.allowedGrades) || []);
   }catch(err){
@@ -3896,6 +3898,7 @@ function renderSettingCenterRows(rows){
     tbody.innerHTML = '<tr><td colspan="13">등록된 교사/반 데이터가 없습니다.</td></tr>';
     return;
   }
+  const canChangeStatus = wmSettingCenterActorRole === 'SUPER_ADMIN' || wmSettingCenterActorRole === 'SPECIAL_ADMIN';
   const headers = ['교사명','교사ID','비밀번호','교사등급','담당리더','담당반목록','총담당반','총학생수','월학생수','월발송기록','상태','수정일','메모'];
   tbody.innerHTML = rows.map(row=>'<tr>'+headers.map(h=>{
     const value = row[h] || '';
@@ -3904,8 +3907,35 @@ function renderSettingCenterRows(rows){
       const html = classes.length ? classes.map(c=>'<button type="button" class="wm-link-btn" onclick="openSettingClassStudentList(\''+escapeJs(c)+'\')">'+escapeHtml(c)+'</button>').join(' ') : escapeHtml(value || '-');
       return '<td>'+html+'</td>';
     }
+    if(h === '상태' && canChangeStatus){
+      const teacherId = String(row['교사ID'] || '').trim();
+      const currentStatus = /^Inactive$/i.test(String(value || '')) ? 'Inactive' : 'Active';
+      return '<td><select class="wm-mode-select wm-setting-status-select" data-teacher-id="'+escapeHtml(teacherId)+'">'
+        +'<option value="Active"'+(currentStatus === 'Active' ? ' selected' : '')+'>Active</option>'
+        +'<option value="Inactive"'+(currentStatus === 'Inactive' ? ' selected' : '')+'>Inactive</option>'
+        +'</select> <button type="button" class="wm-mode-save-btn" onclick="saveSettingTeacherStatus(this)">저장</button></td>';
+    }
     return '<td>'+escapeHtml(value || '-')+'</td>';
   }).join('')+'</tr>').join('');
+}
+
+async function saveSettingTeacherStatus(button){
+  const cell = button && button.closest ? button.closest('td') : null;
+  const select = cell ? cell.querySelector('.wm-setting-status-select') : null;
+  if(!select) return;
+  const teacherId = String(select.dataset.teacherId || '').trim();
+  const status = String(select.value || '').trim();
+  button.disabled = true;
+  try{
+    const data = await wmFetchSettingApi('saveSettingTeacherStatus', {teacherId, status});
+    if(!data || !data.success) throw new Error((data && data.message) || '교사 상태 저장 실패');
+    alert(data.message || '교사 상태 저장 완료');
+    await loadSettingCenterDB();
+  }catch(err){
+    alert(err.message || err);
+  }finally{
+    button.disabled = false;
+  }
 }
 
 async function checkSettingTeacherIdDuplicate(){
