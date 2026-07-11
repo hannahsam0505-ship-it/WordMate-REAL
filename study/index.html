@@ -3463,6 +3463,86 @@ async function goNextLearning(){
 
 function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
 
+/* =========================================================
+ * WM_STUDY_ALL_LOCK_V1.0_20260711
+ * 정상 확인된 Study 기능과 DEV 동일 음원공식의 함수 참조를 고정합니다.
+ * ========================================================= */
+const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.0";
+const WM_STUDY_LOCK_DATE = "2026-07-11";
+
+const WM_STUDY_LOCKS = Object.freeze({
+  AUDIO_FORMULA: Object.freeze({
+    normalizeDbWord,
+    wmApplySet524FixedOriginal,
+    wmApplySet51FixedOriginal,
+    wmApplyLevel5ProblemSetFineTune,
+    wmApplySet528AbsoluteFixByIndex,
+    wmApplySet531AbsoluteFixByIndex,
+    wmApplySet533AbsoluteFixByIndex
+  }),
+  AUDIO_PLAY: Object.freeze({fixDriveAudioUrl, stopWordAudio, waitForAudioReady, playWordSegment}),
+  SET_DATA: Object.freeze({getInitialSetIdFromUrl, getSetParts, getNextSetId, loadSetFromDB}),
+  STUDY_FLOW: Object.freeze({
+    startLearning, render, renderStart, renderFlashCard, renderStep2, renderStep3,
+    renderMemory, renderBeforeTest, renderOneMoreFlashCard, renderTest, renderFinalResult
+  }),
+  STUDY_SAVE: Object.freeze({
+    markStepCompleted, queueStepSave, wmLoadLearningProgress, wmApplyResumeProgress,
+    buildLearningPayload, saveProgressSnapshot, saveLearningRecord
+  }),
+  STUDY_EXIT: Object.freeze({leaveLearning, wmStudyReturnToMap, goFinalExit, goNextLearning, restart})
+});
+
+function wmStudyInstallFunctionLocks(){
+  const lockedNames = [];
+  Object.keys(WM_STUDY_LOCKS).forEach(groupName=>{
+    const group = WM_STUDY_LOCKS[groupName];
+    Object.keys(group).forEach(name=>{
+      const fn = group[name];
+      try{
+        const descriptor = Object.getOwnPropertyDescriptor(window, name);
+        Object.defineProperty(window, name, {
+          value: fn,
+          writable: false,
+          configurable: false,
+          enumerable: descriptor ? descriptor.enumerable : true
+        });
+      }catch(error){
+        console.error("STUDY LOCK INSTALL ERROR", name, error);
+      }
+      lockedNames.push(name);
+    });
+  });
+  return [...new Set(lockedNames)];
+}
+
+const WM_STUDY_LOCKED_FUNCTION_NAMES = Object.freeze(wmStudyInstallFunctionLocks());
+
+function wmLogStudyLockStatus(){
+  const rows = [];
+  Object.keys(WM_STUDY_LOCKS).forEach(groupName=>{
+    const group = WM_STUDY_LOCKS[groupName];
+    const names = Object.keys(group);
+    const verified = names.every(name=>{
+      const descriptor = Object.getOwnPropertyDescriptor(window, name);
+      return window[name] === group[name]
+        && !!descriptor
+        && descriptor.writable === false
+        && descriptor.configurable === false
+        && Object.isFrozen(group);
+    });
+    rows.push({MODULE:groupName, FUNCTIONS:names.length, LOCKED:verified ? "YES" : "NO"});
+  });
+  const allVerified = rows.every(row=>row.LOCKED === "YES") && Object.isFrozen(WM_STUDY_LOCKS);
+  console.group("🔒 WORD MATE STUDY LOCK STATUS");
+  console.log("LOCK VERSION :", WM_STUDY_LOCK_VERSION);
+  console.log("LOCK DATE    :", WM_STUDY_LOCK_DATE);
+  console.table(rows);
+  console.log(allVerified ? "🔒 STUDY ALL LOCK VERIFIED" : "❌ STUDY LOCK VERIFY FAILED");
+  console.groupEnd();
+  return allVerified;
+}
+
 document.addEventListener("keydown",function(e){
   if(!["1","2","3","4","5"].includes(e.key)) return;
   const activeTag=document.activeElement && document.activeElement.tagName;
@@ -3483,5 +3563,6 @@ document.addEventListener("keydown",function(e){
   }
 });
 
+wmLogStudyLockStatus();
 renderStart();
 </script>
