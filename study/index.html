@@ -2153,7 +2153,7 @@ function markStepCompleted(stepId, stepTitle){
     saveProgressSnapshot("step_completed");
     return Promise.resolve({ok:true, finalSavePending:true});
   }
-  return queueStepSave("step_completed");
+  return WM_STUDY_SPEED_LOCKS.STEP_SAVE.queueStepSave("step_completed");
 }
 
 function queueStepSave(status){
@@ -2172,7 +2172,7 @@ function queueStepSave(status){
       wmStepSaveLastError = {ok:false, error:String(error)};
       return null;
     })
-    .then(function(){ return saveLearningRecord(status || "step_completed"); })
+    .then(function(){ return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed"); })
     .then(function(result){
       if(result && result.ok === false){
         wmStepSaveLastError = result;
@@ -2220,7 +2220,7 @@ function completeStepThen(stepId, stepTitle, nextAction){
   /* WM_STEP_SAVE_IMMEDIATE_TRANSITION_V1_20260615
      Step 완료 저장은 백그라운드 큐에 즉시 등록하고, 화면은 바로 다음 Step으로 이동합니다.
      저장 완료 대기는 X/나가기/다음학습/최종이동 시점에만 처리합니다. */
-  markStepCompleted(stepId, stepTitle);
+  WM_STUDY_SPEED_LOCKS.FINAL_TEST_SINGLE_SAVE.markStepCompleted(stepId, stepTitle);
   if(typeof nextAction === "function") nextAction();
 }
 
@@ -2807,7 +2807,7 @@ async function leaveLearning(){
   const result = await wmWaitForStepSaves();
 
   if(result && result.ok === false){
-    const finalResult = await saveLearningRecord("completed");
+    const finalResult = await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
     if(!wmIsSaveSuccess(finalResult)){
       app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
       afterScreenRender();
@@ -2892,7 +2892,7 @@ async function startLearning(){
   const needsDbLoad = !isDbReady || !originalWords.length;
   const parallelLoad = await Promise.all([
     sessionPromise,
-    needsDbLoad ? loadSetFromDB() : Promise.resolve(true),
+    needsDbLoad ? WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB() : Promise.resolve(true),
     wmPrepareStudyModeForCurrentSet(),
     wmLoadLearningProgress()
   ]);
@@ -3405,7 +3405,7 @@ function renderFinalResult(){
       <div class="wm-small" style="margin-top:14px;">다음 학습: ${nextSetName}</div>
     </div>`;
   finalSavePromise = wmWaitForStepSaves().then(function(result){
-    return saveLearningRecord("completed");
+    return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   }).then(result=>{
     const saveStatus=document.getElementById("saveStatus");
     const saveIcon=document.getElementById("saveIcon");
@@ -3439,7 +3439,7 @@ async function goFinalExit(){
     saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
   }
 
-  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  const saveResult = finalSavePromise ? await finalSavePromise : await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   if(!wmIsSaveSuccess(saveResult)){
     if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
     return;
@@ -3467,7 +3467,7 @@ async function goNextLearning(){
     saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
   }
 
-  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  const saveResult = finalSavePromise ? await finalSavePromise : await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   if(!wmIsSaveSuccess(saveResult)){
     if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
     return;
@@ -3503,6 +3503,15 @@ function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=nu
  * ========================================================= */
 const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.0";
 const WM_STUDY_LOCK_DATE = "2026-07-11";
+
+const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.0";
+const WM_STUDY_SPEED_LOCK_DATE = "2026-07-11";
+const WM_STUDY_SPEED_LOCKS = Object.freeze({
+  SET_LOAD: Object.freeze({loadSetFromDB}),
+  STEP_SAVE: Object.freeze({queueStepSave, saveLearningRecord}),
+  FINAL_TEST_SINGLE_SAVE: Object.freeze({markStepCompleted}),
+  FINAL_SAVE: Object.freeze({saveLearningRecord})
+});
 
 const WM_STUDY_LOCKS = Object.freeze({
   AUDIO_FORMULA: Object.freeze({
@@ -3577,6 +3586,50 @@ function wmLogStudyLockStatus(){
   return allVerified;
 }
 
+function wmLogStudySpeedLockStatus(){
+  const clientRows = Object.keys(WM_STUDY_SPEED_LOCKS).map(moduleName=>{
+    const group = WM_STUDY_SPEED_LOCKS[moduleName];
+    const names = Object.keys(group);
+    const verified = Object.isFrozen(group) && names.every(name=>{
+      const descriptor = Object.getOwnPropertyDescriptor(window, name);
+      return window[name] === group[name] && descriptor &&
+        descriptor.writable === false && descriptor.configurable === false;
+    });
+    return {MODULE:moduleName, FUNCTIONS:names.length, LOCKED:verified ? "YES" : "NO"};
+  });
+  const clientVerified = Object.isFrozen(WM_STUDY_SPEED_LOCKS) && clientRows.every(row=>row.LOCKED === "YES");
+  const callbackName = "wmStudySpeedLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
+
+  function finish(serverResult){
+    if(finished) return;
+    finished = true;
+    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
+    if(script.parentNode) script.parentNode.removeChild(script);
+    const serverVerified = !!(serverResult && serverResult.verified);
+    const rows = clientRows.concat([
+      {MODULE:"SERVER_SET_DATA", FUNCTIONS:1, LOCKED:serverResult && serverResult.setDataFast ? "YES" : "NO"},
+      {MODULE:"SERVER_PROGRESS", FUNCTIONS:1, LOCKED:serverResult && serverResult.progressFast ? "YES" : "NO"},
+      {MODULE:"SERVER_FINAL_SAVE", FUNCTIONS:1, LOCKED:serverResult && serverResult.finalSaveFast ? "YES" : "NO"},
+      {MODULE:"SERVER_CURRENT_PROGRESS", FUNCTIONS:1, LOCKED:serverResult && serverResult.currentProgressFast ? "YES" : "NO"}
+    ]);
+    const allVerified = clientVerified && serverVerified;
+    console.group("🔒 WORD MATE STUDY SPEED LOCK STATUS");
+    console.log("LOCK VERSION :", WM_STUDY_SPEED_LOCK_VERSION);
+    console.log("LOCK DATE    :", WM_STUDY_SPEED_LOCK_DATE);
+    console.table(rows);
+    console.log(allVerified ? "🔒 STUDY SPEED ALL LOCK VERIFIED" : "❌ STUDY SPEED LOCK VERIFY FAILED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){ finish(null); };
+  script.src = API_URL + "?action=studySpeedLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){ finish(null); }, 12000);
+}
+
 document.addEventListener("keydown",function(e){
   if(!["1","2","3","4","5"].includes(e.key)) return;
   const activeTag=document.activeElement && document.activeElement.tagName;
@@ -3598,5 +3651,6 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
+wmLogStudySpeedLockStatus();
 renderStart();
 </script>
