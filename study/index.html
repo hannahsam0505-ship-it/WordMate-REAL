@@ -1821,6 +1821,8 @@ function wmStudySetDataCacheKey(setId){
   return "wm_study_set_data_v1_" + String(setId || "").trim().toUpperCase();
 }
 
+const WM_STUDY_SET_FETCH_PROMISES = {};
+
 function wmReadStudySetDataCache(setId){
   try{
     const parsed = JSON.parse(localStorage.getItem(wmStudySetDataCacheKey(setId)) || "null");
@@ -1834,7 +1836,9 @@ function wmWriteStudySetDataCache(setId, data){
 }
 
 function wmFetchStudySetData(setId){
-  return new Promise((resolve, reject)=>{
+  const key = String(setId || "").trim().toUpperCase();
+  if(WM_STUDY_SET_FETCH_PROMISES[key]) return WM_STUDY_SET_FETCH_PROMISES[key];
+  WM_STUDY_SET_FETCH_PROMISES[key] = new Promise((resolve, reject)=>{
     const callbackName = "wmSetFastCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
     let finished = false;
     let script = null;
@@ -1847,6 +1851,7 @@ function wmFetchStudySetData(setId){
       finished = true;
       cleanup();
       if(result && result.success) wmWriteStudySetDataCache(setId, result);
+      delete WM_STUDY_SET_FETCH_PROMISES[key];
       resolve(result);
     };
     script = document.createElement("script");
@@ -1854,10 +1859,16 @@ function wmFetchStudySetData(setId){
       + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
       + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
       + "&callback=" + encodeURIComponent(callbackName) + "&t=" + Date.now();
-    script.onerror = function(){ if(finished) return; finished=true; cleanup(); reject(new Error("JSONP load error")); };
+    script.onerror = function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP load error")); };
     document.body.appendChild(script);
-    setTimeout(function(){ if(finished) return; finished=true; cleanup(); reject(new Error("JSONP timeout")); }, 10000);
+    setTimeout(function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 10000);
   });
+  return WM_STUDY_SET_FETCH_PROMISES[key];
+}
+
+function wmWarmCurrentStudySet(){
+  if(!currentSetId || wmReadStudySetDataCache(currentSetId)) return;
+  wmFetchStudySetData(currentSetId).catch(function(){});
 }
 
 function wmPrefetchNextStudySet(){
@@ -2862,6 +2873,7 @@ function renderStart(){
 
       <button id="wmStartBtn" class="wm-btn" onclick="startLearning()">학습 시작</button>
     </div>`;
+  setTimeout(wmWarmCurrentStudySet, 50);
 }
 
 async function startLearning(){
