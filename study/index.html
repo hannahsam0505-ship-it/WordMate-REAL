@@ -1245,19 +1245,546 @@ function fixDriveAudioUrl(url){
   return raw;
 }
 
-function normalizeDbWord(item){
+/* WM_STUDY_USE_DEV_FINAL_AUDIO_VALUES_V1_20260711
+   DEV CENTER 원본듣기의 기존 확정 음원 구간 처리를 그대로 사용합니다. */
+function wmApplySet524FixedOriginal(word, start, end){
+  var cleanWord = String(word || '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  var s = Number(start);
+  var e = Number(end);
+
+  if(!Number.isFinite(s) || !Number.isFinite(e) || e <= s){
+    return {start:s, end:e, applied:false};
+  }
+
+  // 5-2-4 전용: 이미 성공한 보정값을 원본값으로 승격
+  // take/smoke는 기존 보정값에서 뒤 tail만 추가
+  var fixed = {
+    understand:{start:0.34,end:0.82},
+    telephone:{start:0.32,end:0.80},
+    night:{start:0.10,end:0.62},
+    free:{start:0.16,end:0.58},
+    egg:{start:0.18,end:0.56},
+    ball:{start:0.26,end:0.58},
+    ahead:{start:0.30,end:0.64},
+    take:{start:0.18,end:0.74},
+    smoke:{start:0.18,end:0.82}
+  };
+
+  if(!fixed[cleanWord]){
+    return {start:s, end:e, applied:false};
+  }
+
   return {
-    setId: item.Set_ID || item.set_id || item.setId || "",
-    wordNo: item.Word_No || item.word_no || item.wordNo || "",
-    word: item.word || item.Word || "",
+    start: Math.max(0, s - fixed[cleanWord].start),
+    end: e + fixed[cleanWord].end,
+    applied:true
+  };
+}
+
+function wmApplySet51FixedOriginal(word, start, end){
+  var cleanWord = String(word || '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  var len = cleanWord.length;
+  var s = Number(start);
+  var e = Number(end);
+
+  if(!Number.isFinite(s) || !Number.isFinite(e) || e <= s){
+    return {start:s, end:e, applied:false};
+  }
+
+  // 5-2-4 성공 기준:
+  // 앞잡음 방지를 위해 Start는 과하게 당기지 않고,
+  // 뒷잘림 방지를 위해 End를 충분히 확보한다.
+  var startPad = 0.14;
+  var endPad = 0.46;
+
+  if(len <= 4){
+    startPad = 0.14;
+    endPad = 0.48;
+  } else if(len <= 7){
+    startPad = 0.18;
+    endPad = 0.56;
+  } else {
+    startPad = 0.24;
+    endPad = 0.70;
+  }
+
+  // 5-2-4에서 확인된 앞잡음 방지 기준: Start 과확장 상한
+  if(startPad > 0.24){ startPad = 0.24; }
+
+  return {
+    start: Math.max(0, s - startPad),
+    end: e + endPad,
+    applied:true
+  };
+}
+
+
+
+function wmIsLevel5AudioTargetSet(setId){
+  return /^WM5-(?:1-(?:[1-9]|10)|2-(?:[1-9]|10)|3-[1-3])$/.test(String(setId || ''));
+}
+function wmIsLevel3AudioTargetSet(setId){
+  // 3레벨 전체 범위 확정: WM3-1-1~10 / WM3-2-1~10 / WM3-3-1~2
+  // 음원 공식은 뒤 반복구간을 버리고 앞쪽 영어 1회 발음 구간 기준으로만 적용한다.
+  return /^WM3-(?:1-(?:[1-9]|10)|2-(?:[1-9]|10)|3-[1-2])$/.test(String(setId || ''));
+}
+
+function wmIsWordMateAudioFormulaTargetSet(setId){
+  return wmIsLevel3AudioTargetSet(setId) || wmIsLevel5AudioTargetSet(setId);
+}
+
+function wmKeepFirstTenWordsForLevel3(words){
+  if(!Array.isArray(words)){
+    return [];
+  }
+  if(wmIsLevel3AudioTargetSet(currentSetId)){
+    // 3레벨 음원 공식: mp3 앞부분의 영어 1회 낭독 10단어만 사용, 뒤 반복 학습구간은 무시한다.
+    return words.slice(0, 10);
+  }
+  return words;
+}
+
+
+// LEVEL5_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 5레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 추가 소리 보정, 자동수정, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+function wmIsLevel5AudioFinalLockedSet(setId){
+  return wmIsLevel5AudioTargetSet(setId);
+}
+
+// LEVEL3_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 3레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 5레벨 최종 고정 방식과 동일하게 추가 소리 보정, 자동수정, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+function wmIsLevel3AudioFinalLockedSet(setId){
+  return wmIsLevel3AudioTargetSet(setId);
+}
+
+// LEVEL4_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 4레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 추가 소리 보정, 자동수정, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+function wmIsLevel4AudioFinalLockedSet(setId){
+  return /^WM4-(?:1-(?:[1-9]|10)|2-(?:[1-9]|10)|3-[1-2])$/.test(String(setId || ''));
+}
+
+// LEVEL6_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 6레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 추가 소리 보정, 자동수정, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+function wmIsLevel6AudioFinalLockedSet(setId){
+  return /^WM6-(?:1-(?:[1-9]|10)|2-(?:[1-9]|10)|3-[1-3])$/.test(String(setId || ''));
+}
+
+// LEVEL7_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 7레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 추가 소리 보정, 자동수정, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+function wmIsLevel7AudioFinalLockedSet(setId){
+  return /^WM7-(?:[1-4]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+// LEVEL8_TO_13_AUDIO_FINAL_LOCK_V1
+// 사용자 최종 지시: 8~13레벨 전체 음원은 현재 성공값 그대로 고정한다.
+// 음원값 재계산, 자동보정, Start/End 재생성, 성공값 overwrite, 전체수정, DB 시간 업데이트를 실행하지 않는다.
+// 8~9레벨: Part 1~4 / Set 1~10, 10~13레벨: Part 1~5 / Set 1~10
+function wmIsLevel8AudioFinalLockedSet(setId){
+  return /^WM8-(?:[1-4]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsLevel9AudioFinalLockedSet(setId){
+  return /^WM9-(?:[1-4]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsLevel10AudioFinalLockedSet(setId){
+  return /^WM10-(?:[1-5]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsLevel11AudioFinalLockedSet(setId){
+  return /^WM11-(?:[1-5]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsLevel12AudioFinalLockedSet(setId){
+  return /^WM12-(?:[1-5]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsLevel13AudioFinalLockedSet(setId){
+  return /^WM13-(?:[1-5]-(?:[1-9]|10))$/.test(String(setId || ''));
+}
+
+function wmIsWordMateAudioFinalLockedSet(setId){
+  return wmIsLevel5AudioFinalLockedSet(setId)
+    || wmIsLevel3AudioFinalLockedSet(setId)
+    || wmIsLevel4AudioFinalLockedSet(setId)
+    || wmIsLevel6AudioFinalLockedSet(setId)
+    || wmIsLevel7AudioFinalLockedSet(setId)
+    || wmIsLevel8AudioFinalLockedSet(setId)
+    || wmIsLevel9AudioFinalLockedSet(setId)
+    || wmIsLevel10AudioFinalLockedSet(setId)
+    || wmIsLevel11AudioFinalLockedSet(setId)
+    || wmIsLevel12AudioFinalLockedSet(setId)
+    || wmIsLevel13AudioFinalLockedSet(setId);
+}
+
+function wmGetAudioFinalLockLabel(setId){
+  if(wmIsLevel3AudioFinalLockedSet(setId)){ return 'LEVEL3 AUDIO LOCK'; }
+  if(wmIsLevel4AudioFinalLockedSet(setId)){ return 'LEVEL4 AUDIO LOCK'; }
+  if(wmIsLevel5AudioFinalLockedSet(setId)){ return 'LEVEL5 AUDIO LOCK'; }
+  if(wmIsLevel6AudioFinalLockedSet(setId)){ return 'LEVEL6 AUDIO LOCK'; }
+  if(wmIsLevel7AudioFinalLockedSet(setId)){ return 'LEVEL7 AUDIO LOCK'; }
+  if(wmIsLevel8AudioFinalLockedSet(setId)){ return 'LEVEL8 AUDIO LOCK'; }
+  if(wmIsLevel9AudioFinalLockedSet(setId)){ return 'LEVEL9 AUDIO LOCK'; }
+  if(wmIsLevel10AudioFinalLockedSet(setId)){ return 'LEVEL10 AUDIO LOCK'; }
+  if(wmIsLevel11AudioFinalLockedSet(setId)){ return 'LEVEL11 AUDIO LOCK'; }
+  if(wmIsLevel12AudioFinalLockedSet(setId)){ return 'LEVEL12 AUDIO LOCK'; }
+  if(wmIsLevel13AudioFinalLockedSet(setId)){ return 'LEVEL13 AUDIO LOCK'; }
+  return 'AUDIO LOCK';
+}
+
+function wmGetAudioFinalLockReason(setId){
+  if(wmIsLevel3AudioFinalLockedSet(setId)){ return '3레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel4AudioFinalLockedSet(setId)){ return '4레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel5AudioFinalLockedSet(setId)){ return '5레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel6AudioFinalLockedSet(setId)){ return '6레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel7AudioFinalLockedSet(setId)){ return '7레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel8AudioFinalLockedSet(setId)){ return '8레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel9AudioFinalLockedSet(setId)){ return '9레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel10AudioFinalLockedSet(setId)){ return '10레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel11AudioFinalLockedSet(setId)){ return '11레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel12AudioFinalLockedSet(setId)){ return '12레벨 음원 현재값 최종 고정'; }
+  if(wmIsLevel13AudioFinalLockedSet(setId)){ return '13레벨 음원 현재값 최종 고정'; }
+  return '음원 현재값 최종 고정';
+}
+
+function wmIsLevel5AudioLockedSet(setId){
+  return /^(WM5-1-(?:[1-9]|10)|WM5-2-(?:[1-6]|9|10)|WM5-3-2)$/.test(String(setId || ''));
+}
+
+
+function wmGetSet528AbsoluteFixByIndex(index){
+  // 528_WAVE_ABSOLUTE_FIX_V1
+  // 사용자 지시: WM5-2-8만 작업 / 1~3번은 현재 코드값 고정 / 4번부터 MP3 파형 기준 절대시간 적용
+  // 기준 음원: 5-2-8 WMB.mp3 / 파형 감지 후 앞뒤 안전 여백 포함
+  var table = {
+    3:{start:5.20, end:6.14},
+    4:{start:6.95, end:7.88},
+    5:{start:8.71, end:9.42},
+    6:{start:10.28, end:11.12},
+    7:{start:11.84, end:12.61},
+    8:{start:13.38, end:14.10},
+    9:{start:14.88, end:15.91}
+  };
+
+  return table[index] || null;
+}
+
+function wmApplySet528AbsoluteFixByIndex(setId, index, start, end){
+  if(String(setId) !== 'WM5-2-8'){
+    return {start:start, end:end, applied:false};
+  }
+
+  // 1~3번은 기존 코드 안의 값 그대로 고정한다.
+  if(Number(index) < 3){
+    return {start:start, end:end, applied:false, locked:true};
+  }
+
+  var fixed = wmGetSet528AbsoluteFixByIndex(Number(index));
+  if(!fixed){
+    return {start:start, end:end, applied:false};
+  }
+
+  return {
+    start:fixed.start,
+    end:fixed.end,
+    applied:true,
+    forceAbsolute:true,
+    reason:'528-wave-absolute-fix-v1-index-' + (Number(index) + 1)
+  };
+}
+
+function wmGetSet531AbsoluteFixByIndex(index){
+  // 531_WAVE_ABSOLUTE_FIX_V1
+  // 사용자 기준 공식: 모든 파일의 처음 시작은 단어를 영어로 1회씩 읽어주는 구간이다.
+  // 기준 음원: 5-3-1 WMB.mp3 / 0~16초 첫 영어 1회 발음 파형 기준 절대시간 적용
+  // 다른 세트는 절대 변경하지 않는다.
+  var table = {
+    0:{start:0.37, end:1.63},
+    1:{start:2.49, end:3.36},
+    2:{start:4.18, end:4.95},
+    3:{start:5.84, end:6.59},
+    4:{start:7.37, end:8.16},
+    5:{start:9.07, end:9.83},
+    6:{start:10.71, end:11.31},
+    7:{start:12.20, end:12.87},
+    8:{start:13.76, end:14.52},
+    9:{start:15.39, end:16.11}
+  };
+
+  return table[index] || null;
+}
+
+function wmApplySet531AbsoluteFixByIndex(setId, index, start, end){
+  if(String(setId) !== 'WM5-3-1'){
+    return {start:start, end:end, applied:false};
+  }
+
+  var fixed = wmGetSet531AbsoluteFixByIndex(Number(index));
+  if(!fixed){
+    return {start:start, end:end, applied:false};
+  }
+
+  return {
+    start:fixed.start,
+    end:fixed.end,
+    applied:true,
+    forceAbsolute:true,
+    reason:'531-wave-absolute-fix-v1-index-' + (Number(index) + 1)
+  };
+}
+
+
+function wmGetSet533AbsoluteFixByIndex(index){
+  // 533_WAVE_ABSOLUTE_FIX_V1
+  // 사용자 기준 공식: 모든 파일의 처음 시작은 단어를 영어로 1회씩 읽어주는 구간이다.
+  // 기준 음원: 5-3-3 WMB.mp3 / 첫 영어 1회 발음 파형 기준 절대시간 적용
+  // 다른 세트는 절대 변경하지 않는다.
+  var table = {
+    0:{start:0.30, end:1.20},
+    1:{start:2.26, end:3.36},
+    2:{start:4.47, end:5.52},
+    3:{start:6.60, end:7.67},
+    4:{start:8.78, end:9.77},
+    5:{start:10.86, end:12.08},
+    6:{start:13.15, end:14.06},
+    7:{start:15.19, end:16.25},
+    8:{start:17.36, end:18.23},
+    9:{start:19.20, end:20.12}
+  };
+
+  return table[index] || null;
+}
+
+function wmApplySet533AbsoluteFixByIndex(setId, index, start, end){
+  if(String(setId) !== 'WM5-3-3'){
+    return {start:start, end:end, applied:false};
+  }
+
+  var fixed = wmGetSet533AbsoluteFixByIndex(Number(index));
+  if(!fixed){
+    return {start:start, end:end, applied:false};
+  }
+
+  return {
+    start:fixed.start,
+    end:fixed.end,
+    applied:true,
+    forceAbsolute:true,
+    reason:'533-wave-absolute-fix-v1-index-' + (Number(index) + 1)
+  };
+}
+
+
+function wmApplyLevel5ProblemSetFineTune(setId, word, start, end){
+  var cleanWord = String(word || '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  var s = Number(start);
+  var e = Number(end);
+
+  if(!Number.isFinite(s) || !Number.isFinite(e) || e <= s){
+    return {start:s, end:e, applied:false};
+  }
+
+  if(wmIsLevel5AudioLockedSet(setId)){
+    return {start:s, end:e, applied:false, locked:true};
+  }
+
+  // 5-2-7 FINAL TABLE
+  // 기준: 사용자 실제 청취 결과
+  // tall/square/remember 정상 유지
+  // scissors: 중간 끊김 → End 확장
+  // love/few/everywhere/city: 다음 단어 침범 → End 축소 또는 Start 재정렬
+  // cheap: 구간 매칭 이상 → 확인필요 대상, 임의 정상 처리 금지
+  if(String(setId) === 'WM5-2-7'){
+    var baseFix527 = {start:-0.28, end:-0.28};
+
+    var finalFix527 = {
+      // 앞 5개: 실제 청취 정상 → 기존 성공값 고정 + 정상 처리
+      tall:{start:-0.28, end:-0.28, ok:true, fixed:true},
+      square:{start:-0.28, end:-0.28, ok:true, fixed:true},
+      scissors:{start:-0.28, end:0.18, ok:true, fixed:true},
+      remember:{start:-0.48, end:-0.48, ok:true, fixed:true},
+      love:{start:-0.54, end:-0.72, ok:true, fixed:true},
+
+      // few: 이전에 잘 들렸던 값으로 복구/고정
+      few:{start:-1.05, end:-0.78, ok:true, fixed:true},
+
+      // 아래 4개만 계속 검수 대상
+      everywhere:{start:-1.25, end:-0.95, ok:true, fixed:true},
+      club:{start:-1.15, end:-1.10, ok:true, fixed:true},
+      city:{start:14.02, end:14.70, ok:false, absolute:true},
+      cheap:{start:15.44, end:16.28, ok:true, fixed:true, absolute:true, status:'정상'}
+    };
+
+    // 527_CITY_CHEAP_ABSOLUTE_FIX_V2
+    // 사용자 지시: 1~8번 정상값 절대 고정, city/cheap만 수정
+    // city는 start 보정은 기존 유지, end만 파형 기준 절대값으로 고정
+    // cheap은 start/end 모두 파형 기준 절대값으로 고정
+    if(cleanWord === 'city'){
+      // 9번째 영어 파형 직접 추출값
+      // 1~8번은 절대 수정하지 않고 city만 절대 시간으로 고정
+      return {
+        start:13.90,
+        end:14.70,
+        applied:true,
+        forceAbsolute:true,
+        reason:'527-city-9th-english-wave-absolute-fix-v3'
+      };
+    }
+
+    if(cleanWord === 'cheap'){
+      // 마지막 확인 성공값 그대로 정상 고정
+      return {
+        start:15.44,
+        end:16.28,
+        applied:true,
+        forceAbsolute:true,
+        fixed:true,
+        ok:true,
+        reason:'527-cheap-confirmed-fixed-normal-v3'
+      };
+    }
+
+    var fix = finalFix527[cleanWord] || baseFix527;
+    var ns = Math.max(0, s + fix.start);
+    var ne = Math.max(ns + 0.18, e + fix.end);
+
+    return {
+      start:ns,
+      end:ne,
+      applied:true,
+      suspect:!!fix.suspect,
+      reason: finalFix527[cleanWord] ? '527-final-listening-table' : '527-base'
+    };
+  }
+
+  var setShift = {
+    // 5-2-8은 기존 v18 기준 유지 / 5-3-1은 아래 절대 파형값으로 별도 고정
+    'WM5-2-8': {start:-0.28, end:-0.28}
+  };
+
+  if(setShift[String(setId)]){
+    return {
+      start: Math.max(0, s + setShift[String(setId)].start),
+      end: Math.max(Math.max(0, s + setShift[String(setId)].start) + 0.18, e + setShift[String(setId)].end),
+      applied:true,
+      reason:'problem-set-recut-earlier'
+    };
+  }
+
+  if(String(setId) === 'WM5-3-3'){
+    var tailFix = {
+      arrive:0.42,
+      easy:0.34,
+      only:0.34
+    };
+
+    if(tailFix[cleanWord]){
+      return {
+        start:s,
+        end:e + tailFix[cleanWord],
+        applied:true,
+        reason:'533-tail-fix'
+      };
+    }
+  }
+
+  return {start:s, end:e, applied:false};
+}
+
+
+function wmPromoteSet51CorrectionValuesToOriginal(words){
+  if(!wmIsWordMateAudioFormulaTargetSet(currentSetId)){
+    return words;
+  }
+
+  if(!Array.isArray(words)){
+    return [];
+  }
+
+  var guard = 0.06;
+
+  return words.map(function(item, index){
+    var next = words[index + 1] || null;
+    var promoted = Object.assign({}, item);
+    var start = Number(promoted.start);
+    var end = Number(promoted.end);
+    var nextStart = next ? Number(next.start) : NaN;
+
+    promoted.wm_promoted_original = true;
+    promoted.wm_promoted_reason = 'v15 성공공식 기준 5레벨 전체 보정듣기값 원본승격';
+
+    if(Number.isFinite(start) && Number.isFinite(end) && end > start && Number.isFinite(nextStart)){
+      var candidateEnd = Math.max(start + 0.18, nextStart - guard);
+
+      // 보정듣기에서 좋게 들리던 핵심값을 원본값으로 승격한다.
+      // 다음 단어 시작점 이후로 넘어간 End는 nextStart - guard로 잘라
+      // “단어 + 공백 + 다음 단어 첫소리”가 원본듣기에 들어오는 증상을 막는다.
+      if(end >= nextStart - guard){
+        promoted.end = candidateEnd;
+        promoted.wm_tail_promoted = true;
+        promoted.wm_tail_gap_before = nextStart - end;
+      }
+    }
+
+    return promoted;
+  });
+}
+
+function normalizeDbWord(item, index){
+  var rawWord = item.word || item.Word || "";
+  var rawStart = Number(item.start ?? item.Start_Time ?? item.start_time ?? item.START_TIME);
+  var rawEnd = Number(item.end ?? item.End_Time ?? item.end_time ?? item.END_TIME);
+  var fixedSegment = (currentSetId === "WM5-2-4")
+    ? wmApplySet524FixedOriginal(rawWord, rawStart, rawEnd)
+    : (wmIsWordMateAudioFormulaTargetSet(currentSetId))
+      ? wmApplySet51FixedOriginal(rawWord, rawStart, rawEnd)
+      : {start:rawStart, end:rawEnd, applied:false};
+
+  var finalSegment = wmApplyLevel5ProblemSetFineTune(
+    currentSetId,
+    rawWord,
+    fixedSegment.applied ? fixedSegment.start : rawStart,
+    fixedSegment.applied ? fixedSegment.end : rawEnd
+  );
+
+  var normalizedStart = finalSegment.applied ? finalSegment.start : (fixedSegment.applied ? fixedSegment.start : rawStart);
+  var normalizedEnd = finalSegment.applied ? finalSegment.end : (fixedSegment.applied ? fixedSegment.end : rawEnd);
+  var set528AbsoluteFix = wmApplySet528AbsoluteFixByIndex(currentSetId, index, normalizedStart, normalizedEnd);
+  var after528Start = set528AbsoluteFix.applied ? set528AbsoluteFix.start : normalizedStart;
+  var after528End = set528AbsoluteFix.applied ? set528AbsoluteFix.end : normalizedEnd;
+  var set531AbsoluteFix = wmApplySet531AbsoluteFixByIndex(currentSetId, index, after528Start, after528End);
+  var after531Start = set531AbsoluteFix.applied ? set531AbsoluteFix.start : after528Start;
+  var after531End = set531AbsoluteFix.applied ? set531AbsoluteFix.end : after528End;
+  var set533AbsoluteFix = wmApplySet533AbsoluteFixByIndex(currentSetId, index, after531Start, after531End);
+
+  return {
+    word: rawWord,
     meaning: item.meaning || item.meaning_kr || item.Meaning_KR || "",
     pos: item.pos || item.POS || "",
     example_en: item.example_en || item.Example_EN || "",
     example_kr: item.example_kr || item.Example_KR || "",
-    start: Number(item.start ?? item.Start_Time ?? item.start_time ?? item.START_TIME),
-    end: Number(item.end ?? item.End_Time ?? item.end_time ?? item.END_TIME)
+    start: set533AbsoluteFix.applied ? set533AbsoluteFix.start : after531Start,
+    end: set533AbsoluteFix.applied ? set533AbsoluteFix.end : after531End,
+    raw_start: rawStart,
+    raw_end: rawEnd,
+    Audio_URL: item.Audio_URL || item.audio_url || item.AudioUrl || item.audioUrl || item.Set_Audio_URL || item.set_audio_url || item.MP3_URL || item.mp3_url || item.Audio || item.audio || item['음원URL'] || '',
+    audio_url: item.audio_url || item.Audio_URL || item.AudioUrl || item.audioUrl || item.Set_Audio_URL || item.set_audio_url || item.MP3_URL || item.mp3_url || item.Audio || item.audio || item['음원URL'] || '',
+    wm_level3_audio_formula: wmIsLevel3AudioTargetSet(currentSetId),
+    wm_first_10_words_only: wmIsLevel3AudioTargetSet(currentSetId),
+    wm_528_wave_fixed: !!set528AbsoluteFix.applied,
+    wm_528_wave_fixed_reason: set528AbsoluteFix.reason || '',
+    wm_531_wave_fixed: !!set531AbsoluteFix.applied,
+    wm_531_wave_fixed_reason: set531AbsoluteFix.reason || '',
+    wm_533_wave_fixed: !!set533AbsoluteFix.applied,
+    wm_533_wave_fixed_reason: set533AbsoluteFix.reason || ''
   };
 }
+
 
 function renderDbLoading(){
   app.innerHTML = `
