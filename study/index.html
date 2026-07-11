@@ -909,6 +909,7 @@ let audioGapTimer = null;
 let audioRepeatCount = 0;
 let audioMaxRepeat = Infinity;
 let currentAudioItem = null;
+let wmWordAudioPlayToken = 0;
 let isDbReady = false;
 let isDbLoading = false;
 let dbLoadError = "";
@@ -2035,6 +2036,7 @@ function renderMemoryProgress(){
 }
 
 function stopWordAudio(){
+  wmWordAudioPlayToken++;
   clearInterval(audioTimer);
   clearTimeout(audioGapTimer);
   audioTimer = null;
@@ -2080,6 +2082,7 @@ async function playWordSegment(item, maxRepeat = 5){
   if(!wordAudio || !wordAudio.src) return;
 
   stopWordAudio();
+  const playToken = wmWordAudioPlayToken;
 
   currentAudioItem = item;
   audioRepeatCount = 0;
@@ -2092,9 +2095,10 @@ async function playWordSegment(item, maxRepeat = 5){
     console.error(error);
     return;
   }
+  if(playToken !== wmWordAudioPlayToken) return;
 
   async function playOneRound(){
-    if(!currentAudioItem) return;
+    if(playToken !== wmWordAudioPlayToken || currentAudioItem !== item) return;
 
     try{
       wordAudio.pause();
@@ -2104,12 +2108,13 @@ async function playWordSegment(item, maxRepeat = 5){
       console.error(error);
       return;
     }
+    if(playToken !== wmWordAudioPlayToken || currentAudioItem !== item) return;
 
-    while(currentAudioItem && wordAudio.currentTime < end){
+    while(playToken === wmWordAudioPlayToken && currentAudioItem === item && wordAudio.currentTime < end){
       await new Promise(resolve => setTimeout(resolve, 80));
     }
 
-    if(!currentAudioItem) return;
+    if(playToken !== wmWordAudioPlayToken || currentAudioItem !== item) return;
     wordAudio.pause();
     audioRepeatCount++;
 
@@ -2122,7 +2127,7 @@ async function playWordSegment(item, maxRepeat = 5){
       audioGapTimer = setTimeout(resolve, 1000);
     });
 
-    if(!currentAudioItem) return;
+    if(playToken !== wmWordAudioPlayToken || currentAudioItem !== item) return;
     playOneRound();
   }
 
