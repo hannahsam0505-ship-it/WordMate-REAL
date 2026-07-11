@@ -2146,6 +2146,13 @@ function markStepCompleted(stepId, stepTitle){
     elapsedSeconds:stepElapsedSeconds
   });
   wmCurrentStepStartTime = Date.now();
+  /* WM_FINAL_TEST_SINGLE_SAVE_SPEED_V1_20260711
+     마지막 TEST 완료는 곧바로 renderFinalResult()의 completed 저장으로 이어집니다.
+     TEST 완료 payload는 completed 저장에 이미 포함되므로 step_completed 중복 서버 저장을 생략합니다. */
+  if(stepId === "test_all"){
+    saveProgressSnapshot("step_completed");
+    return Promise.resolve({ok:true, finalSavePending:true});
+  }
   return queueStepSave("step_completed");
 }
 
@@ -3384,10 +3391,10 @@ function renderFinalResult(){
       <div class="final-save-row">
         <div class="final-save-text">
           <div>날짜 : ${todayString()} &nbsp;&nbsp;&nbsp; 이름 : ${STUDENT_NAME}</div>
-          <div id="saveStatus">학습기록 저장이 완료되었습니다.</div>
-          <div id="saveHelp" style="font-size:14px;line-height:1.55;color:#555;font-weight:500;margin-top:6px;">다음 학습 또는 나가기를 선택해 주세요.</div>
+          <div id="saveStatus">학습기록이 저장 중입니다.</div>
+          <div id="saveHelp" style="font-size:14px;line-height:1.55;color:#555;font-weight:500;margin-top:6px;">학습이 저장될 때까지 기다려주세요.<br>이탈 시 저장이 되지 않을 수 있습니다.</div>
         </div>
-        <div id="saveIcon" class="final-save-icon final-save-check" aria-label="학습기록 저장 완료">✅</div>
+        <div id="saveIcon" class="final-save-icon final-save-spinner" aria-label="학습기록 저장 중"></div>
       </div>
 
       <div class="button-row">
@@ -3397,14 +3404,47 @@ function renderFinalResult(){
       </div>
       <div class="wm-small" style="margin-top:14px;">다음 학습: ${nextSetName}</div>
     </div>`;
-  /* 세트의 모든 Step은 이미 Step별 저장 완료 상태입니다.
-     완료 화면에서는 학습기록_DB/현재진행_DB를 다시 저장하지 않습니다. */
-  finalSavePromise = null;
+  finalSavePromise = wmWaitForStepSaves().then(function(result){
+    return saveLearningRecord("completed");
+  }).then(result=>{
+    const saveStatus=document.getElementById("saveStatus");
+    const saveIcon=document.getElementById("saveIcon");
+    if(saveStatus){
+      const saveOk = wmIsSaveSuccess(result);
+      saveStatus.textContent=saveOk ? "학습기록 저장이 완료되었습니다." : "학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    }
+    if(saveIcon){
+      const saveOk = wmIsSaveSuccess(result);
+      saveIcon.className = saveOk ? "final-save-icon final-save-check" : "final-save-icon final-save-check";
+      saveIcon.textContent = saveOk ? "✅" : "⚠️";
+      saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
+    }
+    if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
+      setTimeout(returnToLmsIfReady,700);
+    }
+    return result;
+  });
 }
 
-function goFinalExit(){
+async function goFinalExit(){
   stopWordAudio();
   clearInterval(testTimer);
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    return;
+  }
+
   exitLearningFullscreen();
   wmStudyReturnToMap();
 }
@@ -3412,10 +3452,24 @@ function goFinalExit(){
 async function goNextLearning(){
   stopWordAudio();
   clearInterval(testTimer);
-  const progress = await wmLoadLearningProgress();
-  const nextSetId = String(progress && progress.recordSetId || "").trim();
+  const nextSetId = getNextSetId(currentSetId);
   if(!nextSetId){
-    alert("현재진행_DB의 기록Set_ID를 확인할 수 없습니다.");
+    alert("다음 학습 세트 정보를 확인할 수 없습니다.");
+    return;
+  }
+
+  const saveStatus=document.getElementById("saveStatus");
+  const saveIcon=document.getElementById("saveIcon");
+  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveIcon){
+    saveIcon.className="final-save-icon final-save-spinner";
+    saveIcon.textContent="";
+    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+  }
+
+  const saveResult = finalSavePromise ? await finalSavePromise : await saveLearningRecord("completed");
+  if(!wmIsSaveSuccess(saveResult)){
+    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
     return;
   }
 
