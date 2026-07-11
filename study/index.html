@@ -1698,6 +1698,10 @@ function wmApplyLevel5ProblemSetFineTune(setId, word, start, end){
 
 
 function wmPromoteSet51CorrectionValuesToOriginal(words){
+  /* 3·5레벨 음원 LOCK: DB 확정 Start/End를 변경하지 않는다. */
+  if(wmIsLevel3AudioFinalLockedSet(currentSetId) || wmIsLevel5AudioFinalLockedSet(currentSetId)){
+    return Array.isArray(words) ? words : [];
+  }
   if(!wmIsWordMateAudioFormulaTargetSet(currentSetId)){
     return words;
   }
@@ -1739,6 +1743,7 @@ function normalizeDbWord(item, index){
   var rawWord = item.word || item.Word || "";
   var rawStart = Number(item.start ?? item.Start_Time ?? item.start_time ?? item.START_TIME);
   var rawEnd = Number(item.end ?? item.End_Time ?? item.end_time ?? item.END_TIME);
+  var useLockedRawSegment = wmIsLevel3AudioFinalLockedSet(currentSetId) || wmIsLevel5AudioFinalLockedSet(currentSetId);
   var fixedSegment = (currentSetId === "WM5-2-4")
     ? wmApplySet524FixedOriginal(rawWord, rawStart, rawEnd)
     : (wmIsWordMateAudioFormulaTargetSet(currentSetId))
@@ -1768,8 +1773,8 @@ function normalizeDbWord(item, index){
     pos: item.pos || item.POS || "",
     example_en: item.example_en || item.Example_EN || "",
     example_kr: item.example_kr || item.Example_KR || "",
-    start: set533AbsoluteFix.applied ? set533AbsoluteFix.start : after531Start,
-    end: set533AbsoluteFix.applied ? set533AbsoluteFix.end : after531End,
+    start: useLockedRawSegment ? rawStart : (set533AbsoluteFix.applied ? set533AbsoluteFix.start : after531Start),
+    end: useLockedRawSegment ? rawEnd : (set533AbsoluteFix.applied ? set533AbsoluteFix.end : after531End),
     raw_start: rawStart,
     raw_end: rawEnd,
     Audio_URL: item.Audio_URL || item.audio_url || item.AudioUrl || item.audioUrl || item.Set_Audio_URL || item.set_audio_url || item.MP3_URL || item.mp3_url || item.Audio || item.audio || item['음원URL'] || '',
