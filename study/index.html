@@ -1939,6 +1939,13 @@ function normalizeText(text){
   return String(text).trim().toLowerCase().replace(/[,\s\/·ㆍ;|]+/g,"").replace(/[.?!'"“”‘’()[\]{}<>:：，。]/g,"");
 }
 
+/* WM_STUDY_EXACT_ENGLISH_WRITING_V1_20260711
+   Step 4와 Step 6 한영 주관식은 앞뒤 공백만 제외하고
+   철자·대소문자·마침표·아포스트로피를 DB 원문과 정확히 비교합니다. */
+function wmIsExactEnglishAnswer(input, answer){
+  return String(input == null ? "" : input).trim() === String(answer == null ? "" : answer).trim();
+}
+
 function splitMeaningParts(text){return String(text).split(/[,\//·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
 function splitUserMeaningParts(text){return String(text).split(/[,\s\/·ㆍ;|]+/).map(x=>normalizeText(x)).filter(Boolean);}
 
@@ -3100,11 +3107,12 @@ function checkMemory(){
   const item=currentWords[index];
   const inputEl=document.getElementById("memoryInput");
   const messageEl=document.getElementById("memoryMessage");
-  const input=normalizeText(inputEl.value);
-  const answer=normalizeText(item.word);
+  const input=inputEl.value;
+  const answer=item.word;
   const currentStep=getActiveMemorySteps()[memoryPhase];
-  if(currentStep.type!=="0" && input!==answer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
-  if(currentStep.type==="0" && input!==answer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
+  const isExactAnswer=WM_STUDY_LOCKS.WRITING_EXACT.wmIsExactEnglishAnswer(input, answer);
+  if(currentStep.type!=="0" && !isExactAnswer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
+  if(currentStep.type==="0" && !isExactAnswer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
   memoryLocked=true;
   nextMemory();
 }
@@ -3311,7 +3319,7 @@ function submitTest(){
     }
     let isCorrect=false;
     if(test.direction==="eng-ko") isCorrect=test.type==="choice" ? userAnswer===item.meaning : isMeaningCorrect(userAnswer,item.meaning);
-    if(test.direction==="ko-eng") isCorrect=normalizeText(userAnswer)===normalizeText(item.word);
+    if(test.direction==="ko-eng") isCorrect=WM_STUDY_LOCKS.WRITING_EXACT.wmIsExactEnglishAnswer(userAnswer,item.word);
     const question=test.direction==="eng-ko"?item.word:item.meaning;
     const correctAnswer=test.direction==="eng-ko"?item.meaning:item.word;
     currentTestResults.push({item,question,correctAnswer,userAnswer,isCorrect});
@@ -3533,6 +3541,7 @@ const WM_STUDY_LOCKS = Object.freeze({
     markStepCompleted, queueStepSave, wmLoadLearningProgress, wmApplyResumeProgress,
     buildLearningPayload, saveProgressSnapshot, saveLearningRecord
   }),
+  WRITING_EXACT: Object.freeze({wmIsExactEnglishAnswer}),
   STUDY_EXIT: Object.freeze({leaveLearning, wmStudyReturnToMap, goFinalExit, goNextLearning, restart})
 });
 
