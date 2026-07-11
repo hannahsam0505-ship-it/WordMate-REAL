@@ -779,7 +779,7 @@ function getSaveApiUrl(){
 function getProgressApiUrl(){
   /* WM_STUDY_PROGRESS_EXEC_URL_FIX_V2
      복귀 조회도 저장과 동일하게 실제 Apps Script /exec 상수(API_URL)를 기준으로 호출합니다. */
-  return API_URL + "?action=getLearningProgress";
+  return API_URL + "?action=getStudyProgressFast";
 }
 
 
@@ -2859,12 +2859,15 @@ async function startLearning(){
   if(!sessionOk) return;
   wmStudyStartSessionWatcher();
 
-  if(!isDbReady || !originalWords.length){
-    const loaded = await loadSetFromDB();
-    if(!loaded) return;
-  }
-
-  await wmPrepareStudyModeForCurrentSet();
+  /* WM_STUDY_PARALLEL_START_V1_20260711
+     세트·학습모드·현재진행 핵심 4개를 동시에 불러옵니다. */
+  const needsDbLoad = !isDbReady || !originalWords.length;
+  const parallelLoad = await Promise.all([
+    needsDbLoad ? loadSetFromDB() : Promise.resolve(true),
+    wmPrepareStudyModeForCurrentSet(),
+    wmLoadLearningProgress()
+  ]);
+  if(!parallelLoad[0]) return;
 
   clearInterval(testTimer);
   stopWordAudio();
@@ -2873,7 +2876,7 @@ async function startLearning(){
   wmCurrentStepStartTime=learningStartTime;
   latestSavedPayload=null;
 
-  const progress = await wmLoadLearningProgress();
+  const progress = parallelLoad[2];
   const resumeStage = wmApplyResumeProgress(progress);
 
   stage=resumeStage;
