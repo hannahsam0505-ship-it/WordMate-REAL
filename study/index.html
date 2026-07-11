@@ -909,9 +909,6 @@ let audioGapTimer = null;
 let audioRepeatCount = 0;
 let audioMaxRepeat = Infinity;
 let currentAudioItem = null;
-/* WM_STUDY_AUDIO_DIAGNOSTIC_READONLY_20260710
-   F12 확인용 출력만 수행하며 재생·seek·반복 흐름에는 개입하지 않습니다. */
-let wmAudioDebugEnabled = true;
 let isDbReady = false;
 let isDbLoading = false;
 let dbLoadError = "";
@@ -1250,6 +1247,8 @@ function fixDriveAudioUrl(url){
 
 function normalizeDbWord(item){
   return {
+    setId: item.Set_ID || item.set_id || item.setId || "",
+    wordNo: item.Word_No || item.word_no || item.wordNo || "",
     word: item.word || item.Word || "",
     meaning: item.meaning || item.meaning_kr || item.Meaning_KR || "",
     pos: item.pos || item.POS || "",
@@ -1354,12 +1353,16 @@ async function loadSetFromDB(){
       throw new Error("단어 데이터 없음");
     }
 
-    const audioSource =
-      data.audio_url ||
-      data.Audio_URL ||
-      (data.audio && (data.audio.Audio_URL || data.audio.audio_url || data.audio.Drive_URL || data.audio.drive_url)) ||
-      (data.words && data.words[0] && (data.words[0].Audio_URL || data.words[0].audio_url || data.words[0].Drive_URL || data.words[0].drive_url)) ||
-      "";
+    /* WM_STUDY_SET_AUDIO_DIRECT_V1_20260711
+       getSetData가 현재 Set_ID로 확정한 세트 음원만 사용합니다.
+       단어별 Start/End는 각 단어 객체의 기존 확정값을 그대로 사용합니다. */
+    const responseSetId = String(data.set_id || data.Set_ID || "").trim().toUpperCase();
+    const requestedSetId = String(currentSetId || "").trim().toUpperCase();
+    if(responseSetId && responseSetId !== requestedSetId){
+      throw new Error("Set_ID 불일치: " + responseSetId + " / " + requestedSetId);
+    }
+
+    const audioSource = data.audio && (data.audio.Audio_URL || data.audio.audio_url);
 
     const audioUrl = fixDriveAudioUrl(audioSource);
     if(!audioUrl){
@@ -1471,23 +1474,7 @@ function renderMemoryProgress(){
   return html;
 }
 
-function wmAudioLog(eventName, detail = {}){
-  if(!wmAudioDebugEnabled) return;
-  try{
-    console.log("[WM AUDIO] " + eventName, {
-      setId: currentSetId,
-      word: detail.word || (currentAudioItem && currentAudioItem.word) || "",
-      start: detail.start,
-      end: detail.end,
-      currentTime: wordAudio ? Number(wordAudio.currentTime || 0).toFixed(3) : "0.000",
-      repeat: detail.repeat,
-      reason: detail.reason || ""
-    });
-  }catch(err){}
-}
-
 function stopWordAudio(){
-  wmAudioLog("STOP", {reason:"stopWordAudio"});
   clearInterval(audioTimer);
   clearTimeout(audioGapTimer);
   audioTimer = null;
@@ -1532,7 +1519,6 @@ async function playWordSegment(item, maxRepeat = 5){
   if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
   if(!wordAudio || !wordAudio.src) return;
 
-  wmAudioLog("REQUEST", {word:item.word, start, end, repeat:maxRepeat});
   stopWordAudio();
 
   currentAudioItem = item;
@@ -1554,7 +1540,6 @@ async function playWordSegment(item, maxRepeat = 5){
       wordAudio.pause();
       wordAudio.currentTime = start;
       await wordAudio.play();
-      wmAudioLog("PLAY", {word:item.word, start, end, repeat:audioRepeatCount + 1});
     }catch(error){
       console.error(error);
       return;
@@ -1567,7 +1552,6 @@ async function playWordSegment(item, maxRepeat = 5){
     if(!currentAudioItem) return;
     wordAudio.pause();
     audioRepeatCount++;
-    wmAudioLog("ROUND_END", {word:item.word, start, end, repeat:audioRepeatCount});
 
     if(audioRepeatCount >= audioMaxRepeat){
       stopWordAudio();
