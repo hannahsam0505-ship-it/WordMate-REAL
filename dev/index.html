@@ -2086,7 +2086,7 @@ floating sticky mini bar docking 위치를 하향 조정
 
 
 
-<!-- WM_DEV_PASSWORD_GATE_V1: /dev 공개 접근 차단용 프론트 비밀번호 게이트 / light0630 / 대소문자 구분 없음 -->
+<!-- WM_DEV_LMS_ADMIN_GATE_V1: LMS 동일 관리자 계정 재인증 + /dev 직접 접근 관리자 로그인 -->
 <style>
   html:not(.wm-dev-unlocked) #wmdc-root{
     display:none !important;
@@ -2181,9 +2181,10 @@ floating sticky mini bar docking 위치를 하향 조정
 <div id="wm-dev-auth-gate">
   <div class="wm-dev-auth-card">
     <div class="wm-dev-auth-title">Word Mate DEV</div>
-    <div class="wm-dev-auth-sub">관리자 전용 DEV CENTER입니다.<br>비밀번호 입력 후 입장하세요.</div>
+    <div class="wm-dev-auth-sub">관리자 전용 DEV CENTER입니다.<br>LMS와 동일한 관리자 계정으로 로그인하세요.</div>
     <form id="wm-dev-auth-form" autocomplete="off">
-      <input id="wm-dev-auth-password" class="wm-dev-auth-input" type="password" placeholder="DEV 비밀번호" autocomplete="off">
+      <input id="wm-dev-auth-teacher-id" class="wm-dev-auth-input" type="text" maxlength="10" placeholder="교사ID" autocomplete="username">
+      <input id="wm-dev-auth-password" class="wm-dev-auth-input" type="password" maxlength="4" inputmode="numeric" placeholder="비밀번호 숫자 4자리" autocomplete="current-password" style="margin-top:10px;">
       <button class="wm-dev-auth-btn" type="submit">DEV CENTER 입장</button>
       <div id="wm-dev-auth-message" class="wm-dev-auth-message"></div>
     </form>
@@ -2192,16 +2193,14 @@ floating sticky mini bar docking 위치를 하향 조정
 
 <script>
 (function(){
-  var WM_DEV_PASSWORD = 'light0630';
-  var WM_DEV_AUTH_KEY = 'WM_DEV_AUTH_OK_V1';
+  var WM_DEV_AUTH_KEY = 'WM_DEV_AUTH_OK_V2';
+  var WM_DEV_REAUTH_KEY = 'WM_DEV_REAUTH_V1';
   var WM_DEV_FAIL_KEY = 'WM_DEV_FAIL_COUNT_V1';
   var WM_DEV_LOCK_KEY = 'WM_DEV_LOCK_UNTIL_V1';
   var WM_DEV_MAX_FAIL = 5;
   var WM_DEV_LOCK_MS = 10 * 60 * 1000;
-
-  function normalizePassword(value){
-    return String(value || '').trim().toLowerCase();
-  }
+  var WM_DEV_REAUTH_MAX_AGE_MS = 5 * 60 * 1000;
+  var WM_DEV_AUTH_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
   function getNow(){
     return Date.now ? Date.now() : new Date().getTime();
@@ -2217,11 +2216,59 @@ floating sticky mini bar docking 위치를 하향 조정
     if(message){ message.textContent = text || ''; }
   }
 
-  function unlockDevCenter(){
-    sessionStorage.setItem(WM_DEV_AUTH_KEY, 'Y');
+  function isAdminRole(role){
+    role = String(role || '').trim().toUpperCase();
+    return role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN';
+  }
+
+  function readSessionJson(key){
+    try{ return JSON.parse(sessionStorage.getItem(key) || 'null'); }
+    catch(error){ return null; }
+  }
+
+  function isRecentAuth(auth, maxAge){
+    return !!auth
+      && !!String(auth.teacherId || '').trim()
+      && isAdminRole(auth.role)
+      && Number(auth.verifiedAt || 0) > 0
+      && getNow() - Number(auth.verifiedAt) <= maxAge;
+  }
+
+  function unlockDevCenter(auth){
+    auth = auth || {};
+    sessionStorage.setItem(WM_DEV_AUTH_KEY, JSON.stringify({
+      teacherId: String(auth.teacherId || '').trim(),
+      role: String(auth.role || '').trim().toUpperCase(),
+      verifiedAt: Number(auth.verifiedAt || getNow())
+    }));
+    sessionStorage.removeItem(WM_DEV_REAUTH_KEY);
     sessionStorage.removeItem(WM_DEV_FAIL_KEY);
     sessionStorage.removeItem(WM_DEV_LOCK_KEY);
     document.documentElement.classList.add('wm-dev-unlocked');
+  }
+
+  function getLmsLoginApiUrl(teacherId, password){
+    var baseUrl = '';
+    if(window.WORDMATE_APPS_SCRIPT_URL){
+      baseUrl = String(window.WORDMATE_APPS_SCRIPT_URL || '').trim();
+    }
+    if(!baseUrl && typeof API_URL !== 'undefined'){
+      baseUrl = String(API_URL || '').trim();
+    }
+    if(!baseUrl) return '';
+    return baseUrl
+      + '?action=lmsLogin'
+      + '&teacherId=' + encodeURIComponent(teacherId)
+      + '&password=' + encodeURIComponent(password)
+      + '&ts=' + getNow();
+  }
+
+  function verifyLmsAdmin(teacherId, password){
+    var url = getLmsLoginApiUrl(teacherId, password);
+    if(!url) return Promise.reject(new Error('Apps Script URL이 설정되지 않았습니다.'));
+    return fetch(url, {method:'GET', cache:'no-store'}).then(function(response){
+      return response.json();
+    });
   }
 
   function applyLockMessage(){
@@ -2237,14 +2284,25 @@ floating sticky mini bar docking 위치를 하향 조정
   }
 
   function bindDevAuthGate(){
-    if(sessionStorage.getItem(WM_DEV_AUTH_KEY) === 'Y'){
-      unlockDevCenter();
+    var lmsReauth = readSessionJson(WM_DEV_REAUTH_KEY);
+    if(isRecentAuth(lmsReauth, WM_DEV_REAUTH_MAX_AGE_MS)){
+      unlockDevCenter(lmsReauth);
       return;
     }
+    sessionStorage.removeItem(WM_DEV_REAUTH_KEY);
+
+    var savedAuth = readSessionJson(WM_DEV_AUTH_KEY);
+    if(isRecentAuth(savedAuth, WM_DEV_AUTH_MAX_AGE_MS)){
+      unlockDevCenter(savedAuth);
+      return;
+    }
+    sessionStorage.removeItem(WM_DEV_AUTH_KEY);
 
     var form = document.getElementById('wm-dev-auth-form');
-    var input = document.getElementById('wm-dev-auth-password');
-    if(!form || !input){ return; }
+    var teacherIdInput = document.getElementById('wm-dev-auth-teacher-id');
+    var passwordInput = document.getElementById('wm-dev-auth-password');
+    var submitButton = form ? form.querySelector('button[type="submit"]') : null;
+    if(!form || !teacherIdInput || !passwordInput){ return; }
 
     applyLockMessage();
 
@@ -2255,26 +2313,56 @@ floating sticky mini bar docking 위치를 하향 조정
         return;
       }
 
-      if(normalizePassword(input.value) === normalizePassword(WM_DEV_PASSWORD)){
-        unlockDevCenter();
+      var teacherId = String(teacherIdInput.value || '').trim();
+      var password = String(passwordInput.value || '').trim();
+      if(!/^[A-Za-z0-9]{1,10}$/.test(teacherId)){
+        setMessage('교사ID는 영문/숫자 10자리 이내입니다.');
+        teacherIdInput.focus();
+        return;
+      }
+      if(!/^\d{4}$/.test(password)){
+        setMessage('비밀번호 숫자 4자리를 입력하세요.');
+        passwordInput.focus();
         return;
       }
 
-      var failCount = Number(sessionStorage.getItem(WM_DEV_FAIL_KEY) || 0) + 1;
-      sessionStorage.setItem(WM_DEV_FAIL_KEY, String(failCount));
-      input.value = '';
-      input.focus();
+      if(submitButton) submitButton.disabled = true;
+      setMessage('LMS 관리자 계정을 확인 중입니다.');
 
-      if(failCount >= WM_DEV_MAX_FAIL){
-        sessionStorage.setItem(WM_DEV_LOCK_KEY, String(getNow() + WM_DEV_LOCK_MS));
-        applyLockMessage();
-        return;
-      }
+      verifyLmsAdmin(teacherId, password).then(function(result){
+        if(result && result.success && result.teacher && isAdminRole(result.teacher.권한)){
+          unlockDevCenter({
+            teacherId: result.teacher.교사ID,
+            role: result.teacher.권한,
+            verifiedAt: getNow()
+          });
+          return;
+        }
 
-      setMessage('비밀번호가 맞지 않습니다. 남은 시도: ' + (WM_DEV_MAX_FAIL - failCount) + '회');
+        var failCount = Number(sessionStorage.getItem(WM_DEV_FAIL_KEY) || 0) + 1;
+        sessionStorage.setItem(WM_DEV_FAIL_KEY, String(failCount));
+        passwordInput.value = '';
+        passwordInput.focus();
+
+        if(failCount >= WM_DEV_MAX_FAIL){
+          sessionStorage.setItem(WM_DEV_LOCK_KEY, String(getNow() + WM_DEV_LOCK_MS));
+          applyLockMessage();
+          return;
+        }
+
+        if(result && result.success){
+          setMessage('DEV CENTER는 SUPER_ADMIN 또는 SPECIAL_ADMIN만 입장할 수 있습니다.');
+        }else{
+          setMessage(((result && result.message) || '로그인에 실패했습니다.') + ' 남은 시도: ' + (WM_DEV_MAX_FAIL - failCount) + '회');
+        }
+      }).catch(function(error){
+        setMessage('서버 확인 실패: ' + (error && error.message ? error.message : error));
+      }).then(function(){
+        if(submitButton) submitButton.disabled = false;
+      });
     });
 
-    setTimeout(function(){ input.focus(); }, 80);
+    setTimeout(function(){ teacherIdInput.focus(); }, 80);
   }
 
   if(document.readyState === 'loading'){
