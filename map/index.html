@@ -147,8 +147,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL   : 'https://hsam05.com/map',
-    STUDY_URL : 'https://hsam05.com/study',
+    MAP_URL   : 'https://word-mate-real.vercel.app/map',
+    STUDY_URL : 'https://word-mate-real.vercel.app/study',
     LMS_URL   : 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -3911,9 +3911,9 @@ async function startStudy(setId){
      Study 화면 자체에서 진입 즉시 세션을 다시 검증하므로, Map에서 동일 세션 API를
      한 번 더 기다리지 않고 바로 이동합니다. 중복 네트워크 왕복만 제거합니다. */
 
-  /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_STUDY_V1
+  /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_67_V1
      Apps Script exec로 직접 이동하면 Google 안내 배너가 노출되므로
-     학습 시작도 아임웹 숨김 프레임페이지(/study)를 경유합니다. */
+     학습 시작도 아임웹 숨김 프레임페이지(/67)를 경유합니다. */
   const framePageUrl = WM_STUDY_URL;
 
   const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
