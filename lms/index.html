@@ -5466,6 +5466,82 @@ function wmLogLmsDevConnectionLockStatus(){
 
 document.addEventListener('DOMContentLoaded', wmLogLmsDevConnectionLockStatus);
 
+/* ============================================================
+   WM_STUDENT_ASSIGNMENT_LOCK_V1 / 실제 실행 연결 + F12 검증
+   ============================================================ */
+const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
+  version: 'WM_STUDENT_ASSIGNMENT_LOCK_V1.0',
+  date: '2026-07-14',
+  FIRST_ASSIGNMENT: Object.freeze({
+    render: wmLearningAssignSelectHtml,
+    save: saveStudentLearningModeFromRow
+  }),
+  CURRENT_SET: Object.freeze({
+    load: loadStudents,
+    display: wmCurrentSetDisplayValue
+  }),
+  NEXT_LEVEL_COMPLETE_CONDITION: Object.freeze({
+    render: wmModeSelectHtml,
+    confirm: confirmNextLevelCompleteCondition,
+    save: saveStudentLearningModeFromRow
+  })
+});
+
+function wmInstallStudentAssignmentFunctionLocks(){
+  const names = [];
+  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].forEach(function(moduleName){
+    const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
+    Object.keys(module).forEach(function(key){
+      const fn = module[key];
+      const name = fn && fn.name;
+      if(!name || names.includes(name)) return;
+      try{
+        const descriptor = Object.getOwnPropertyDescriptor(window, name);
+        Object.defineProperty(window, name, {
+          value: fn,
+          writable: false,
+          configurable: false,
+          enumerable: descriptor ? descriptor.enumerable : true
+        });
+      }catch(error){
+        console.error('STUDENT ASSIGNMENT LOCK INSTALL ERROR', name, error);
+      }
+      names.push(name);
+    });
+  });
+  return Object.freeze(names);
+}
+
+const WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS = wmInstallStudentAssignmentFunctionLocks();
+
+function wmLogStudentAssignmentLockStatus(){
+  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].map(function(moduleName){
+    const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
+    const functions = Object.keys(module);
+    const verified = Object.isFrozen(module) && functions.every(function(key){
+      const fn = module[key];
+      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
+      return window[fn.name] === fn
+        && !!descriptor
+        && descriptor.writable === false
+        && descriptor.configurable === false;
+    });
+    return {MODULE:moduleName, FUNCTIONS:functions.length, LOCKED:verified ? 'YES' : 'NO'};
+  });
+  const allVerified = Object.isFrozen(WM_STUDENT_ASSIGNMENT_LOCK_V1)
+    && Object.isFrozen(WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS)
+    && rows.every(function(row){ return row.LOCKED === 'YES'; });
+  console.group('🔒 WORD MATE STUDENT ASSIGNMENT LOCK STATUS');
+  console.info('LOCK VERSION :', WM_STUDENT_ASSIGNMENT_LOCK_V1.version);
+  console.info('LOCK DATE    :', WM_STUDENT_ASSIGNMENT_LOCK_V1.date);
+  console.table(rows);
+  console.info(allVerified ? '🔒 STUDENT ASSIGNMENT ALL LOCK VERIFIED' : '❌ STUDENT ASSIGNMENT LOCK VERIFY FAILED');
+  console.groupEnd();
+  return allVerified;
+}
+
+document.addEventListener('DOMContentLoaded', wmLogStudentAssignmentLockStatus);
+
   </script>
 
 <script>
