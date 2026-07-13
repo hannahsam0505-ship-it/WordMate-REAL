@@ -3640,6 +3640,45 @@ function wmLogStudySpeedLockStatus(){
   setTimeout(function(){ finish(null); }, 12000);
 }
 
+/* WM_CODEGS_ALL_LOCK_VERIFY_ON_STUDY_20260713_V1
+ * 기존 wmLogStudySpeedLockStatus()의 JSONP 성공 패턴을 그대로 사용합니다.
+ */
+function wmLogCodeGsAllLockStatusOnStudy_(){
+  const callbackName = "wmCodeGsAllLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
+
+  function finish(status){
+    if(finished) return;
+    finished = true;
+    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const modules = status && status.modules ? status.modules : {};
+    const moduleNames = ['AUTH','MAP','STUDY','DB','LMS','SETTING','SYSTEM'];
+
+    console.group("🔒 WORD MATE CODE.GS ALL LOCK STATUS");
+    console.log("LOCK VERSION :", String(status && status.version || ""));
+    console.log("LOCK DATE    :", String(status && status.date || ""));
+    moduleNames.forEach(function(name){
+      const moduleStatus = modules[name] || {};
+      console.log(
+        name + " : " + (moduleStatus.verified === true ? "✅ ACTUAL LOCK" : "❌ CHECK REQUIRED"),
+        moduleStatus.functions || {}
+      );
+    });
+    console.log(status && status.registryFrozen === true ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
+    console.log(status && status.allVerified === true ? "🔒 CODE.GS ALL LOCK VERIFIED" : "❌ CODE.GS LOCK CHECK REQUIRED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){ finish(null); };
+  script.src = API_URL + "?action=codeGsAllLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){ finish(null); }, 12000);
+}
+
 document.addEventListener("keydown",function(e){
   if(!["1","2","3","4","5"].includes(e.key)) return;
   const activeTag=document.activeElement && document.activeElement.tagName;
@@ -3662,23 +3701,6 @@ document.addEventListener("keydown",function(e){
 
 wmLogStudyLockStatus();
 wmLogStudySpeedLockStatus();
+wmLogCodeGsAllLockStatusOnStudy_();
 renderStart();
-
-/* WM_CODEGS_ALL_LOCK_F12_STUDY_V1 */
-async function wmPrintCodeGsAllLockForStudy_(){
-  try{
-    const base = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || (typeof API_URL !== 'undefined' ? API_URL : '') || '').trim();
-    if(!base) throw new Error('Code.gs API URL 없음');
-    const res = await fetch(base + '?action=codeGsAllLockStatus&t=' + Date.now(), {cache:'no-store'});
-    const s = await res.json();
-    console.group('🔒 WORD MATE CODE.GS ALL LOCK STATUS');
-    console.log('LOCK VERSION : ' + String(s.version || ''));
-    console.log('LOCK DATE    : ' + String(s.date || ''));
-    Object.keys(s.modules || {}).forEach(name=>console.log(name + ' : ' + (s.modules[name].verified ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'), s.modules[name].functions));
-    console.log(s.registryFrozen ? '✅ REGISTRY FROZEN' : '❌ REGISTRY CHECK REQUIRED');
-    console.log(s.allVerified ? '🔒 CODE.GS ALL LOCK VERIFIED' : '❌ CODE.GS LOCK CHECK REQUIRED');
-    console.groupEnd();
-  }catch(err){ console.error('❌ CODE.GS LOCK STATUS LOAD FAILED', err); }
-}
-window.addEventListener('load', wmPrintCodeGsAllLockForStudy_, {once:true});
 </script>
