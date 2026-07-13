@@ -169,8 +169,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
  * 실제 Map Console에 프레임 LOCK 결과를 함께 출력합니다.
  */
 window.addEventListener('message', function(event){
-  const allowedOrigins = ['https://hsam05.com', 'https://www.hsam05.com'];
-  if(allowedOrigins.indexOf(String(event.origin || '')) === -1) return;
+  if(event.source !== window.parent) return;
 
   const message = event.data || {};
   if(message.type !== 'WM_MAP_FRAME_LOCK_STATUS' || message.source !== 'WM_IMWEB_MAP_FRAME') return;
