@@ -4864,6 +4864,37 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   }
 }
 
+function confirmNextLevelCompleteCondition(button, studentId){
+  document.getElementById('wmNextLevelSaveConfirm')?.remove();
+
+  const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
+  const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
+  const studentName = String(row['학생이름'] || '').trim();
+  const currentSet = String(row['현재세트'] || row['Set_ID'] || '').trim();
+  const currentLevelMatch = currentSet.match(/(?:WM)?(\d+)-/i);
+  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : Number(row['현재레벨'] || 0);
+  const nextLevel = currentLevel ? currentLevel + 1 : '';
+  const repeatCount = document.getElementById(`wmMode_다음레벨완료조건_${safeId}`)?.value || '';
+  const box = document.createElement('div');
+  const rect = button.getBoundingClientRect();
+
+  box.id = 'wmNextLevelSaveConfirm';
+  box.style.cssText =
+    'position:fixed;z-index:99999;background:#fff;border:1px solid #bfdbfe;border-radius:10px;' +
+    'padding:12px 14px;box-shadow:0 8px 22px rgba(0,0,0,.16);font-size:13px;line-height:1.5;' +
+    'font-weight:700;color:#111827;white-space:nowrap;';
+  box.style.right = Math.max(12, window.innerWidth - rect.right) + 'px';
+  box.style.top = Math.min(window.innerHeight - 100, rect.bottom + 6) + 'px';
+  box.innerHTML =
+    '<div>' + escapeHtml(studentName) + ' 학생의 다음(' + escapeHtml(nextLevel) + ')레벨 학습을 ' + escapeHtml(repeatCount) + '로 저장합니다.</div>' +
+    '<button type="button" class="wm-mode-save-btn" style="margin-top:8px;">확인</button>';
+  document.body.appendChild(box);
+  box.querySelector('button').onclick = async function(){
+    box.remove();
+    await saveStudentLearningModeFromRow(studentId);
+  };
+}
+
 async function saveAllStudentLearningModes(){
   if(!wmConfirmScopeLock('students','feature')) return;
   const ids = Array.from(document.querySelectorAll('#studentManageTbody select[data-student-id]'))
@@ -5202,7 +5233,7 @@ function renderStudentManageRows(){
       <td>${escapeHtml(displayCellValue(row['최종로그인']))}</td>
       <td>${escapeHtml(row['접속기기'] || '')}</td>
       <td>${escapeHtml(row['비고'] || '')}</td>
-      <td><button type="button" class="wm-mode-save-btn" onclick="saveStudentLearningModeFromRow('${escapeHtml(studentId)}')">저장</button></td>
+      <td><button type="button" class="wm-mode-save-btn" onclick="confirmNextLevelCompleteCondition(this, '${escapeHtml(studentId)}')">저장</button></td>
     </tr>`;
   }).join('');
 
