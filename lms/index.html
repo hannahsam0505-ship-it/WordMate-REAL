@@ -1360,6 +1360,131 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
     }
 
+    /* WM_LMS_DEV_SAME_ADMIN_REAUTH_V1
+     * DEV CENTER 진입 전 현재 LMS의 동일 SUPER_ADMIN / SPECIAL_ADMIN 계정을 다시 검증합니다.
+     */
+    const WM_DEV_REAUTH_STORAGE_KEY = 'WM_DEV_REAUTH_V1';
+
+    function wmSetDevReauthMessage(message, isOk){
+      const el = document.getElementById('wmDevReauthMessage');
+      if(!el) return;
+      el.textContent = message || '';
+      el.style.color = isOk ? '#15803d' : '#dc2626';
+    }
+
+    function wmEnsureDevReauthModal(){
+      let modal = document.getElementById('wmDevReauthModal');
+      if(modal) return modal;
+      modal = document.createElement('div');
+      modal.id = 'wmDevReauthModal';
+      modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);padding:20px;box-sizing:border-box;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="width:100%;max-width:420px;background:#fff;border-radius:20px;padding:28px;box-shadow:0 20px 60px rgba(15,23,42,.25);">'
+        + '<div style="font-size:24px;font-weight:950;text-align:center;color:#111827;">DEV CENTER 재로그인</div>'
+        + '<div style="margin:8px 0 20px;text-align:center;color:#64748b;font-size:14px;line-height:1.5;">현재 LMS 관리자 계정으로 한 번 더 로그인하세요.</div>'
+        + '<label style="display:block;margin-bottom:14px;font-size:14px;font-weight:900;color:#111827;">교사ID'
+        + '<input id="wmDevReauthTeacherId" type="text" readonly style="width:100%;height:50px;margin-top:7px;padding:0 14px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;font-size:15px;"></label>'
+        + '<label style="display:block;margin-bottom:14px;font-size:14px;font-weight:900;color:#111827;">비밀번호'
+        + '<input id="wmDevReauthPassword" type="password" maxlength="4" inputmode="numeric" autocomplete="current-password" placeholder="숫자 4자리" style="width:100%;height:50px;margin-top:7px;padding:0 14px;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:12px;font-size:15px;"></label>'
+        + '<div id="wmDevReauthMessage" style="min-height:22px;margin-bottom:10px;text-align:center;font-size:13px;font-weight:900;color:#dc2626;"></div>'
+        + '<div style="display:flex;gap:10px;"><button id="wmDevReauthCancel" type="button" style="flex:1;height:50px;border:0;border-radius:12px;background:#e5e7eb;color:#111827;font-size:15px;font-weight:900;cursor:pointer;">취소</button>'
+        + '<button id="wmDevReauthSubmit" type="button" style="flex:1;height:50px;border:0;border-radius:12px;background:#111827;color:#fff;font-size:15px;font-weight:900;cursor:pointer;">DEV CENTER 입장</button></div></div>';
+      document.body.appendChild(modal);
+      document.getElementById('wmDevReauthCancel').addEventListener('click', function(){
+        modal.style.display = 'none';
+        const passwordEl = document.getElementById('wmDevReauthPassword');
+        if(passwordEl) passwordEl.value = '';
+      });
+      document.getElementById('wmDevReauthSubmit').addEventListener('click', wmSubmitDevReauth);
+      document.getElementById('wmDevReauthPassword').addEventListener('keydown', function(event){
+        if(event.key === 'Enter') wmSubmitDevReauth();
+      });
+      return modal;
+    }
+
+    function wmRequestDevReauth(teacherId, password){
+      return new Promise(function(resolve, reject){
+        if(window.google && google.script && google.script.run){
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .wmLmsLogin(teacherId, password);
+          return;
+        }
+        const baseUrl = String(typeof WM_APPS_SCRIPT_URL !== 'undefined' ? WM_APPS_SCRIPT_URL : '').trim();
+        if(!baseUrl){ reject(new Error('Apps Script URL이 설정되지 않았습니다.')); return; }
+        const url = baseUrl
+          + '?action=lmsLogin'
+          + '&teacherId=' + encodeURIComponent(teacherId)
+          + '&password=' + encodeURIComponent(password)
+          + '&ts=' + Date.now();
+        fetch(url, {method:'GET', cache:'no-store'})
+          .then(function(response){ return response.json(); })
+          .then(resolve)
+          .catch(reject);
+      });
+    }
+
+    function wmOpenDevReauth(){
+      const teacher = window.WM_LMS_AUTH_TEACHER || {};
+      const teacherId = String(teacher.교사ID || '').trim();
+      const role = String(teacher.권한 || '').trim().toUpperCase();
+      if(!teacherId || (role !== 'SUPER_ADMIN' && role !== 'SPECIAL_ADMIN')){
+        alert('DEV CENTER는 SUPER_ADMIN 또는 SPECIAL_ADMIN만 입장할 수 있습니다.');
+        return;
+      }
+      const modal = wmEnsureDevReauthModal();
+      const teacherIdEl = document.getElementById('wmDevReauthTeacherId');
+      const passwordEl = document.getElementById('wmDevReauthPassword');
+      if(teacherIdEl) teacherIdEl.value = teacherId;
+      if(passwordEl) passwordEl.value = '';
+      wmSetDevReauthMessage('');
+      modal.style.display = 'flex';
+      setTimeout(function(){ if(passwordEl) passwordEl.focus(); }, 50);
+    }
+
+    async function wmSubmitDevReauth(){
+      const currentTeacher = window.WM_LMS_AUTH_TEACHER || {};
+      const currentTeacherId = String(currentTeacher.교사ID || '').trim();
+      const passwordEl = document.getElementById('wmDevReauthPassword');
+      const password = String(passwordEl && passwordEl.value ? passwordEl.value : '').trim();
+      if(!/^\d{4}$/.test(password)){
+        wmSetDevReauthMessage('비밀번호 숫자 4자리를 입력하세요.');
+        return;
+      }
+      const submitBtn = document.getElementById('wmDevReauthSubmit');
+      if(submitBtn) submitBtn.disabled = true;
+      wmSetDevReauthMessage('동일 관리자 계정을 확인 중입니다.', true);
+      try{
+        const res = await wmRequestDevReauth(currentTeacherId, password);
+        if(!res || !res.success){
+          wmSetDevReauthMessage((res && res.message) || '로그인 실패');
+          return;
+        }
+        const verifiedTeacher = res.teacher || {};
+        const verifiedId = String(verifiedTeacher.교사ID || '').trim();
+        const verifiedRole = String(verifiedTeacher.권한 || '').trim().toUpperCase();
+        if(verifiedId.toLowerCase() !== currentTeacherId.toLowerCase()){
+          wmSetDevReauthMessage('현재 LMS 로그인 아이디와 일치하지 않습니다.');
+          return;
+        }
+        if(verifiedRole !== 'SUPER_ADMIN' && verifiedRole !== 'SPECIAL_ADMIN'){
+          wmSetDevReauthMessage('DEV CENTER 입장 권한이 없습니다.');
+          return;
+        }
+        sessionStorage.setItem(WM_DEV_REAUTH_STORAGE_KEY, JSON.stringify({
+          teacherId: verifiedId,
+          role: verifiedRole,
+          verifiedAt: Date.now()
+        }));
+        wmSetDevReauthMessage('확인되었습니다. DEV CENTER로 이동합니다.', true);
+        window.location.href = WM_DEV_URL;
+      }catch(err){
+        wmSetDevReauthMessage('서버 확인 실패: '+(err && err.message ? err.message : err));
+      }finally{
+        if(submitBtn) submitBtn.disabled = false;
+      }
+    }
+
     function wmSubmitLmsLogin(){
       const teacherIdEl = document.getElementById('wmLmsTeacherId');
       const passwordEl = document.getElementById('wmLmsPassword');
@@ -2632,7 +2757,10 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       if(button.disabled) return;
       applyRole(button.dataset.role);
     }));
-    menuButtons.forEach(button=>button.addEventListener('click',()=>showPanel(button.dataset.panel)));
+    menuButtons.forEach(button=>button.addEventListener('click',()=>{
+      if(button.dataset.panel === 'dev') wmOpenDevReauth();
+      else showPanel(button.dataset.panel);
+    }));
     let WM_STUDENT_MANAGE_ROWS = [];
     let WM_RECORD_MANAGE_ROWS = [];
     let WM_REPORT_MANAGE_ROWS = [];
