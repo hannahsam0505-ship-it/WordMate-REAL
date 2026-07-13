@@ -164,49 +164,53 @@ const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
-/* WM_MAP_FRAME_LOCK_BRIDGE_VERIFY_20260713_V2
- * 프레임이 실제 LOCK 완료 후 전달한 검증값을 학습맵에서 직접 수신하여
- * 학습맵 F12 Console 하단에 실제 LOCK 상태를 자동 출력합니다.
- * URL 검증값은 최초 확인용으로 유지하고 postMessage 수신값으로 확정합니다.
+/* WM_MAP_FRAME_LOCK_URL_VERIFY_20260713_V1
+ * 프레임이 실제 LOCK 완료 후 Map URL로 전달한 검증값을 읽어
+ * 학습맵 F12 Console 하단에 자동 출력합니다.
  */
-(function wmMapFrameLockBridgeVerify_(){
+(function wmMapFrameLockUrlVerify_(){
   'use strict';
 
   const params = new URLSearchParams(window.location.search || '');
-  let registry = Object.freeze({
-    version: String(params.get('wmFrameLockVersion') || ''),
-    accessGuard: params.get('wmFrameAccessGuard') === '1',
-    frameData: params.get('wmFrameDataLock') === '1',
-    frameRun: params.get('wmFrameRunLock') === '1',
-    allLocked: params.get('wmFrameAllLocked') === '1'
-  });
-
-  function getVerified_(){
-    return registry.accessGuard === true &&
-      registry.frameData === true &&
-      registry.frameRun === true &&
-      registry.allLocked === true;
+  let frameChannel = {};
+  try{
+    const prefix = 'WM_MAP_FRAME_LOCK:';
+    const raw = String(window.name || '');
+    if(raw.indexOf(prefix) === 0){
+      frameChannel = JSON.parse(decodeURIComponent(raw.slice(prefix.length))) || {};
+    }
+  }catch(err){
+    frameChannel = {};
   }
+  const registry = Object.freeze({
+    version: String(params.get('wmFrameLockVersion') || frameChannel.version || ''),
+    accessGuard: params.get('wmFrameAccessGuard') === '1' || frameChannel.accessGuard === true,
+    frameData: params.get('wmFrameDataLock') === '1' || frameChannel.frameData === true,
+    frameRun: params.get('wmFrameRunLock') === '1' || frameChannel.frameRun === true,
+    allLocked: params.get('wmFrameAllLocked') === '1' || frameChannel.allLocked === true
+  });
+  const verified = registry.accessGuard &&
+    registry.frameData &&
+    registry.frameRun &&
+    registry.allLocked;
 
   try{
     Object.defineProperty(window, 'WM_MAP_FRAME_LOCK_STATUS', {
-      get: function(){
-        return Object.freeze({
-          version: registry.version,
-          accessGuard: registry.accessGuard,
-          frameData: registry.frameData,
-          frameRun: registry.frameRun,
-          allLocked: registry.allLocked,
-          verified: getVerified_()
-        });
-      },
+      value: Object.freeze({
+        version: registry.version,
+        accessGuard: registry.accessGuard,
+        frameData: registry.frameData,
+        frameRun: registry.frameRun,
+        allLocked: registry.allLocked,
+        verified: verified
+      }),
+      writable: false,
       configurable: false,
       enumerable: true
     });
   }catch(err){}
 
   function printFrameLockStatus_(){
-    const verified = getVerified_();
     console.group('🔒 WORD MATE MAP FRAME ALL LOCK STATUS');
     console.log('LOCK VERSION : ' + registry.version);
     console.log('ACCESS GUARD : ' + (registry.accessGuard ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
@@ -216,46 +220,11 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
     console.groupEnd();
   }
 
-  window.addEventListener('message', function(event){
-    const data = event && event.data;
-    const fromParent = window.parent !== window && event.source === window.parent;
-    const fromTop = window.top !== window && event.source === window.top;
-    if(!fromParent && !fromTop) return;
-    if(!data || data.type !== 'WM_MAP_FRAME_LOCK_STATUS_V1') return;
-    if(!data.registry || String(data.registry.version || '').indexOf('WM_MAP_FRAME_ALL_LOCK_') !== 0) return;
-
-    registry = Object.freeze({
-      version: String(data.registry.version || ''),
-      accessGuard: data.registry.accessGuard === true,
-      frameData: data.registry.frameData === true,
-      frameRun: data.registry.frameRun === true,
-      allLocked: data.registry.allLocked === true
-    });
-    printFrameLockStatus_();
-  }, false);
-
-  function requestFrameLockStatus_(){
-    const request = {
-      type: 'WM_MAP_FRAME_LOCK_REQUEST_V1'
-    };
-    if(window.parent !== window){
-      window.parent.postMessage(request, '*');
-    }
-    if(window.top !== window && window.top !== window.parent){
-      window.top.postMessage(request, '*');
-    }
-  }
-
-  requestFrameLockStatus_();
-  window.setTimeout(requestFrameLockStatus_, 100);
-  window.setTimeout(requestFrameLockStatus_, 500);
-  window.setTimeout(requestFrameLockStatus_, 1500);
-
   if(document.readyState === 'complete'){
-    window.setTimeout(printFrameLockStatus_, 800);
+    window.setTimeout(printFrameLockStatus_, 0);
   }else{
     window.addEventListener('load', function(){
-      window.setTimeout(printFrameLockStatus_, 800);
+      window.setTimeout(printFrameLockStatus_, 0);
     }, {once:true});
   }
 })();
