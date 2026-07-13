@@ -1652,7 +1652,6 @@ function wmNormalizeStudentObject(data){
     S4실루엣단계: String(data.S4실루엣단계 || data.s4 || data.silhouetteStep || '').trim(),
     S6테스트모드: String(data.S6테스트모드 || data.s6 || data.testMode || '').trim(),
     레벨완료조건: String(data.레벨완료조건 || data.levelCompleteCondition || '').trim(),
-    레벨회차추가: String(data.레벨회차추가 || data.extraRounds || '').trim(),
     학습모드: (data.학습모드 && typeof data.학습모드 === 'object') ? data.학습모드 : null,
     현재세트: wmNormalizeCurrentSetIdForMap_(data.현재세트 || data.currentSet || data.setId || data.set_id || '') || String(data.현재세트 || data.currentSet || data.setId || data.set_id || '').trim(),
     현재세션: String(data.현재세션 || data.sessionToken || data.wmSessionToken || '').trim(),
@@ -2663,23 +2662,15 @@ function wmNormalizeModeForBanner_(student){
     return '2회';
   }
 
-  function safeExtraRound_(value){
-    const text = safeShortText_(value, '');
-    const match = text.match(/\d+/);
-    const n = match ? Number(match[0]) : 0;
-    return Number.isFinite(n) && n > 0 && n <= 10 ? n : 0;
-  }
-
   const s4 = safeShortText_(s.S4실루엣단계 || mode.S4실루엣단계 || mode.s4, '전체');
   const s6 = safeShortText_(s.S6테스트모드 || mode.S6테스트모드 || mode.s6 || mode.testMode, '기본전체');
   const complete = safeLevelComplete_(s.레벨완료조건 || mode.레벨완료조건 || mode.levelCompleteCondition);
-  const extra = safeExtraRound_(s.레벨회차추가 || mode.레벨회차추가 || mode.extraRounds);
 
   return {
     learningAssign: wmLearningAssignDisplay_(s.학습배정 || s.learningAssign || ''),
     s4: s4,
     s6: s6,
-    complete: extra > 0 ? complete + '(+' + extra + '회)' : complete
+    complete: complete
   };
 }
 
@@ -2832,8 +2823,6 @@ function wmGetLevelCompleteConditionForMap_(){
   if(raw === '1' || raw === '1회') return '1회';
   if(raw === '2' || raw === '2회') return '2회';
   if(raw === '3' || raw === '3회') return '3회';
-  if(raw === '추가' || raw === '추가회차') return '추가';
-
   return '2회';
 }
 
@@ -2843,10 +2832,6 @@ function wmGetLevelTargetRoundLimitForMap_(){
   if(condition === '1회') return 1;
   if(condition === '2회') return 2;
   if(condition === '3회') return 3;
-
-  /* '추가'는 레벨완료조건 안의 운영 선택값입니다.
-     색상은 3회 완료까지만 표시하므로 화면 표시 상한은 3으로 둡니다. */
-  if(condition === '추가') return 3;
 
   return 2;
 }
