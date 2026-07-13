@@ -92,6 +92,7 @@ const WM_LOCKS = {
   CurrentProgressDB_V1_LOCK:true,
   CurrentProgressDB_V2_LOCK:true, /* 30컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
   LMS_Login_V1_LOCK:true, /* 교사 로그인 게이트·로그인/로그아웃·인증흐름 LOCK */
+  LMS_DEV_Connection_LOCK:true, /* LMS→DEV 동일 관리자 재로그인·권한·이동 LOCK */
   TeacherLogin_V2_LOCK:true, /* 7.설정센터_DB 로그인·교사ID 대소문자·권한 UI LOCK */
   Dashboard_Search_V1_LOCK:true,
   Student_Search_V1_LOCK:true,
@@ -153,6 +154,7 @@ function wmLockStatusMessage(lockName, label){
 
 function wmLogCriticalLockStatus(){
   wmLockStatusMessage('LMS_Login_V1_LOCK','LMS 교사 로그인/인증 흐름');
+  wmLockStatusMessage('LMS_DEV_Connection_LOCK','LMS→DEV 동일 관리자 재로그인·권한·이동');
   wmLockStatusMessage('TeacherLogin_V2_LOCK','7.설정센터_DB 로그인·권한·교사ID 대소문자');
   wmLockStatusMessage('SettingCenter_V1_LOCK','7.설정센터 전체 기능');
   wmLockStatusMessage('SettingCenter_TeacherId_LOCK','설정센터 교사ID 직접입력·자동생성·중복확인');
@@ -2758,7 +2760,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       applyRole(button.dataset.role);
     }));
     menuButtons.forEach(button=>button.addEventListener('click',()=>{
-      if(button.dataset.panel === 'dev') wmOpenDevReauth();
+      if(button.dataset.panel === 'dev') WM_LMS_DEV_CONNECTION_LOCK_V1.REAUTH.open();
       else showPanel(button.dataset.panel);
     }));
     let WM_STUDENT_MANAGE_ROWS = [];
@@ -5338,6 +5340,80 @@ document.addEventListener('DOMContentLoaded', function(){
   wmInitDashboardFastFirstScreen();
   if(document.body && document.body.classList.contains('wm-lms-authenticated')) wmScheduleDashboardFirstLoad();
 });
+
+/* ============================================================
+   WM_LMS_DEV_CONNECTION_LOCK_V1 / 실제 실행 연결 + F12 검증
+   ============================================================ */
+const WM_LMS_DEV_CONNECTION_LOCK_V1 = Object.freeze({
+  version: 'WM_LMS_DEV_CONNECTION_LOCK_V1.0',
+  date: '2026-07-13',
+  ROLE_GATE: Object.freeze({
+    applyRoleUI: wmApplyRoleUI,
+    applyRole: applyRole
+  }),
+  REAUTH: Object.freeze({
+    open: wmOpenDevReauth,
+    submit: wmSubmitDevReauth,
+    request: wmRequestDevReauth,
+    modal: wmEnsureDevReauthModal,
+    message: wmSetDevReauthMessage
+  })
+});
+
+function wmInstallLmsDevConnectionFunctionLocks(){
+  const names = [];
+  ['ROLE_GATE','REAUTH'].forEach(function(moduleName){
+    const module = WM_LMS_DEV_CONNECTION_LOCK_V1[moduleName];
+    Object.keys(module).forEach(function(key){
+      const fn = module[key];
+      const name = fn && fn.name;
+      if(!name) return;
+      try{
+        const descriptor = Object.getOwnPropertyDescriptor(window, name);
+        Object.defineProperty(window, name, {
+          value: fn,
+          writable: false,
+          configurable: false,
+          enumerable: descriptor ? descriptor.enumerable : true
+        });
+      }catch(error){
+        console.error('LMS–DEV LOCK INSTALL ERROR', name, error);
+      }
+      names.push(name);
+    });
+  });
+  return Object.freeze(names);
+}
+
+const WM_LMS_DEV_CONNECTION_LOCKED_FUNCTIONS = wmInstallLmsDevConnectionFunctionLocks();
+
+function wmLogLmsDevConnectionLockStatus(){
+  const rows = ['ROLE_GATE','REAUTH'].map(function(moduleName){
+    const module = WM_LMS_DEV_CONNECTION_LOCK_V1[moduleName];
+    const functions = Object.keys(module);
+    const verified = Object.isFrozen(module) && functions.every(function(key){
+      const fn = module[key];
+      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
+      return window[fn.name] === fn
+        && !!descriptor
+        && descriptor.writable === false
+        && descriptor.configurable === false;
+    });
+    return {MODULE:moduleName, FUNCTIONS:functions.length, LOCKED:verified ? 'YES' : 'NO'};
+  });
+  const allVerified = Object.isFrozen(WM_LMS_DEV_CONNECTION_LOCK_V1)
+    && Object.isFrozen(WM_LMS_DEV_CONNECTION_LOCKED_FUNCTIONS)
+    && rows.every(function(row){ return row.LOCKED === 'YES'; });
+  console.group('🔒 WORD MATE LMS–DEV CONNECTION LOCK STATUS');
+  console.info('LOCK VERSION :', WM_LMS_DEV_CONNECTION_LOCK_V1.version);
+  console.info('LOCK DATE    :', WM_LMS_DEV_CONNECTION_LOCK_V1.date);
+  console.table(rows);
+  console.info(allVerified ? '🔒 LMS–DEV ALL LOCK VERIFIED' : '❌ LMS–DEV LOCK VERIFY FAILED');
+  console.groupEnd();
+  return allVerified;
+}
+
+document.addEventListener('DOMContentLoaded', wmLogLmsDevConnectionLockStatus);
 
   </script>
 
