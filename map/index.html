@@ -3996,38 +3996,7 @@ async function startStudy(setId){
 }
 
 function showSetDetail(setId){
-  const box = document.getElementById('learningDetailBox');
-  if(!box) return;
-  box.classList.add('wm-mode-banner-box');
-  const learningModeBanner = wmBuildLearningModeBannerHtml_(wmStudentProfile || wmCurrentStudent || {});
-
-  const records = wmLearningRecords.filter(function(record){
-    return String(record.Set_ID || '').trim() === String(setId || '').trim();
-  });
-
-  if(records.length === 0){
-    const item = setData.find(function(data){ return data.set === setId; });
-    if(item && item.status === 'current'){
-      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 현재 학습중입니다.</div>';
-    }else if(item && item.status === 'locked'){
-      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 아직 잠금 상태입니다.</div>';
-    }else{
-      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 상세 학습기록이 없습니다.</div>';
-    }
-    return;
-  }
-
-  box.innerHTML = learningModeBanner + records.map(function(record){
-    return `
-      <div>
-        <strong>${escapeHtml(record.Set_ID || '')}</strong>
-        / 날짜: ${escapeHtml(record.학습날짜 || '-')}
-        / 점수: ${escapeHtml(record.점수 || '-')}
-        / 총소요시간: ${escapeHtml(record.총소요시간 || '-')}
-        / 상태: ${escapeHtml(record.완료상태 || '-')}
-      </div>
-    `;
-  }).join('');
+  wmShowLearningModeBanner();
 }
 
 function setText(id, text){
