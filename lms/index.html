@@ -1443,7 +1443,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
       if(panelName === 'classes'){
         setTimeout(function(){
-          if(typeof loadSettingCenterDB === 'function') loadSettingCenterDB();
+          if(typeof loadSettingCenterDB === 'function' && !WM_SETTING_CENTER_FIRST_LOAD_DONE) loadSettingCenterDB();
+          else if(typeof renderSettingCenterRows === 'function') renderSettingCenterRows(wmSettingCenterRows || []);
         }, 0);
       }
       if(panelName === 'currentProgress'){
@@ -3721,6 +3722,7 @@ function extractRecordRowsFromResponse(data){
 /* ===== SETTING CENTER TEACHER/CLASS MANAGEMENT V1 ===== */
 const WM_SETTING_CENTER_SHEET_NAME = '7.설정센터_DB';
 let wmSettingCenterRows = [];
+let WM_SETTING_CENTER_FIRST_LOAD_DONE = false;
 let wmSettingCenterActorRole = '';
 let wmSettingTeacherIdChecked = '';
 
@@ -3882,6 +3884,7 @@ async function loadSettingCenterDB(){
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
+    WM_SETTING_CENTER_FIRST_LOAD_DONE = true;
     wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
@@ -4119,7 +4122,6 @@ async function wmLogSettingCenterLockStatus(){
 
 document.addEventListener('DOMContentLoaded', function(){
   wmLogSettingCenterLockStatus();
-  if(document.body.classList.contains('wm-lms-authenticated')) WM_SETTING_CENTER_LOCK_V1.load();
 });
 
 function setStudentIdCreateStatus(active, text){
