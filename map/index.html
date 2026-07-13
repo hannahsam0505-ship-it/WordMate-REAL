@@ -3262,6 +3262,40 @@ function wmSwitchHistoryLevel_(levelNumber, completedView){
   wmShowLearningModeBanner();
 }
 
+function wmGetRepeatCountFromRecordsForMap_(records, setId, normalizeSetIdFn, isCompletedRecordFn){
+  const wanted = normalizeSetIdFn(setId);
+  return records.filter(function(record){
+    return normalizeSetIdFn(record && (record.Set_ID || record.setId || record.set_id)) === wanted && isCompletedRecordFn(record);
+  }).length;
+}
+
+function wmGetProgressFromStatusForMap_(statusInfo){
+  const directProgress = wmParseProgressPercentNumber_(
+    statusInfo.progressPercent ||
+    statusInfo.progress ||
+    statusInfo.inProgressPercent ||
+    0
+  );
+
+  if(directProgress > 0){
+    return Math.min(99, Math.floor(directProgress));
+  }
+
+  const completedStepCount = Number(
+    statusInfo.completedStepCount ||
+    statusInfo.completedStepsCount ||
+    statusInfo.stepCount ||
+    statusInfo.doneStepCount ||
+    0
+  );
+
+  if(completedStepCount > 0){
+    return Math.min(99, Math.floor((completedStepCount / 6) * 100));
+  }
+
+  return 0;
+}
+
 function wmApplyLearningMapStatus(mapData){
   mapData = mapData || {};
   if(!mapData.__forceLevel){
@@ -3340,40 +3374,6 @@ function wmApplyLearningMapStatus(mapData){
     return matched[0] || {};
   }
 
-  function getRepeatCountFromRecords(setId){
-    const wanted = normalizeSetIdForMap_(setId);
-    return records.filter(function(record){
-      return normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) === wanted && isCompletedRecord_(record);
-    }).length;
-  }
-
-  function getProgressFromStatus(statusInfo){
-    const directProgress = wmParseProgressPercentNumber_(
-      statusInfo.progressPercent ||
-      statusInfo.progress ||
-      statusInfo.inProgressPercent ||
-      0
-    );
-
-    if(directProgress > 0){
-      return Math.min(99, Math.floor(directProgress));
-    }
-
-    const completedStepCount = Number(
-      statusInfo.completedStepCount ||
-      statusInfo.completedStepsCount ||
-      statusInfo.stepCount ||
-      statusInfo.doneStepCount ||
-      0
-    );
-
-    if(completedStepCount > 0){
-      return Math.min(99, Math.floor((completedStepCount / 6) * 100));
-    }
-
-    return 0;
-  }
-
   /* WM_MAP_DB_BASED_SEQUENTIAL_COLOR_RULE_V1
      세트블럭 색상/문구는 실제 repeatCount가 아니라
      학생관리_DB의 레벨완료조건 + 세트순차완주 공식회차를 기준으로 표시합니다. */
@@ -3393,7 +3393,7 @@ function wmApplyLearningMapStatus(mapData){
     const statusInfo = getStatusInfoForSet(item.set);
     const recordInfo = getRecordInfoForSet(item.set);
     const isComplete = completedSet.has(item.set) || completedSet.has('WM' + item.set);
-    const recordRepeatCount = getRepeatCountFromRecords(item.set);
+    const recordRepeatCount = wmGetRepeatCountFromRecordsForMap_(records, item.set, normalizeSetIdForMap_, isCompletedRecord_);
     const repeatCount = Math.max(1, Number(statusInfo.repeatCount || 0), recordRepeatCount);
 
     if(isComplete){
@@ -3415,7 +3415,7 @@ function wmApplyLearningMapStatus(mapData){
       return {
         set:item.set,
         status:'current',
-        progress:getProgressFromStatus(statusInfo),
+        progress:wmGetProgressFromStatusForMap_(statusInfo),
         repeatCount:0,
         officialRound:0,
         targetRoundLimit: Number(sequentialState.targetLimit || 1),
@@ -4237,8 +4237,8 @@ function resetHomeworkFilters(){
       'wmBuildSequentialDisplayRoundMapForMap_',
       'wmGetDisplayRoundForBlock_',
       'wmApplyLearningMapStatus',
-      'getRepeatCountFromRecords',
-      'getProgressFromStatus',
+      'wmGetRepeatCountFromRecordsForMap_',
+      'wmGetProgressFromStatusForMap_',
       'updateProgress'
     ]),
     studyStart: Object.freeze([
