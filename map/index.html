@@ -164,46 +164,24 @@ const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
-/* WM_MAP_FRAME_LOCK_URL_VERIFY_20260713_V1
- * 프레임이 실제 LOCK 완료 후 Map URL로 전달한 검증값을 읽어
+/* WM_MAP_FRAME_RUNTIME_VERIFY_20260713_V2
+ * 전달용 플래그가 아니라 실제 세션 승인·DB 수신·맵 렌더 완료를
  * 학습맵 F12 Console 하단에 자동 출력합니다.
  */
-(function wmMapFrameLockUrlVerify_(){
+(function wmMapFrameRuntimeVerify_(){
   'use strict';
 
-  const params = new URLSearchParams(window.location.search || '');
-  let frameChannel = {};
-  try{
-    const prefix = 'WM_MAP_FRAME_LOCK:';
-    const raw = String(window.name || '');
-    if(raw.indexOf(prefix) === 0){
-      frameChannel = JSON.parse(decodeURIComponent(raw.slice(prefix.length))) || {};
-    }
-  }catch(err){
-    frameChannel = {};
-  }
-  const registry = Object.freeze({
-    version: String(params.get('wmFrameLockVersion') || frameChannel.version || ''),
-    accessGuard: params.get('wmFrameAccessGuard') === '1' || frameChannel.accessGuard === true,
-    frameData: params.get('wmFrameDataLock') === '1' || frameChannel.frameData === true,
-    frameRun: params.get('wmFrameRunLock') === '1' || frameChannel.frameRun === true,
-    allLocked: params.get('wmFrameAllLocked') === '1' || frameChannel.allLocked === true
-  });
-  const verified = registry.version === 'WM_MAP_FRAME_ALL_LOCK_V1.0' &&
-    registry.accessGuard &&
-    registry.frameData &&
-    registry.frameRun &&
-    registry.allLocked;
+  const runtime = {
+    version: 'WM_MAP_FRAME_RUNTIME_LOCK_V2.0',
+    accessGuard: false,
+    frameData: false,
+    frameRun: false
+  };
 
   try{
     Object.defineProperty(window, 'WM_MAP_FRAME_LOCK_STATUS', {
       value: Object.freeze({
-        version: registry.version,
-        accessGuard: registry.accessGuard,
-        frameData: registry.frameData,
-        frameRun: registry.frameRun,
-        allLocked: registry.allLocked,
-        verified: verified
+        runtime: runtime
       }),
       writable: false,
       configurable: false,
@@ -212,14 +190,28 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   }catch(err){}
 
   function printFrameLockStatus_(){
+    const verified = runtime.accessGuard === true &&
+      runtime.frameData === true &&
+      runtime.frameRun === true;
     console.group('🔒 WORD MATE MAP FRAME ALL LOCK STATUS');
-    console.log('LOCK VERSION : ' + registry.version);
-    console.log('ACCESS GUARD : ' + (registry.accessGuard ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
-    console.log('FRAME DATA   : ' + (registry.frameData ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
-    console.log('FRAME RUN    : ' + (registry.frameRun ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
-    console.log(verified ? '🔒 MAP FRAME ALL LOCK VERIFIED' : '⚠️ MAP FRAME ALL LOCK CHECK REQUIRED');
+    console.log('LOCK VERSION : ' + runtime.version);
+    console.log('ACCESS GUARD : ' + (runtime.accessGuard ? '✅ ACTUAL LOCK' : '⏳ WAITING'));
+    console.log('FRAME DATA   : ' + (runtime.frameData ? '✅ ACTUAL LOCK' : '⏳ WAITING'));
+    console.log('FRAME RUN    : ' + (runtime.frameRun ? '✅ ACTUAL LOCK' : '⏳ WAITING'));
+    console.log(verified ? '🔒 MAP FRAME ALL LOCK VERIFIED' : '⏳ MAP FRAME RUNTIME CHECKING');
     console.groupEnd();
   }
+
+  Object.defineProperty(window, 'wmMarkMapFrameRuntime', {
+    value: function(key){
+      if(!Object.prototype.hasOwnProperty.call(runtime, key) || key === 'version') return false;
+      runtime[key] = true;
+      printFrameLockStatus_();
+      return runtime[key] === true;
+    },
+    writable: false,
+    configurable: false
+  });
 
   if(document.readyState === 'complete'){
     window.setTimeout(printFrameLockStatus_, 0);
@@ -1836,6 +1828,13 @@ async function wmCheckCurrentSession(options){
       }
       return false;
     }
+
+    /* 실제 로그인 서버가 현재 세션을 승인한 경우에만 ACCESS GUARD 완료 */
+    if(data && data.success === true &&
+       data.sessionValid !== false && data.valid !== false && data.sessionExpired !== true &&
+       typeof window.wmMarkMapFrameRuntime === 'function'){
+      window.wmMarkMapFrameRuntime('accessGuard');
+    }
   }catch(err){
     return true;
   }
@@ -2454,6 +2453,11 @@ function wmHandleLearningMapResponse(data){
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
     renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     return;
+  }
+
+  /* 실제 현재진행_DB/학습맵 데이터 수신 성공 시에만 FRAME DATA 완료 */
+  if(typeof window.wmMarkMapFrameRuntime === 'function'){
+    window.wmMarkMapFrameRuntime('frameData');
   }
 
   const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
@@ -3417,6 +3421,10 @@ function wmApplyLearningMapStatus(mapData){
   wmMapDataReady = true;
   wmStopMapLoadingState_();
   renderSetMap();
+  /* 실제 DB 데이터가 적용된 세트맵 렌더링까지 끝난 경우에만 FRAME RUN 완료 */
+  if(typeof window.wmMarkMapFrameRuntime === 'function'){
+    window.wmMarkMapFrameRuntime('frameRun');
+  }
   wmRenderRecordLevelHistoryBoard_(records, setStatusMap, mapData.__historyLatestLevel);
 }
 
