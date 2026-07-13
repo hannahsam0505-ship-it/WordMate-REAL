@@ -2278,10 +2278,61 @@ floating sticky mini bar docking 위치를 하향 조정
     return false;
   }
 
+  /* WM_DEV_LMS_ADMIN_AUTH_LOCK_V1
+   * LMS 재인증 수신·직접 관리자 로그인·권한 차단·새로고침 재로그인을 실제 실행 Registry에 고정합니다.
+   */
+  var WM_DEV_LMS_ADMIN_AUTH_LOCK_V1 = Object.freeze({
+    version: 'WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.0',
+    date: '2026-07-13',
+    SESSION: Object.freeze({
+      read: readSessionJson,
+      recent: isRecentAuth,
+      unlock: unlockDevCenter
+    }),
+    ROLE_GATE: Object.freeze({
+      isAdmin: isAdminRole
+    }),
+    LOGIN: Object.freeze({
+      apiUrl: getLmsLoginApiUrl,
+      verify: verifyLmsAdmin,
+      lockMessage: applyLockMessage
+    })
+  });
+
+  Object.defineProperty(window, 'WM_DEV_LMS_ADMIN_AUTH_LOCK_V1', {
+    value: WM_DEV_LMS_ADMIN_AUTH_LOCK_V1,
+    writable: false,
+    configurable: false
+  });
+
+  function wmLogDevLmsAdminAuthLockStatus(){
+    var registryDescriptor = Object.getOwnPropertyDescriptor(window, 'WM_DEV_LMS_ADMIN_AUTH_LOCK_V1');
+    var rows = ['SESSION','ROLE_GATE','LOGIN'].map(function(moduleName){
+      var module = WM_DEV_LMS_ADMIN_AUTH_LOCK_V1[moduleName];
+      var names = Object.keys(module);
+      var verified = Object.isFrozen(module) && names.every(function(name){
+        return typeof module[name] === 'function';
+      });
+      return {MODULE:moduleName, FUNCTIONS:names.length, LOCKED:verified ? 'YES' : 'NO'};
+    });
+    var allVerified = Object.isFrozen(WM_DEV_LMS_ADMIN_AUTH_LOCK_V1)
+      && !!registryDescriptor
+      && registryDescriptor.writable === false
+      && registryDescriptor.configurable === false
+      && rows.every(function(row){ return row.LOCKED === 'YES'; });
+    console.group('🔒 WORD MATE LMS–DEV CONNECTION LOCK STATUS');
+    console.info('LOCK VERSION :', WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.version);
+    console.info('LOCK DATE    :', WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.date);
+    console.table(rows);
+    console.info(allVerified ? '🔒 LMS–DEV ALL LOCK VERIFIED' : '❌ LMS–DEV LOCK VERIFY FAILED');
+    console.groupEnd();
+    return allVerified;
+  }
+
   function bindDevAuthGate(){
-    var lmsReauth = readSessionJson(WM_DEV_REAUTH_KEY);
-    if(isRecentAuth(lmsReauth, WM_DEV_REAUTH_MAX_AGE_MS)){
-      unlockDevCenter(lmsReauth);
+    var lmsReauth = WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.SESSION.read(WM_DEV_REAUTH_KEY);
+    if(WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.SESSION.recent(lmsReauth, WM_DEV_REAUTH_MAX_AGE_MS)){
+      WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.SESSION.unlock(lmsReauth);
       return;
     }
     sessionStorage.removeItem(WM_DEV_REAUTH_KEY);
@@ -2293,12 +2344,12 @@ floating sticky mini bar docking 위치를 하향 조정
     var submitButton = form ? form.querySelector('button[type="submit"]') : null;
     if(!form || !teacherIdInput || !passwordInput){ return; }
 
-    applyLockMessage();
+    WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.LOGIN.lockMessage();
 
     form.addEventListener('submit', function(event){
       event.preventDefault();
 
-      if(applyLockMessage()){
+      if(WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.LOGIN.lockMessage()){
         return;
       }
 
@@ -2318,9 +2369,9 @@ floating sticky mini bar docking 위치를 하향 조정
       if(submitButton) submitButton.disabled = true;
       setMessage('LMS 관리자 계정을 확인 중입니다.');
 
-      verifyLmsAdmin(teacherId, password).then(function(result){
-        if(result && result.success && result.teacher && isAdminRole(result.teacher.권한)){
-          unlockDevCenter({
+      WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.LOGIN.verify(teacherId, password).then(function(result){
+        if(result && result.success && result.teacher && WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.ROLE_GATE.isAdmin(result.teacher.권한)){
+          WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.SESSION.unlock({
             teacherId: result.teacher.교사ID,
             role: result.teacher.권한,
             verifiedAt: getNow()
@@ -2335,7 +2386,7 @@ floating sticky mini bar docking 위치를 하향 조정
 
         if(failCount >= WM_DEV_MAX_FAIL){
           sessionStorage.setItem(WM_DEV_LOCK_KEY, String(getNow() + WM_DEV_LOCK_MS));
-          applyLockMessage();
+          WM_DEV_LMS_ADMIN_AUTH_LOCK_V1.LOGIN.lockMessage();
           return;
         }
 
@@ -2355,8 +2406,12 @@ floating sticky mini bar docking 위치를 하향 조정
   }
 
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bindDevAuthGate);
+    document.addEventListener('DOMContentLoaded', function(){
+      wmLogDevLmsAdminAuthLockStatus();
+      bindDevAuthGate();
+    });
   } else {
+    wmLogDevLmsAdminAuthLockStatus();
     bindDevAuthGate();
   }
 })();
