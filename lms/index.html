@@ -4874,6 +4874,17 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   }
 }
 
+function wmCurrentSetDisplayValue(value){
+  const raw = String(value || '').trim();
+  if(!raw) return '';
+  const original = raw.match(/^WM(\d{1,2})-(\d{1,2})-(\d{1,2})$/i);
+  if(original) return `WM${Number(original[1])}-${Number(original[2])}-${Number(original[3])}`;
+  const dateText = String(formatKoreaDate(raw) || '').trim();
+  const converted = dateText.match(/^20(0[3-9]|1[0-3])-(\d{1,2})-(\d{1,2})$/);
+  if(converted) return `WM${Number(converted[1])}-${Number(converted[2])}-${Number(converted[3])}`;
+  return raw;
+}
+
 function confirmNextLevelCompleteCondition(button, studentId){
   document.getElementById('wmNextLevelSaveConfirm')?.remove();
 
@@ -5219,7 +5230,7 @@ function renderStudentManageRows(){
       <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, ['0단계','1단계','2단계','3단계','전체'])}</td>
       <td>${wmModeSelectHtml(studentId, 'S6테스트모드', s6, ['기본전체','객관식(2개)','객관식+영한','객관식+한영'])}</td>
       <td>${wmModeSelectHtml(studentId, '레벨완료조건', complete, ['1회','2회','3회'])}</td>
-      <td>${escapeHtml(row['현재세트'] || '')}</td>
+      <td>${escapeHtml(wmCurrentSetDisplayValue(row['현재세트']))}</td>
       <td>${wmModeSelectHtml(studentId, '다음레벨완료조건', nextComplete, ['1회','2회','3회'])}</td>
       <td>${escapeHtml(row['반명'] || row['반'] || row['Class'] || '')}</td>
       <td>${escapeHtml(row['교사명'] || '')}</td>
