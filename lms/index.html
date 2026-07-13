@@ -4848,6 +4848,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
   const getSel = key => document.getElementById(`wmMode_${key}_${safeId}`)?.value || '';
+  const nextLevel = wmNextLevelFromCurrentSet(row['현재세트']);
   const params = new URLSearchParams({
     mode:'saveStudentLearningMode',
     studentId:String(studentId || '').trim(),
@@ -4855,6 +4856,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
     s4:getSel('S4실루엣단계'),
     s6:getSel('S6테스트모드'),
     levelCompleteCondition:getSel('레벨완료조건'),
+    nextLevel:String(nextLevel || ''),
     nextLevelCompleteCondition:getSel('다음레벨완료조건'),
     ts:String(Date.now())
   });
@@ -4885,16 +4887,19 @@ function wmCurrentSetDisplayValue(value){
   return raw;
 }
 
+function wmNextLevelFromCurrentSet(value){
+  const currentSet = wmCurrentSetDisplayValue(value);
+  const match = currentSet.match(/^WM(\d+)-\d+-\d+$/i);
+  return match ? Number(match[1]) + 1 : '';
+}
+
 function confirmNextLevelCompleteCondition(button, studentId){
   document.getElementById('wmNextLevelSaveConfirm')?.remove();
 
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
-  const currentSet = String(row['현재세트'] || '').trim();
-  const currentLevelMatch = currentSet.match(/^WM(\d+)-\d+-\d+$/i);
-  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : 0;
-  const nextLevel = currentLevel ? currentLevel + 1 : '';
+  const nextLevel = wmNextLevelFromCurrentSet(row['현재세트']);
   const repeatCount = document.getElementById(`wmMode_다음레벨완료조건_${safeId}`)?.value || '';
   const box = document.createElement('div');
   const rect = button.getBoundingClientRect();
@@ -5482,6 +5487,7 @@ const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
   }),
   NEXT_LEVEL_COMPLETE_CONDITION: Object.freeze({
     render: wmModeSelectHtml,
+    nextLevelFormula: wmNextLevelFromCurrentSet,
     confirm: confirmNextLevelCompleteCondition,
     save: saveStudentLearningModeFromRow
   })
