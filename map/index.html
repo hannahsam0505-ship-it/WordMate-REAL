@@ -205,8 +205,28 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   Object.defineProperty(window, 'wmMarkMapFrameRuntime', {
     value: function(key){
       if(!Object.prototype.hasOwnProperty.call(runtime, key) || key === 'version') return false;
+      if(runtime[key] === true) return true;
       runtime[key] = true;
       printFrameLockStatus_();
+
+      /* DB 수신 후 실제 세트맵 DOM 생성까지 확인하여 FRAME RUN을 확정합니다. */
+      if(key === 'frameData' && runtime.frameRun !== true){
+        let checkCount = 0;
+        const checkRenderedMap = function(){
+          checkCount += 1;
+          const map = document.getElementById('setMap');
+          const rendered = !!map && map.children.length > 0 &&
+            (typeof wmMapDataReady === 'undefined' || wmMapDataReady === true);
+          if(rendered){
+            window.wmMarkMapFrameRuntime('frameRun');
+            return;
+          }
+          if(checkCount < 120){
+            window.setTimeout(checkRenderedMap, 50);
+          }
+        };
+        window.setTimeout(checkRenderedMap, 0);
+      }
       return runtime[key] === true;
     },
     writable: false,
