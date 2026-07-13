@@ -829,6 +829,9 @@ function getProgressApiUrl(){
    학습 중 다른 기기에서 새 로그인되면 현재 학습 접속을 종료합니다. */
 let wmStudySessionExpiredShown = false;
 let wmStudySessionCheckTimer = null;
+let wmStudySessionCheckPromise = null;
+let wmStudyLastValidSessionAt = 0;
+const WM_STUDY_SESSION_CACHE_MS = 10000;
 
 function wmStudyClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
@@ -864,7 +867,8 @@ function wmStudyShowSessionExpiredModal(){
   }
 }
 
-async function wmStudyCheckCurrentSession(){
+async function wmStudyCheckCurrentSession(options){
+  options = options || {};
   /* WM_STUDY_SESSION_GUARD_STRICT_FIX_V2_20260611
      학생ID 또는 sessionToken이 없으면 세션검사를 통과시키지 않습니다.
      이전 코드의 return true 때문에 토큰 누락 상태에서 자동로그아웃이 무력화될 수 있었습니다. */
@@ -873,32 +877,49 @@ async function wmStudyCheckCurrentSession(){
     return false;
   }
 
-  try{
-    const url = API_URL
-      + '?action=checkStudentSession'
-      + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
-      + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
-      + '&t=' + Date.now();
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
-      wmStudyShowSessionExpiredModal();
-      return false;
-    }
-  }catch(err){
+  if(!options.force && wmStudyLastValidSessionAt &&
+     Date.now() - wmStudyLastValidSessionAt < WM_STUDY_SESSION_CACHE_MS){
     return true;
   }
 
-  return true;
+  if(wmStudySessionCheckPromise){
+    return wmStudySessionCheckPromise;
+  }
+
+  wmStudySessionCheckPromise = (async function(){
+    try{
+      const url = API_URL
+        + '?action=checkStudentSession'
+        + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
+        + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
+        + '&t=' + Date.now();
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
+        wmStudyLastValidSessionAt = 0;
+        wmStudyShowSessionExpiredModal();
+        return false;
+      }
+
+      wmStudyLastValidSessionAt = Date.now();
+      return true;
+    }catch(err){
+      return true;
+    }finally{
+      wmStudySessionCheckPromise = null;
+    }
+  })();
+
+  return wmStudySessionCheckPromise;
 }
 
 function wmStudyStartSessionWatcher(){
   if(wmStudySessionCheckTimer) clearInterval(wmStudySessionCheckTimer);
   wmStudyCheckCurrentSession();
   wmStudySessionCheckTimer = setInterval(function(){
-    wmStudyCheckCurrentSession();
+    wmStudyCheckCurrentSession({force:true});
   }, 5000);
 }
 
@@ -921,6 +942,8 @@ let finalSavePromise = null;
 let WM_RECORD_SESSION_ID = ''; // 공식 학습기록ID는 Code.gs가 R+YY+MM+3자리 순번으로 생성합니다.
 let wmStepSaveChain = Promise.resolve();
 let wmStepSaveLastError = null;
+let wmStepSaveInFlight = null;
+let wmStepSaveDirty = false;
 
 let originalWords = [];
 
@@ -2205,8 +2228,10 @@ function markStepCompleted(stepId, stepTitle){
 
 function queueStepSave(status){
   saveProgressSnapshot(status);
+  wmStepSaveDirty = true;
 
   if(!WM_SAVE_API_URL){
+    wmStepSaveDirty = false;
     return Promise.resolve({ok:true, localOnly:true});
   }
 
@@ -2214,11 +2239,12 @@ function queueStepSave(status){
      Step 완료 기록은 즉시 큐에 넣고 백그라운드에서 순서대로 저장합니다.
      일반 Step 이동은 저장 완료를 기다리지 않아 화면이 멈춘 것처럼 보이지 않게 합니다.
      단, 나가기/다음학습/최종이동 시점에는 wmWaitForStepSaves()로 저장 완료를 보장합니다. */
-  wmStepSaveChain = wmStepSaveChain
-    .catch(function(error){
-      wmStepSaveLastError = {ok:false, error:String(error)};
-      return null;
-    })
+  if(wmStepSaveInFlight){
+    return wmStepSaveInFlight;
+  }
+
+  wmStepSaveDirty = false;
+  wmStepSaveInFlight = Promise.resolve()
     .then(function(){ return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed"); })
     .then(function(result){
       if(result && result.ok === false){
@@ -2232,24 +2258,33 @@ function queueStepSave(status){
       console.warn("Word Mate step save failed", error);
       wmStepSaveLastError = {ok:false, error:String(error)};
       return wmStepSaveLastError;
+    })
+    .finally(function(){
+      wmStepSaveInFlight = null;
     });
 
+  wmStepSaveChain = wmStepSaveInFlight;
   return wmStepSaveChain;
 }
 
-function wmWaitForStepSaves(){
-  return wmStepSaveChain
-    .catch(function(error){
-      wmStepSaveLastError = {ok:false, error:String(error)};
-      return wmStepSaveLastError;
-    })
-    .then(function(result){
-      if(wmIsSaveSuccess(result)){
-        wmStepSaveLastError = null;
-        return result;
-      }
-      return wmStepSaveLastError || result || {ok:true};
-    });
+async function wmWaitForStepSaves(){
+  let result = await wmStepSaveChain.catch(function(error){
+    wmStepSaveLastError = {ok:false, error:String(error)};
+    return wmStepSaveLastError;
+  });
+
+  /* 진행 중 저장 사이에 완료된 Step은 오래된 저장 여러 건을 다시 기다리지 않고
+     가장 최신 전체 snapshot 한 건으로 통합 저장합니다. */
+  if(wmStepSaveDirty){
+    wmStepSaveDirty = false;
+    result = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
+  }
+
+  if(wmIsSaveSuccess(result)){
+    wmStepSaveLastError = null;
+    return result;
+  }
+  return wmStepSaveLastError || result || {ok:true};
 }
 
 function renderStepSaveWaiting(stepTitle){
@@ -3537,13 +3572,15 @@ async function goNextLearning(){
   finalSavePromise = null;
   wmStepSaveChain = Promise.resolve();
   wmStepSaveLastError = null;
+  wmStepSaveInFlight = null;
+  wmStepSaveDirty = false;
   WM_COMPLETED_SAVE_SET_ID = "";
   WM_COMPLETED_SAVE_SET_NAME = "";
   WM_ACTIVE_STUDY_MODE_SET_ID = "";
   await startLearning();
 }
 
-function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
+function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;wmStepSaveInFlight=null;wmStepSaveDirty=false;stage=0;renderStart();afterScreenRender();}
 
 /* =========================================================
  * WM_STUDY_ALL_LOCK_V1.0_20260711
@@ -3552,16 +3589,18 @@ function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=nu
 const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.1";
 const WM_STUDY_LOCK_DATE = "2026-07-13";
 
-const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.0";
-const WM_STUDY_SPEED_LOCK_DATE = "2026-07-11";
+const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.1";
+const WM_STUDY_SPEED_LOCK_DATE = "2026-07-13";
 const WM_STUDY_SPEED_LOCKS = Object.freeze({
   SET_LOAD: Object.freeze({loadSetFromDB}),
-  STEP_SAVE: Object.freeze({queueStepSave, saveLearningRecord}),
+  SESSION_CHECK: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
+  STEP_SAVE: Object.freeze({queueStepSave, wmWaitForStepSaves, saveLearningRecord}),
   FINAL_TEST_SINGLE_SAVE: Object.freeze({markStepCompleted}),
   FINAL_SAVE: Object.freeze({saveLearningRecord})
 });
 
 const WM_STUDY_LOCKS = Object.freeze({
+  SESSION_GUARD: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
   AUDIO_FORMULA: Object.freeze({
     normalizeDbWord,
     wmApplySet524FixedOriginal,
