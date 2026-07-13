@@ -1494,6 +1494,61 @@ if(document.readyState === 'loading'){
   wmVerifyLoginServerSpeedLockOnMap_();
 }
 
+/* WM_CODEGS_ALL_LOCK_VERIFY_ON_MAP_20260713_V1
+ * 기존 wmVerifyLoginServerSpeedLockOnMap_ 성공 패턴을 그대로 사용합니다.
+ */
+async function wmVerifyCodeGsAllLockOnMap_(){
+  let status = null;
+
+  try{
+    const url = wmGetApiBaseUrl()
+      + '?action=codeGsAllLockStatus'
+      + '&t=' + Date.now();
+    const response = await fetch(url, { cache:'no-store' });
+    status = await response.json();
+  }catch(err){
+    status = null;
+  }
+
+  const modules = status && status.modules ? status.modules : {};
+  const moduleNames = ['AUTH','MAP','STUDY','DB','LMS','SETTING','SYSTEM'];
+
+  console.group('🔒 WORD MATE CODE.GS ALL LOCK STATUS');
+  console.log('LOCK VERSION : ' + String(status && status.version || ''));
+  console.log('LOCK DATE    : ' + String(status && status.date || ''));
+  moduleNames.forEach(function(name){
+    const moduleStatus = modules[name] || {};
+    console.log(
+      name + ' : ' + (moduleStatus.verified === true ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'),
+      moduleStatus.functions || {}
+    );
+  });
+  console.log(status && status.registryFrozen === true ? '✅ REGISTRY FROZEN' : '❌ REGISTRY CHECK REQUIRED');
+  console.log(status && status.allVerified === true ? '🔒 CODE.GS ALL LOCK VERIFIED' : '❌ CODE.GS LOCK CHECK REQUIRED');
+  console.groupEnd();
+
+  const registry = Object.freeze({
+    version: String(status && status.version || ''),
+    modules: modules,
+    verified: !!(status && status.allVerified === true)
+  });
+
+  try{
+    Object.defineProperty(window, 'WM_CODEGS_ALL_LOCK_STATUS', {
+      value: registry,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+  }catch(err){}
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wmVerifyCodeGsAllLockOnMap_, {once:true});
+}else{
+  wmVerifyCodeGsAllLockOnMap_();
+}
+
 function wmGetUrlParam(name){
   const params = new URLSearchParams(window.location.search || '');
   return String(params.get(name) || '').trim();
@@ -4406,26 +4461,4 @@ wmForceHomeworkBottomFixedBarOnFirstView();
 wmInitHomeworkSearchEnterKey();
 wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
-
-/* WM_CODEGS_ALL_LOCK_F12_MAP_V1 */
-async function wmPrintCodeGsAllLockForMap_(){
-  try{
-    const base = typeof wmGetApiBaseUrl === 'function' ? wmGetApiBaseUrl() : (window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '');
-    if(!base) throw new Error('Code.gs API URL 없음');
-    const res = await fetch(base + '?action=codeGsAllLockStatus&t=' + Date.now(), {cache:'no-store'});
-    const s = await res.json();
-    console.group('🔒 WORD MATE CODE.GS ALL LOCK STATUS');
-    console.log('LOCK VERSION : ' + String(s.version || ''));
-    console.log('LOCK DATE    : ' + String(s.date || ''));
-    Object.keys(s.modules || {}).forEach(name=>console.log(name + ' : ' + (s.modules[name].verified ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'), s.modules[name].functions));
-    console.log(s.registryFrozen ? '✅ REGISTRY FROZEN' : '❌ REGISTRY CHECK REQUIRED');
-    console.log(s.allVerified ? '🔒 CODE.GS ALL LOCK VERIFIED' : '❌ CODE.GS LOCK CHECK REQUIRED');
-    console.groupEnd();
-  }catch(err){ console.error('❌ CODE.GS LOCK STATUS LOAD FAILED', err); }
-}
-if(document.readyState === 'complete'){
-  setTimeout(wmPrintCodeGsAllLockForMap_, 0);
-}else{
-  window.addEventListener('load', wmPrintCodeGsAllLockForMap_, {once:true});
-}
 </script>
