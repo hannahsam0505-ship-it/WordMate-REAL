@@ -4893,6 +4893,10 @@ function wmNextLevelFromCurrentSet(value){
   return match ? Number(match[1]) + 1 : '';
 }
 
+function wmNextLevelSaveMessage(studentName, nextLevel, repeatCount){
+  return String(studentName || '') + ' 학생의 다음(' + String(nextLevel || '') + ')레벨 학습을 ' + String(repeatCount || '') + '로 저장합니다.';
+}
+
 function confirmNextLevelCompleteCondition(button, studentId){
   document.getElementById('wmNextLevelSaveConfirm')?.remove();
 
@@ -4912,7 +4916,7 @@ function confirmNextLevelCompleteCondition(button, studentId){
   box.style.right = Math.max(12, window.innerWidth - rect.right) + 'px';
   box.style.top = Math.min(window.innerHeight - 100, rect.bottom + 6) + 'px';
   box.innerHTML =
-    '<div>' + escapeHtml(studentName) + ' 학생의 다음(' + escapeHtml(nextLevel) + ')레벨 학습을 ' + escapeHtml(repeatCount) + '로 저장합니다.</div>' +
+    '<div>' + escapeHtml(wmNextLevelSaveMessage(studentName, nextLevel, repeatCount)) + '</div>' +
     '<button type="button" class="wm-mode-save-btn" style="margin-top:8px;">확인</button>';
   document.body.appendChild(box);
   box.querySelector('button').onclick = async function(){
@@ -5487,7 +5491,8 @@ const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
   }),
   NEXT_LEVEL_COMPLETE_CONDITION: Object.freeze({
     render: wmModeSelectHtml,
-    nextLevelFormula: wmNextLevelFromCurrentSet,
+    saveFormula: wmNextLevelFromCurrentSet,
+    saveMessage: wmNextLevelSaveMessage,
     confirm: confirmNextLevelCompleteCondition,
     save: saveStudentLearningModeFromRow
   })
