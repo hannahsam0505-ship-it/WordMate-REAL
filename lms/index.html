@@ -4807,7 +4807,7 @@ function wmRepairShiftedStudentModeRow(row){
   const looksShifted = s4 && !wmIsValidS4Value(s4) && (s4.indexOf('-') >= 0 || s6);
   if(!looksShifted) return row;
   const fixed = {...row};
-  fixed['현재세트'] = row['S4실루엣단계'] || '';
+  fixed['현재세트'] = row['현재세트'] || '';
   fixed['반명'] = row['S6테스트모드'] || row['반명'] || '';
   fixed['교사명'] = row['레벨완료조건'] || row['교사명'] || '';
   fixed['학교'] = row['학교'] || '';
