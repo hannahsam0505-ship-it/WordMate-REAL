@@ -3911,9 +3911,9 @@ async function startStudy(setId){
      Study 화면 자체에서 진입 즉시 세션을 다시 검증하므로, Map에서 동일 세션 API를
      한 번 더 기다리지 않고 바로 이동합니다. 중복 네트워크 왕복만 제거합니다. */
 
-  /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_67_V1
+  /* WM_STUDY_ROUTE_IMWEB_FRAME_PAGE_STUDY_V1
      Apps Script exec로 직접 이동하면 Google 안내 배너가 노출되므로
-     학습 시작도 아임웹 숨김 프레임페이지(/67)를 경유합니다. */
+     학습 시작도 아임웹 숨김 프레임페이지(/study)를 경유합니다. */
   const framePageUrl = WM_STUDY_URL;
 
   const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim().toUpperCase() : '';
@@ -4033,6 +4033,39 @@ function wmInitHomeworkSearchEnterKey(){
   });
 }
 
+function wmNormalizeHomeworkSearchDateText_(value){
+  const text = String(value || '').trim();
+  if(!text) return '';
+
+  const direct = text.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})/);
+  if(direct){
+    const yyyy = direct[1];
+    const mm = String(direct[2]).padStart(2, '0');
+    const dd = String(direct[3]).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  return '';
+}
+
+function wmGetHomeworkSearchWeekOfMonth_(dateText){
+  if(!dateText) return '';
+  const parts = dateText.split('-');
+  if(parts.length < 3) return '';
+  const day = Number(parts[2] || 0);
+  if(!day) return '';
+  return String(Math.min(5, Math.ceil(day / 7)));
+}
+
+function wmNormalizeHomeworkSearchSetId_(value){
+  return String(value || '').trim().toUpperCase().replace(/^WM/, '');
+}
+
+function wmGetHomeworkSearchLevelFromSetId_(setId){
+  const match = wmNormalizeHomeworkSearchSetId_(setId).match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
+  return match ? match[1] : '';
+}
+
 function filterHomeworkRecords(){
   /* WM_HOMEWORK_ALL_LEVEL_FILTER_RESTORE_V2
      검색은 현재레벨 화면에 보이는 행만이 아니라 전체 학습기록_DB(wmLearningRecords)를 대상으로 합니다.
@@ -4073,46 +4106,13 @@ function filterHomeworkRecords(){
     }
   }
 
-  function normalizeDateText(value){
-    const text = String(value || '').trim();
-    if(!text) return '';
-
-    const direct = text.match(/(\d{4})[-.\/년\s]+(\d{1,2})[-.\/월\s]+(\d{1,2})/);
-    if(direct){
-      const yyyy = direct[1];
-      const mm = String(direct[2]).padStart(2, '0');
-      const dd = String(direct[3]).padStart(2, '0');
-      return yyyy + '-' + mm + '-' + dd;
-    }
-
-    return '';
-  }
-
-  function getWeekOfMonth(dateText){
-    if(!dateText) return '';
-    const parts = dateText.split('-');
-    if(parts.length < 3) return '';
-    const day = Number(parts[2] || 0);
-    if(!day) return '';
-    return String(Math.min(5, Math.ceil(day / 7)));
-  }
-
-  function normalizeSetId(value){
-    return String(value || '').trim().toUpperCase().replace(/^WM/, '');
-  }
-
-  function getLevelFromSetId(setId){
-    const match = normalizeSetId(setId).match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
-    return match ? match[1] : '';
-  }
-
   const sourceRecords = wmSortLearningRecordsDesc_(Array.isArray(wmLearningRecords) ? wmLearningRecords : []);
   const filteredRecords = sourceRecords.filter(function(record){
-    const dateText = normalizeDateText(record && record.학습날짜);
-    const setId = normalizeSetId(record && (record.Set_ID || record.setId || record.set_id || record.SetID || record['Set ID'] || record['세트ID'] || record['현재세트']));
-    const rowLevel = getLevelFromSetId(setId);
+    const dateText = wmNormalizeHomeworkSearchDateText_(record && record.학습날짜);
+    const setId = wmNormalizeHomeworkSearchSetId_(record && (record.Set_ID || record.setId || record.set_id || record.SetID || record['Set ID'] || record['세트ID'] || record['현재세트']));
+    const rowLevel = wmGetHomeworkSearchLevelFromSetId_(setId);
     const rowMonth = dateText ? dateText.slice(5, 7) : '';
-    const rowWeek = getWeekOfMonth(dateText);
+    const rowWeek = wmGetHomeworkSearchWeekOfMonth_(dateText);
 
     if(setKeyword && setId !== setKeyword) return false;
     if(levelKeyword && rowLevel !== levelKeyword) return false;
@@ -4183,10 +4183,10 @@ function resetHomeworkFilters(){
       'wmInitHomeworkSearchEnterKey',
       'filterHomeworkRecords',
       'resetHomeworkFilters',
-      'normalizeDateText',
-      'getWeekOfMonth',
-      'normalizeSetId',
-      'getLevelFromSetId'
+      'wmNormalizeHomeworkSearchDateText_',
+      'wmGetHomeworkSearchWeekOfMonth_',
+      'wmNormalizeHomeworkSearchSetId_',
+      'wmGetHomeworkSearchLevelFromSetId_'
     ]),
     studentInfo: Object.freeze([
       'wmReadStudentFromStorage',
