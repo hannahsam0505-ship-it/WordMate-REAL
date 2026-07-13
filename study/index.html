@@ -56,6 +56,45 @@ const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
 const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
+
+/* WM_STUDY_DIRECT_ENTRY_GUARD_V1
+   로그인 → 학습맵 → Study 경로로 들어온 경우만 허용합니다.
+   주소창 직접 /study 진입은 Study 화면·세션검사·서버 호출 전에 로그인으로 이동합니다. */
+(function wmAuthorizeStudyEntryBeforeBoot_(){
+  let entry = '';
+  try{
+    entry = String(new URLSearchParams(window.location.search || '').get('wmEntry') || '').trim().toLowerCase();
+  }catch(err){}
+
+  const validEntry = entry === 'map';
+  const historyAuthorized = !!(
+    window.history &&
+    window.history.state &&
+    window.history.state.wmStudyAuthorized === true
+  );
+
+  if(validEntry){
+    try{
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('wmEntry');
+      const nextState = Object.assign({}, window.history.state || {}, {
+        wmStudyAuthorized: true,
+        wmStudyEntrySource: 'map'
+      });
+      window.history.replaceState(nextState, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    }catch(err){}
+    return;
+  }
+
+  if(historyAuthorized) return;
+
+  try{ window.stop(); }catch(err){}
+  try{
+    window.top.location.replace(WM_LOGIN_URL);
+  }catch(err){
+    window.location.replace(WM_LOGIN_URL);
+  }
+})();
 </script>
 
 <!-- TEST_BOOTH_BANNER_DELETE_START -->
