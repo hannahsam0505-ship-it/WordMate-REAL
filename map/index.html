@@ -4423,5 +4423,9 @@ async function wmPrintCodeGsAllLockForMap_(){
     console.groupEnd();
   }catch(err){ console.error('❌ CODE.GS LOCK STATUS LOAD FAILED', err); }
 }
-window.addEventListener('load', wmPrintCodeGsAllLockForMap_, {once:true});
+if(document.readyState === 'complete'){
+  setTimeout(wmPrintCodeGsAllLockForMap_, 0);
+}else{
+  window.addEventListener('load', wmPrintCodeGsAllLockForMap_, {once:true});
+}
 </script>
