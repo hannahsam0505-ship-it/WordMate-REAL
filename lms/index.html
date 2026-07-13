@@ -4834,7 +4834,6 @@ function wmModeSelectHtml(studentId, key, value, options){
 }
 
 async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
-  if(!skipLockAndToast && !wmConfirmScopeLock('students','feature')) return;
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
@@ -4857,10 +4856,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
       return;
     }
     if(!skipLockAndToast){
-      showStudentModeToast(
-  studentId + ' ' + studentName + ' 학습모드 저장완료<br><br>' +
-  '변경사항은 변경시점 다음세트부터 해당됩니다.'
-);
+      showStudentModeToast('저장을 완료하였습니다.');
       await loadStudents();
     }
   }catch(err){
