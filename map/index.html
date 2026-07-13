@@ -3998,7 +3998,8 @@ async function startStudy(setId){
 function showSetDetail(setId){
   const box = document.getElementById('learningDetailBox');
   if(!box) return;
-  box.classList.remove('wm-mode-banner-box');
+  box.classList.add('wm-mode-banner-box');
+  const learningModeBanner = wmBuildLearningModeBannerHtml_(wmStudentProfile || wmCurrentStudent || {});
 
   const records = wmLearningRecords.filter(function(record){
     return String(record.Set_ID || '').trim() === String(setId || '').trim();
@@ -4007,16 +4008,16 @@ function showSetDetail(setId){
   if(records.length === 0){
     const item = setData.find(function(data){ return data.set === setId; });
     if(item && item.status === 'current'){
-      box.innerText = setId + ' : 현재 학습중입니다.';
+      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 현재 학습중입니다.</div>';
     }else if(item && item.status === 'locked'){
-      box.innerText = setId + ' : 아직 잠금 상태입니다.';
+      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 아직 잠금 상태입니다.</div>';
     }else{
-      box.innerText = setId + ' : 상세 학습기록이 없습니다.';
+      box.innerHTML = learningModeBanner + '<div>' + escapeHtml(setId) + ' : 상세 학습기록이 없습니다.</div>';
     }
     return;
   }
 
-  box.innerHTML = records.map(function(record){
+  box.innerHTML = learningModeBanner + records.map(function(record){
     return `
       <div>
         <strong>${escapeHtml(record.Set_ID || '')}</strong>
