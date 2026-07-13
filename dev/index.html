@@ -2200,7 +2200,6 @@ floating sticky mini bar docking 위치를 하향 조정
   var WM_DEV_MAX_FAIL = 5;
   var WM_DEV_LOCK_MS = 10 * 60 * 1000;
   var WM_DEV_REAUTH_MAX_AGE_MS = 5 * 60 * 1000;
-  var WM_DEV_AUTH_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
   function getNow(){
     return Date.now ? Date.now() : new Date().getTime();
@@ -2236,11 +2235,7 @@ floating sticky mini bar docking 위치를 하향 조정
 
   function unlockDevCenter(auth){
     auth = auth || {};
-    sessionStorage.setItem(WM_DEV_AUTH_KEY, JSON.stringify({
-      teacherId: String(auth.teacherId || '').trim(),
-      role: String(auth.role || '').trim().toUpperCase(),
-      verifiedAt: Number(auth.verifiedAt || getNow())
-    }));
+    sessionStorage.removeItem(WM_DEV_AUTH_KEY);
     sessionStorage.removeItem(WM_DEV_REAUTH_KEY);
     sessionStorage.removeItem(WM_DEV_FAIL_KEY);
     sessionStorage.removeItem(WM_DEV_LOCK_KEY);
@@ -2290,12 +2285,6 @@ floating sticky mini bar docking 위치를 하향 조정
       return;
     }
     sessionStorage.removeItem(WM_DEV_REAUTH_KEY);
-
-    var savedAuth = readSessionJson(WM_DEV_AUTH_KEY);
-    if(isRecentAuth(savedAuth, WM_DEV_AUTH_MAX_AGE_MS)){
-      unlockDevCenter(savedAuth);
-      return;
-    }
     sessionStorage.removeItem(WM_DEV_AUTH_KEY);
 
     var form = document.getElementById('wm-dev-auth-form');
