@@ -4871,9 +4871,9 @@ function confirmNextLevelCompleteCondition(button, studentId){
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
-  const currentSet = String(row['현재세트'] || '').trim();
-  const currentLevelMatch = currentSet.match(/^WM(\d+)-\d+-\d+$/i);
-  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : 0;
+  const currentSet = String(row['현재세트'] || row['Set_ID'] || '').trim();
+  const currentLevelMatch = currentSet.match(/(?:WM)?(\d+)-/i);
+  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : Number(row['현재레벨'] || 0);
   const nextLevel = currentLevel ? currentLevel + 1 : '';
   const repeatCount = document.getElementById(`wmMode_다음레벨완료조건_${safeId}`)?.value || '';
   const box = document.createElement('div');
