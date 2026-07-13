@@ -547,7 +547,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="32">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>학습배정</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>레벨완료조건</th><th>다음레벨완료조건</th><th>현재세트</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="33">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-records">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학습기록 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학습기록_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영했습니다.</p></div>
@@ -3216,7 +3216,7 @@ function extractRecordRowsFromResponse(data){
     async function loadStudents() {
       const tbody = document.getElementById('studentManageTbody');
       setManageLoading('students', true);
-      if(tbody) tbody.innerHTML = '<tr><td colspan="32">학생관리_DB 조회 중입니다.</td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="33">학생관리_DB 조회 중입니다.</td></tr>';
 
       try {
         const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now() + wmLmsActorQuery());
@@ -3228,7 +3228,7 @@ function extractRecordRowsFromResponse(data){
         return WM_STUDENT_MANAGE_ROWS;
       } catch (err) {
         console.error('학생관리_DB 로드 실패', err);
-        if(tbody) tbody.innerHTML = '<tr><td colspan="32">학생관리_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+        if(tbody) tbody.innerHTML = '<tr><td colspan="33">학생관리_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
         setManageLoading('students', false);
         return [];
       }
@@ -4846,6 +4846,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
     s4:getSel('S4실루엣단계'),
     s6:getSel('S6테스트모드'),
     levelCompleteCondition:getSel('레벨완료조건'),
+    nextLevelCompleteCondition:getSel('다음레벨완료조건'),
     ts:String(Date.now())
   });
   try{
@@ -5152,7 +5153,7 @@ function renderStudentManageRows(){
   if(WM_STUDENT_MANAGE_PAGE < 1) WM_STUDENT_MANAGE_PAGE = 1;
 
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="32">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="33">표시할 학생관리_DB 데이터가 없습니다.</td></tr>';
     wmUpdateManagePager('students', 0, 1, 1);
     setManageLoading('students', false);
     return;
@@ -5171,6 +5172,7 @@ function renderStudentManageRows(){
     const s4 = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '전체');
     const s6 = wmNormalizeStudentModeValue(row, 'S6테스트모드', row['학습모드'] || '기본전체');
     const complete = wmNormalizeStudentModeValue(row, '레벨완료조건', '2회');
+    const nextComplete = wmNormalizeStudentModeValue(row, '다음레벨완료조건', '2회');
     return `<tr>
       <td>${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>
       <td>${escapeHtml(studentId)}${duplicateBadge}</td>
@@ -5180,6 +5182,7 @@ function renderStudentManageRows(){
       <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, ['0단계','1단계','2단계','3단계','전체'])}</td>
       <td>${wmModeSelectHtml(studentId, 'S6테스트모드', s6, ['기본전체','객관식(2개)','객관식+영한','객관식+한영'])}</td>
       <td>${wmModeSelectHtml(studentId, '레벨완료조건', complete, ['1회','2회','3회'])}</td>
+      <td>${wmModeSelectHtml(studentId, '다음레벨완료조건', nextComplete, ['1회','2회','3회'])}</td>
       <td>${escapeHtml(row['현재세트'] || '')}</td>
       <td>${escapeHtml(row['반명'] || row['반'] || row['Class'] || '')}</td>
       <td>${escapeHtml(row['교사명'] || '')}</td>
