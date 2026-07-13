@@ -3510,8 +3510,8 @@ function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=nu
  * WM_STUDY_ALL_LOCK_V1.0_20260711
  * 정상 확인된 Study 기능과 DEV 동일 음원공식의 함수 참조를 고정합니다.
  * ========================================================= */
-const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.0";
-const WM_STUDY_LOCK_DATE = "2026-07-11";
+const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.1";
+const WM_STUDY_LOCK_DATE = "2026-07-13";
 
 const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.0";
 const WM_STUDY_SPEED_LOCK_DATE = "2026-07-11";
@@ -3543,6 +3543,7 @@ const WM_STUDY_LOCKS = Object.freeze({
     buildLearningPayload, saveProgressSnapshot, saveLearningRecord
   }),
   WRITING_EXACT: Object.freeze({wmIsExactEnglishAnswer}),
+  STEP1_STEP5_PROGRESS_LAYOUT: Object.freeze({renderWordProgress}),
   STUDY_EXIT: Object.freeze({leaveLearning, wmStudyReturnToMap, goFinalExit, goNextLearning, restart})
 });
 
