@@ -164,6 +164,52 @@ const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
+/* WM_MAP_FRAME_LOCK_RECEIVER_20260713_V1
+ * 아임웹 학습맵 프레임의 실제 LOCK Registry를 허용된 부모 출처에서만 받아
+ * 실제 Map Console에 프레임 LOCK 결과를 함께 출력합니다.
+ */
+window.addEventListener('message', function(event){
+  const allowedOrigins = ['https://hsam05.com', 'https://www.hsam05.com'];
+  if(allowedOrigins.indexOf(String(event.origin || '')) === -1) return;
+
+  const message = event.data || {};
+  if(message.type !== 'WM_MAP_FRAME_LOCK_STATUS' || message.source !== 'WM_IMWEB_MAP_FRAME') return;
+  if(window.WM_MAP_FRAME_LOCK_STATUS) return;
+
+  const payload = message.payload || {};
+  const verified = payload.accessGuard === true &&
+    payload.frameData === true &&
+    payload.frameRun === true &&
+    payload.allLocked === true;
+
+  const registry = Object.freeze({
+    version: String(payload.version || ''),
+    date: String(payload.date || ''),
+    accessGuard: payload.accessGuard === true,
+    frameData: payload.frameData === true,
+    frameRun: payload.frameRun === true,
+    allLocked: payload.allLocked === true,
+    verified: verified
+  });
+
+  try{
+    Object.defineProperty(window, 'WM_MAP_FRAME_LOCK_STATUS', {
+      value: registry,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+  }catch(err){}
+
+  console.group('🔒 WORD MATE MAP FRAME ALL LOCK STATUS');
+  console.log('LOCK VERSION : ' + registry.version);
+  console.log('ACCESS GUARD : ' + (registry.accessGuard ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
+  console.log('FRAME DATA   : ' + (registry.frameData ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
+  console.log('FRAME RUN    : ' + (registry.frameRun ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
+  console.log(verified ? '🔒 MAP FRAME ALL LOCK VERIFIED' : '⚠️ MAP FRAME ALL LOCK CHECK REQUIRED');
+  console.groupEnd();
+});
+
 /* WM_MAP_LOGIN_ENTRY_GUARD_V1
    로그인 세션 확인 전에는 학습맵 화면을 노출하지 않습니다. */
 (function(){
