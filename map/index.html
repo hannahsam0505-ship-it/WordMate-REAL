@@ -1364,6 +1364,58 @@ function wmGetApiBaseUrl(){
   return WM_APPS_SCRIPT_URL;
 }
 
+/* WM_MAP_LOGIN_SERVER_SPEED_LOCK_VERIFY_20260713_V1
+ * 실제 학습맵에서 서버 SPEED LOCK 상태 API를 직접 조회하여
+ * 기존 학습맵 LOCK과 같은 F12 Console에 검증 결과를 출력합니다.
+ */
+async function wmVerifyLoginServerSpeedLockOnMap_(){
+  let status = null;
+
+  try{
+    const url = wmGetApiBaseUrl()
+      + '?action=speedLockStatus'
+      + '&t=' + Date.now();
+    const response = await fetch(url, { cache:'no-store' });
+    status = await response.json();
+  }catch(err){
+    status = null;
+  }
+
+  const verified = !!status &&
+    status.login === true &&
+    status.loginOptimization === true &&
+    status.loginVerified === true;
+
+  console.group('🔒 WORD MATE LOGIN SERVER SPEED LOCK STATUS');
+  console.log('LOCK VERSION : ' + String(status && status.version || ''));
+  console.log('LOGIN ROUTE  : ' + (status && status.login === true ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
+  console.log('OPTIMIZATION : ' + (status && status.loginOptimization === true ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'));
+  console.log(verified ? '🔒 LOGIN SERVER SPEED LOCK VERIFIED' : '⚠️ LOGIN SERVER SPEED LOCK CHECK REQUIRED');
+  console.groupEnd();
+
+  const registry = Object.freeze({
+    version: String(status && status.version || ''),
+    login: !!(status && status.login === true),
+    loginOptimization: !!(status && status.loginOptimization === true),
+    verified: verified
+  });
+
+  try{
+    Object.defineProperty(window, 'WM_LOGIN_SERVER_SPEED_LOCK_STATUS', {
+      value: registry,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+  }catch(err){}
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', wmVerifyLoginServerSpeedLockOnMap_, {once:true});
+}else{
+  wmVerifyLoginServerSpeedLockOnMap_();
+}
+
 function wmGetUrlParam(name){
   const params = new URLSearchParams(window.location.search || '');
   return String(params.get(name) || '').trim();
