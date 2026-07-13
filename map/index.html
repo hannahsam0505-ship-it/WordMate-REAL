@@ -2745,6 +2745,13 @@ function wmNormalizeCurrentSetIdForMap_(setId){
   return '';
 }
 
+function wmGetOfficialStudySetIdForMap_(){
+  /* 현재진행_DB 응답에서 확정된 기록Set_ID만 공식 학습 진입값으로 사용합니다.
+     URL·root data·브라우저 저장값은 화면 선표시용일 뿐 학습 진입 권한이 아닙니다. */
+  const serverProgress = wmCurrentProgressDisplayOverride || {};
+  return wmNormalizeCurrentSetIdForMap_(serverProgress.currentSet || '');
+}
+
 function wmExtractLevelNumberFromSetId_(setId){
   const normalized = wmNormalizeCurrentSetIdForMap_(setId);
   const match = normalized.match(/^(3|4|5|6|7|8|9|10|11|12|13)-\d+-\d+$/);
@@ -3525,13 +3532,12 @@ function renderSetMap(){
     return `
       <div class="set-row${shortClass}"${shortStyle}>
         ${rowItems.map(function(item){
-          /* WM_MAP_REPEAT3_RESTUDY_UNLOCK_V1
-             3회 완료 세트도 복습 진입을 허용합니다.
-             잠금 세트만 상세보기/진입차단으로 처리합니다. */
+          /* 현재진행_DB가 지정한 공식 Set_ID 한 개만 학습 진입을 허용합니다. */
+          const officialStudySetId = wmGetOfficialStudySetIdForMap_();
           const blockAction =
-            item.status === 'locked'
-              ? 'showSetDetail'
-              : 'startStudy';
+            officialStudySetId && item.set === officialStudySetId
+              ? 'startStudy'
+              : 'showSetDetail';
           return `
             <button class="set-block ${getBlockClass(item)}" onclick="${blockAction}('${item.set}')">
               ${getBlockContent(item)}
@@ -3940,6 +3946,13 @@ async function startStudy(setId){
   }
 
   const selectedSetId = String(setId || '').trim();
+  const officialStudySetId = wmGetOfficialStudySetIdForMap_();
+
+  if(!officialStudySetId || selectedSetId !== officialStudySetId){
+    showSetDetail(selectedSetId);
+    return;
+  }
+
   const selectedItem = setData.find(function(item){ return item.set === selectedSetId; });
 
   if(selectedItem && selectedItem.status === 'locked'){
