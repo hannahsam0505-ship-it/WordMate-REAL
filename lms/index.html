@@ -5190,5 +5190,24 @@ document.addEventListener('keydown',function(e){
 });
 </script>
 
+<script>
+/* WM_CODEGS_ALL_LOCK_F12_LMS_V1 */
+async function wmPrintCodeGsAllLockForLms_(){
+  try{
+    const base = String(typeof WM_APPS_SCRIPT_URL !== 'undefined' ? WM_APPS_SCRIPT_URL : '').trim();
+    if(!base) throw new Error('Code.gs API URL 없음');
+    const res = await fetch(base + '?action=codeGsAllLockStatus&t=' + Date.now(), {cache:'no-store'});
+    const s = await res.json();
+    console.group('🔒 WORD MATE CODE.GS ALL LOCK STATUS');
+    console.log('LOCK VERSION : ' + String(s.version || ''));
+    console.log('LOCK DATE    : ' + String(s.date || ''));
+    Object.keys(s.modules || {}).forEach(name=>console.log(name + ' : ' + (s.modules[name].verified ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'), s.modules[name].functions));
+    console.log(s.registryFrozen ? '✅ REGISTRY FROZEN' : '❌ REGISTRY CHECK REQUIRED');
+    console.log(s.allVerified ? '🔒 CODE.GS ALL LOCK VERIFIED' : '❌ CODE.GS LOCK CHECK REQUIRED');
+    console.groupEnd();
+  }catch(err){ console.error('❌ CODE.GS LOCK STATUS LOAD FAILED', err); }
+}
+window.addEventListener('load', wmPrintCodeGsAllLockForLms_, {once:true});
+</script>
 </body>
 </html>
