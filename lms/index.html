@@ -3220,9 +3220,18 @@ function extractRecordRowsFromResponse(data){
       if(tbody) tbody.innerHTML = '<tr><td colspan="33">학생관리_DB 조회 중입니다.</td></tr>';
 
       try {
-        const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now() + wmLmsActorQuery());
-        const data = await res.json();
+        const [res, currentProgressRes] = await Promise.all([
+          fetch(WM_APPS_SCRIPT_URL + '?mode=students&ts=' + Date.now() + wmLmsActorQuery()),
+          fetch(WM_APPS_SCRIPT_URL + '?mode=currentProgress&ts=' + Date.now() + wmLmsActorQuery(), {method:'GET', cache:'no-store'})
+        ]);
+        const [data, currentProgressData] = await Promise.all([res.json(), currentProgressRes.json()]);
         WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
+        const currentProgressRows = normalizeRows(currentProgressData && (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) ? (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) : currentProgressData);
+        const currentSetByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim(), String(row['Set_ID'] || '').trim()]));
+        WM_STUDENT_MANAGE_ROWS.forEach(row => {
+          const currentSet = currentSetByStudentId.get(String(row['학생ID'] || '').trim());
+          if(currentSet) row['현재세트'] = currentSet;
+        });
         renderStudentManageRows();
         setManageLoading('students', false);
         console.log('학생관리_DB 전체조회 성공:', WM_STUDENT_MANAGE_ROWS);
@@ -4871,9 +4880,9 @@ function confirmNextLevelCompleteCondition(button, studentId){
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
-  const currentSet = String(row['현재세트'] || row['Set_ID'] || '').trim();
-  const currentLevelMatch = currentSet.match(/(?:WM)?(\d+)-/i);
-  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : Number(row['현재레벨'] || 0);
+  const currentSet = String(row['현재세트'] || '').trim();
+  const currentLevelMatch = currentSet.match(/^WM(\d+)-\d+-\d+$/i);
+  const currentLevel = currentLevelMatch ? Number(currentLevelMatch[1]) : 0;
   const nextLevel = currentLevel ? currentLevel + 1 : '';
   const repeatCount = document.getElementById(`wmMode_다음레벨완료조건_${safeId}`)?.value || '';
   const box = document.createElement('div');
