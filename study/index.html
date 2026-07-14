@@ -413,9 +413,50 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
   .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
 
+  .wm-level-transition-card{
+    width:100%;
+    max-width:720px;
+    padding:34px 28px 30px;
+  }
+  .wm-level-transition-title{
+    margin:0 0 26px;
+    color:#111827;
+    font-size:22px;
+    font-weight:900;
+    line-height:1.35;
+    text-align:center;
+  }
+  .wm-level-transition-message{
+    color:#111827;
+    font-size:16px;
+    font-weight:600;
+    line-height:1.8;
+    text-align:center;
+  }
+  .wm-level-transition-message .wm-transition-line{display:block;}
+  .wm-level-transition-message .wm-transition-emphasis{color:#2563eb;font-weight:900;}
+  .wm-level-transition-actions{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:28px;
+  }
+  .wm-level-transition-actions .wm-btn{
+    width:150px;
+    max-width:150px;
+    flex:0 0 150px;
+    padding:13px 0;
+    font-size:15px;
+  }
+
   @media(max-width:480px){
     .final-title{font-size:20px;}
     .final-score-box{font-size:20px;}
+    .wm-level-transition-card{padding:28px 18px 24px;}
+    .wm-level-transition-title{font-size:20px;margin-bottom:20px;}
+    .wm-level-transition-message{font-size:15px;line-height:1.75;}
+    .wm-level-transition-actions{gap:8px;margin-top:24px;}
+    .wm-level-transition-actions .wm-btn{width:auto;max-width:none;flex:1 1 0;min-width:0;}
   }
 
   .final-result-info{
@@ -939,6 +980,8 @@ let currentSetName = makeSetName(currentSetId);
 let WM_COMPLETED_SAVE_SET_ID = "";
 let WM_COMPLETED_SAVE_SET_NAME = "";
 let finalSavePromise = null;
+let WM_OFFICIAL_TRANSITION_RESULT = null;
+let WM_OFFICIAL_NEXT_SET_ID = "";
 let WM_RECORD_SESSION_ID = ''; // 공식 학습기록ID는 Code.gs가 R+YY+MM+3자리 순번으로 생성합니다.
 let wmStepSaveChain = Promise.resolve();
 let wmStepSaveLastError = null;
@@ -2620,6 +2663,18 @@ function wmIsSaveSuccess(result){
   return response.ok === true || response.success === true;
 }
 
+function wmGetOfficialSaveResponse(result){
+  if(!result) return {};
+  if(result.response && typeof result.response === "object") return result.response;
+  return result;
+}
+
+function wmNormalizeOfficialNextSetId(setId){
+  const text=String(setId || "").trim().toUpperCase();
+  if(!text) return "";
+  return text.startsWith("WM") ? text : `WM${text}`;
+}
+
 async function saveLearningRecord(status="completed"){
   const sessionOk = await wmStudyCheckCurrentSession();
   if(!sessionOk) return {ok:false, sessionExpired:true};
@@ -3490,6 +3545,9 @@ function renderFinalResult(){
   finalSavePromise = wmWaitForStepSaves().then(function(result){
     return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   }).then(result=>{
+    const officialResponse=wmGetOfficialSaveResponse(result);
+    WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
+    WM_OFFICIAL_NEXT_SET_ID=wmNormalizeOfficialNextSetId(officialResponse.nextOfficialSetId);
     const saveStatus=document.getElementById("saveStatus");
     const saveIcon=document.getElementById("saveIcon");
     if(saveStatus){
@@ -3502,11 +3560,54 @@ function renderFinalResult(){
       saveIcon.textContent = saveOk ? "✅" : "⚠️";
       saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
     }
-    if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
+    if(wmIsSaveSuccess(result) && wmIsLevelTransitionResponse(officialResponse)){
+      renderLevelTransitionNotice(officialResponse);
+    }else if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
       setTimeout(returnToLmsIfReady,700);
     }
     return result;
   });
+}
+
+function wmIsLevelTransitionResponse(response){
+  const type=String(response && response.transitionType || "").trim().toUpperCase();
+  return type === "ROUND_CONTINUE" || type === "LEVEL_COMPLETE" || type === "COURSE_COMPLETE";
+}
+
+function renderLevelTransitionNotice(response){
+  const type=String(response && response.transitionType || "").trim().toUpperCase();
+  const setText=String(response && response.setId || WM_COMPLETED_SAVE_SET_ID || currentSetId || "");
+  const levelFromSet=(setText.match(/(?:WM)?(\d+)-/) || [])[1];
+  const level=Number(response && response.transitionLevel || levelFromSet || 0);
+  const completedRound=Math.max(1,Number(response && response.completedRound || 1));
+  const targetRounds=Math.max(1,Number(response && response.targetRounds || completedRound));
+  const isCourseComplete=type === "COURSE_COMPLETE";
+  const isLevelComplete=type === "LEVEL_COMPLETE" || isCourseComplete;
+  const title=isLevelComplete ? "Congratulations!" : (completedRound >= 2 ? "Excellent!" : "Good Job!");
+
+  let messageHtml="";
+  if(isLevelComplete){
+    messageHtml=`
+      <span class="wm-transition-line">선생님이 지정한 <span class="wm-transition-emphasis">${level}레벨</span> 완료조건 <span class="wm-transition-emphasis">${targetRounds}회</span>를</span>
+      <span class="wm-transition-line">모두 마쳤습니다.</span>
+      <span class="wm-transition-line"><span class="wm-transition-emphasis">${level}레벨</span> 학습을 완료했습니다.</span>`;
+  }else{
+    const nextRound=completedRound + 1;
+    messageHtml=`
+      <span class="wm-transition-line">선생님이 지정한 <span class="wm-transition-emphasis">${level}레벨</span> 완료조건 <span class="wm-transition-emphasis">${targetRounds}회중</span></span>
+      <span class="wm-transition-line"><span class="wm-transition-emphasis">${completedRound}회차</span> 학습을 모두 마쳤습니다.</span>
+      <span class="wm-transition-line">지금부터 <span class="wm-transition-emphasis">${nextRound}회차</span> 학습이 시작됩니다.</span>`;
+  }
+
+  const startButton=isCourseComplete ? "" : `<button class="wm-btn" onclick="goNextLearning()">학습시작</button>`;
+  app.innerHTML=`<div class="wm-card wm-level-transition-card">
+    <div class="wm-level-transition-title">${title}</div>
+    <div class="wm-level-transition-message">${messageHtml}</div>
+    <div class="wm-level-transition-actions">
+      ${startButton}
+      <button class="wm-btn" onclick="goFinalExit()">나가기</button>
+    </div>
+  </div>`;
 }
 
 async function goFinalExit(){
@@ -3535,7 +3636,7 @@ async function goFinalExit(){
 async function goNextLearning(){
   stopWordAudio();
   clearInterval(testTimer);
-  const nextSetId = getNextSetId(currentSetId);
+  const nextSetId = WM_OFFICIAL_NEXT_SET_ID || getNextSetId(currentSetId);
   if(!nextSetId){
     alert("다음 학습 세트 정보를 확인할 수 없습니다.");
     return;
@@ -3576,6 +3677,8 @@ async function goNextLearning(){
   wmStepSaveDirty = false;
   WM_COMPLETED_SAVE_SET_ID = "";
   WM_COMPLETED_SAVE_SET_NAME = "";
+  WM_OFFICIAL_TRANSITION_RESULT = null;
+  WM_OFFICIAL_NEXT_SET_ID = "";
   WM_ACTIVE_STUDY_MODE_SET_ID = "";
   await startLearning();
 }
