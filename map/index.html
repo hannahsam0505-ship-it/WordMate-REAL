@@ -2288,6 +2288,14 @@ function wmNormalizeCurrentProgressCache_(data){
   const totalSetCount = Number(wmPickFirstValue_(cache.전체세트수, cache.totalSetCount, cache.totalSets, officialProgress.전체세트수, officialProgress.totalSetCount, 0));
   const completedSetCount = Number(wmPickFirstValue_(cache.완료세트수, cache.completedSetCount, cache.completeSetCount, officialProgress.완료세트수, officialProgress.completedSetCount, 0));
   const levelProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.레벨진행률, cache.levelProgress, cache.progressPercent, cache.진행률, officialProgress.레벨진행률, officialProgress.progressPercent, officialProgress.진행률, 0));
+  const sequentialCompleteSet = Number(wmPickFirstValue_(cache.순차완주세트, cache.sequentialCompleteSet, completedSetCount, 0));
+  const hasSequentialCompleteSet = String(wmPickFirstValue_(cache.순차완주세트, cache.sequentialCompleteSet, '')).trim() !== '';
+  const currentRoundCompletedSetCount = hasSequentialCompleteSet
+    ? Math.max(0, Math.min(totalSetCount, Math.floor(sequentialCompleteSet || 0)))
+    : completedSetCount;
+  const currentRoundLevelProgress = hasSequentialCompleteSet && totalSetCount > 0
+    ? Math.round((currentRoundCompletedSetCount / totalSetCount) * 100)
+    : levelProgress;
   const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
   const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, ''));
 
@@ -2296,8 +2304,8 @@ function wmNormalizeCurrentProgressCache_(data){
     currentSet: currentSet,
     currentLevel: currentLevel,
     totalSetCount: Number.isFinite(totalSetCount) ? totalSetCount : 0,
-    completedSetCount: Number.isFinite(completedSetCount) ? completedSetCount : 0,
-    levelProgress: Number.isFinite(levelProgress) ? levelProgress : 0,
+    completedSetCount: Number.isFinite(currentRoundCompletedSetCount) ? currentRoundCompletedSetCount : 0,
+    levelProgress: Number.isFinite(currentRoundLevelProgress) ? currentRoundLevelProgress : 0,
     setProgress: Number.isFinite(setProgress) ? setProgress : 0,
     recentScore: recentScore,
     recent30Records: recent30,
@@ -2711,11 +2719,7 @@ function wmBuildLearningModeBannerHtml_(student){
 }
 
 function wmShowLearningModeBanner(){
-  const box = document.getElementById('learningDetailBox');
-  if(box){
-    box.classList.add('wm-mode-banner-box');
-    box.innerHTML = wmBuildLearningModeBannerHtml_(wmStudentProfile || wmCurrentStudent || {});
-  }
+  wmRenderCurrentProgressGuide_();
 }
 
 function wmNormalizeCurrentSetIdForMap_(setId){
