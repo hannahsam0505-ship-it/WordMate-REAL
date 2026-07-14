@@ -3499,7 +3499,7 @@ function wmApplyLearningMapStatus(mapData){
         officialRound: officialRound,
         targetRoundLimit: Number(sequentialState.targetLimit || 1),
         levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-        score: String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || '-').trim() || '-',
+        score: String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || (officialRound === 1 ? (statusInfo.latestScore || statusInfo.score) : '') || '-').trim() || '-',
         latestDate: String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
       };
     }
