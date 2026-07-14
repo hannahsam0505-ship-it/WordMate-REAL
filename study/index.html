@@ -3702,6 +3702,17 @@ const WM_STUDY_SPEED_LOCKS = Object.freeze({
   FINAL_SAVE: Object.freeze({saveLearningRecord})
 });
 
+const WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION = "WM_LEVEL_TRANSITION_NOTICE_LOCK_V1.0";
+const WM_LEVEL_TRANSITION_NOTICE_LOCK_DATE = "2026-07-14";
+const WM_LEVEL_TRANSITION_NOTICE_LOCKS = Object.freeze({
+  GOOD_JOB_ROUND_TRANSITION: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  EXCELLENT_ROUND_TRANSITION: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEVEL_COMPLETE_NOTICE: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEVEL13_COMPLETE_NOTICE: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEARNING_START: Object.freeze({goNextLearning}),
+  EXIT_TO_MAP: Object.freeze({goFinalExit})
+});
+
 const WM_STUDY_LOCKS = Object.freeze({
   SESSION_GUARD: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
   AUDIO_FORMULA: Object.freeze({
@@ -3730,28 +3741,74 @@ const WM_STUDY_LOCKS = Object.freeze({
 
 function wmStudyInstallFunctionLocks(){
   const lockedNames = [];
-  Object.keys(WM_STUDY_LOCKS).forEach(groupName=>{
-    const group = WM_STUDY_LOCKS[groupName];
-    Object.keys(group).forEach(name=>{
-      const fn = group[name];
-      try{
-        const descriptor = Object.getOwnPropertyDescriptor(window, name);
-        Object.defineProperty(window, name, {
-          value: fn,
-          writable: false,
-          configurable: false,
-          enumerable: descriptor ? descriptor.enumerable : true
-        });
-      }catch(error){
-        console.error("STUDY LOCK INSTALL ERROR", name, error);
-      }
-      lockedNames.push(name);
+  [WM_STUDY_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS].forEach(lockRegistry=>{
+    Object.keys(lockRegistry).forEach(groupName=>{
+      const group = lockRegistry[groupName];
+      Object.keys(group).forEach(name=>{
+        if(lockedNames.includes(name)) return;
+        const fn = group[name];
+        try{
+          const descriptor = Object.getOwnPropertyDescriptor(window, name);
+          Object.defineProperty(window, name, {
+            value: fn,
+            writable: false,
+            configurable: false,
+            enumerable: descriptor ? descriptor.enumerable : true
+          });
+        }catch(error){
+          console.error("STUDY LOCK INSTALL ERROR", name, error);
+        }
+        lockedNames.push(name);
+      });
     });
   });
   return [...new Set(lockedNames)];
 }
 
 const WM_STUDY_LOCKED_FUNCTION_NAMES = Object.freeze(wmStudyInstallFunctionLocks());
+
+window.wmLogLevelTransitionNoticeLockStatus = function(){
+  const clientRows = Object.keys(WM_LEVEL_TRANSITION_NOTICE_LOCKS).map(moduleName=>{
+    const group=WM_LEVEL_TRANSITION_NOTICE_LOCKS[moduleName];
+    const names=Object.keys(group);
+    const verified=Object.isFrozen(group) && names.every(name=>{
+      const descriptor=Object.getOwnPropertyDescriptor(window,name);
+      return window[name]===group[name] && descriptor &&
+        descriptor.writable===false && descriptor.configurable===false;
+    });
+    return {MODULE:moduleName,FUNCTIONS:names.length,LOCKED:verified ? "YES" : "NO"};
+  });
+  const clientVerified=Object.isFrozen(WM_LEVEL_TRANSITION_NOTICE_LOCKS) &&
+    clientRows.every(row=>row.LOCKED==="YES");
+  const callbackName="wmLevelTransitionNoticeLockCallback_"+Date.now();
+  const script=document.createElement("script");
+  let finished=false;
+
+  function finish(serverResult){
+    if(finished) return;
+    finished=true;
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    if(script.parentNode) script.parentNode.removeChild(script);
+    const serverVerified=!!(serverResult && serverResult.verified);
+    const rows=clientRows.concat([
+      {MODULE:"SERVER_TRANSITION_ENGINE",FUNCTIONS:1,LOCKED:serverResult && serverResult.transitionEngine ? "YES" : "NO"}
+    ]);
+    const allVerified=clientVerified && serverVerified;
+    console.group("🔒 WORD MATE LEVEL TRANSITION NOTICE LOCK STATUS");
+    console.log("LOCK VERSION :",WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION);
+    console.log("LOCK DATE    :",WM_LEVEL_TRANSITION_NOTICE_LOCK_DATE);
+    console.table(rows);
+    console.log(Object.isFrozen(WM_LEVEL_TRANSITION_NOTICE_LOCKS) ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
+    console.log(allVerified ? "🔒 LEVEL TRANSITION NOTICE ALL LOCK VERIFIED" : "❌ LEVEL TRANSITION NOTICE LOCK VERIFY FAILED");
+    console.groupEnd();
+  }
+
+  window[callbackName]=finish;
+  script.onerror=function(){finish(null);};
+  script.src=API_URL+"?action=levelTransitionNoticeLockStatus&callback="+encodeURIComponent(callbackName)+"&_="+Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){finish(null);},12000);
+};
 
 function wmLogStudyLockStatus(){
   const rows = [];
@@ -3884,5 +3941,6 @@ document.addEventListener("keydown",function(e){
 wmLogStudyLockStatus();
 wmLogStudySpeedLockStatus();
 wmLogCodeGsAllLockStatusOnStudy_();
+window.wmLogLevelTransitionNoticeLockStatus();
 renderStart();
 </script>
