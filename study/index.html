@@ -1155,7 +1155,15 @@ function wmCacheStudyMode(setId, mode){
   }catch(err){}
 }
 
+function wmClearCachedStudyMode(setId){
+  try{
+    localStorage.removeItem(wmStudyModeCacheKey(setId));
+  }catch(err){}
+}
+
 async function wmFetchStudentLearningMode(){
+  const activeSetCache = wmReadCachedStudyMode(currentSetId);
+  if(activeSetCache) return activeSetCache;
   const serverMode = wmReadServerStudyMode();
   if(serverMode){
     WM_ACTIVE_LEARNING_ASSIGN = wmReadServerLearningAssign();
@@ -1166,7 +1174,7 @@ async function wmFetchStudentLearningMode(){
 
   try{
     const res = await fetch(
-      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&ts=' + Date.now(),
+      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&setId=' + encodeURIComponent(currentSetId) + '&ts=' + Date.now(),
       { method:'GET', cache:'no-store' }
     );
     const data = await res.json();
@@ -2736,6 +2744,9 @@ async function saveLearningRecord(status="completed"){
     if(result && result.success && result.recordId){
       WM_RECORD_SESSION_ID = String(result.recordId || '').trim();
     }
+    if(result && result.success && status === 'completed'){
+      wmClearCachedStudyMode(payload.Set_ID || payload.setId || currentSetId);
+    }
 
     return {ok:!!(result && result.success), response:result, payload};
   }catch(error){
@@ -3733,6 +3744,10 @@ const WM_STUDY_LOCKS = Object.freeze({
   STUDY_SAVE: Object.freeze({
     markStepCompleted, queueStepSave, wmLoadLearningProgress, wmApplyResumeProgress,
     buildLearningPayload, saveProgressSnapshot, saveLearningRecord
+  }),
+  STUDY_MODE_SET_LOCK: Object.freeze({
+    wmReadCachedStudyMode, wmCacheStudyMode, wmClearCachedStudyMode,
+    wmFetchStudentLearningMode, wmPrepareStudyModeForCurrentSet
   }),
   WRITING_EXACT: Object.freeze({wmIsExactEnglishAnswer}),
   STEP1_STEP5_PROGRESS_LAYOUT: Object.freeze({renderWordProgress}),
