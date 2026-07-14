@@ -262,9 +262,16 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #recordTableWrap thead th:nth-child(1), #recordTableWrap thead th:nth-child(2), #recordTableWrap thead th:nth-child(3) { z-index:40; background:#f9fafb; }
     #studentTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #studentTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
-    #studentTableWrap th:nth-child(2), #studentTableWrap td:nth-child(2) { position:sticky; left:0; z-index:25; background:#fff; min-width:110px; }
-    #studentTableWrap th:nth-child(3), #studentTableWrap td:nth-child(3) { position:sticky; left:110px; z-index:25; background:#fff; min-width:120px; }
-    #studentTableWrap thead th:nth-child(2), #studentTableWrap thead th:nth-child(3) { z-index:40; background:#f9fafb; }
+    #studentManageTable tbody tr:nth-child(odd) { background:#fff; }
+    #studentManageTable tbody tr:nth-child(even) { background:#eef4ff; }
+    #studentManageTable tbody td { background-color:inherit; }
+    #studentTableWrap th:nth-child(2), #studentTableWrap td:nth-child(2) { position:sticky; left:0; z-index:25; width:110px; min-width:110px; max-width:110px; }
+    #studentTableWrap th:nth-child(3), #studentTableWrap td:nth-child(3) { position:sticky; left:110px; z-index:25; width:120px; min-width:120px; max-width:120px; }
+    #studentTableWrap th:nth-child(6), #studentTableWrap td:nth-child(6) { position:sticky; left:230px; z-index:25; width:120px; min-width:120px; max-width:120px; }
+    #studentTableWrap th:nth-child(7), #studentTableWrap td:nth-child(7) { position:sticky; left:350px; z-index:25; width:120px; min-width:120px; max-width:120px; }
+    #studentTableWrap th:nth-child(8), #studentTableWrap td:nth-child(8) { position:sticky; left:470px; z-index:25; width:120px; min-width:120px; max-width:120px; }
+    #studentTableWrap th:nth-child(10), #studentTableWrap td:nth-child(10) { position:sticky; left:590px; z-index:25; width:140px; min-width:140px; max-width:140px; }
+    #studentTableWrap thead th:nth-child(2), #studentTableWrap thead th:nth-child(3), #studentTableWrap thead th:nth-child(6), #studentTableWrap thead th:nth-child(7), #studentTableWrap thead th:nth-child(8), #studentTableWrap thead th:nth-child(10) { z-index:40; background:#f9fafb; }
     #currentProgressTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #currentProgressTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
     .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
