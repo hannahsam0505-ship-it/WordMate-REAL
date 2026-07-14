@@ -2892,6 +2892,37 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
     officialRoundMap[setId] = 0;
   });
 
+  /* WM_MAP_CURRENT_PROGRESS_FORMULA_DIRECT_V1
+     현재진행_DB의 아래 공식값을 위 세트맵 색상으로 그대로 변환합니다.
+     레벨완료횟수 = 전체 세트의 기본 완료회차
+     순차완주회차 + 순차완주세트 = 현재 회차에서 추가 완료한 앞쪽 세트 수 */
+  const formulaSource = wmCurrentProgressDisplayOverride || {};
+  const levelCompleteCount = Math.max(0, Math.min(targetLimit, Number(formulaSource.레벨완료횟수 || 0)));
+  const sequentialRound = Math.max(0, Math.min(targetLimit, Number(formulaSource.순차완주회차 || 0)));
+  const sequentialSetCount = Math.max(0, Math.min(sequence.length, Number(formulaSource.순차완주세트 || 0)));
+  const hasDirectFormula =
+    String(formulaSource.레벨완료횟수 || '').trim() !== '' &&
+    String(formulaSource.순차완주회차 || '').trim() !== '' &&
+    String(formulaSource.순차완주세트 || '').trim() !== '';
+
+  if(hasDirectFormula){
+    sequence.forEach(function(setId, setIndex){
+      officialRoundMap[setId] = levelCompleteCount;
+      if(sequentialRound > levelCompleteCount && setIndex < sequentialSetCount){
+        officialRoundMap[setId] = sequentialRound;
+      }
+    });
+
+    return {
+      targetLimit: targetLimit,
+      repeatMap: officialRoundMap,
+      officialRoundMap: officialRoundMap,
+      순차완주회차: sequentialRound,
+      순차완주세트: sequentialSetCount,
+      levelComplete: levelCompleteCount >= targetLimit
+    };
+  }
+
   const completedEvents = [];
   if(Array.isArray(records)){
     records.forEach(function(record, index){
@@ -3370,6 +3401,14 @@ function wmApplyLearningMapStatus(mapData){
     return String(value || '').trim().toUpperCase().replace(/^WM/, '');
   }
 
+  function parseCompleteRound_(value){
+    const text = String(value || '').trim();
+    let match = text.match(/(\d+)\s*회차/);
+    if(!match) match = text.match(/^(\d+)$/);
+    const n = match ? Number(match[1]) : 0;
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  }
+
   function isCompletedRecord_(record){
     const status = String(
       (record && (record.완료상태 || record.status || record.completeStatus || record['상태'])) || ''
@@ -3408,11 +3447,12 @@ function wmApplyLearningMapStatus(mapData){
     return setStatusMap[raw] || setStatusMap[wm] || setStatusMap[noWm] || {};
   }
 
-  function getRecordInfoForSet(setId){
+  function getRecordInfoForSet(setId, displayRound){
     const wanted = normalizeSetIdForMap_(setId);
     const matched = records
       .filter(function(record){
-        return normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) === wanted;
+        if(normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) !== wanted) return false;
+        return parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료'])) === Number(displayRound || 0);
       })
       .sort(function(a, b){
         return wmGetLearningRecordSortTime_(b && b.학습날짜) - wmGetLearningRecordSortTime_(a && a.학습날짜);
@@ -3435,11 +3475,14 @@ function wmApplyLearningMapStatus(mapData){
      완료 기록은 순차 current 배정 여부와 무관하게 완료 블럭으로 표시하고,
      첫 미완료 세트 1개만 학습중(current)으로 둡니다. */
   let currentAssigned = false;
+  const officialCurrentSet = normalizeSetIdForMap_((wmCurrentProgressDisplayOverride || {}).currentSet || '');
 
   setData = wmBuildLevelSetData(currentLevelNumber).map(function(item){
     const statusInfo = getStatusInfoForSet(item.set);
-    const recordInfo = getRecordInfoForSet(item.set);
-    const isComplete = completedSet.has(item.set) || completedSet.has('WM' + item.set);
+    const officialRound = Number((sequentialState.officialRoundMap || {})[item.set] || 0);
+    const recordInfo = getRecordInfoForSet(item.set, officialRound);
+    const isOfficialCurrent = !!officialCurrentSet && normalizeSetIdForMap_(item.set) === officialCurrentSet;
+    const isComplete = !isOfficialCurrent && officialRound > 0;
     const recordRepeatCount = wmGetRepeatCountFromRecordsForMap_(records, item.set, normalizeSetIdForMap_, isCompletedRecord_);
     const repeatCount = Math.max(1, Number(statusInfo.repeatCount || 0), recordRepeatCount);
 
@@ -3449,15 +3492,15 @@ function wmApplyLearningMapStatus(mapData){
         status:'complete',
         progress:100,
         repeatCount: repeatCount,
-        officialRound: Number((sequentialState.officialRoundMap || {})[item.set] || 0),
+        officialRound: officialRound,
         targetRoundLimit: Number(sequentialState.targetLimit || 1),
         levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-        score: String(statusInfo.latestScore || recordInfo.한영주관식 || recordInfo.점수 || '-').trim() || '-',
+        score: String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || '-').trim() || '-',
         latestDate: String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
       };
     }
 
-    if(!currentAssigned){
+    if(isOfficialCurrent || (!officialCurrentSet && !currentAssigned)){
       currentAssigned = true;
       return {
         set:item.set,
