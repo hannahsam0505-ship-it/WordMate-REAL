@@ -2950,7 +2950,7 @@ function extractRecordRowsFromResponse(data){
       const pageRows = rows.slice(start, start + WM_MANAGE_PAGE_SIZE);
       setManageLoading('records', false);
       tbody.innerHTML = pageRows.map(rawRow=>{
-    const row = wmRepairShiftedStudentModeRow(rawRow);
+    const row = Object.assign(wmRepairShiftedStudentModeRow(rawRow), {__wmCurrentProgress:rawRow.__wmCurrentProgress || null});
         return '<tr>'+WM_RECORD_HEADERS.map(header=>{
           const value = cellValue(row, headerAliases(header));
           return '<td>'+escapeHtml(displayCellValue(value, header))+'</td>';
