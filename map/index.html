@@ -3457,13 +3457,15 @@ function wmApplyLearningMapStatus(mapData){
     const matched = records
       .filter(function(record){
         if(normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id)) !== wanted) return false;
-        return parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료'])) === Number(displayRound || 0);
+        const recordRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료']));
+        return recordRound === Number(displayRound || 0) || (Number(displayRound) === 1 && recordRound === 0 && wmNormalizeScoreForMap_(record && (record.점수 || record.score || record.한영주관식)));
+        
       })
       .sort(function(a, b){
         return wmGetLearningRecordSortTime_(b && b.학습날짜) - wmGetLearningRecordSortTime_(a && a.학습날짜);
       });
 
-    return matched[0] || {};
+    return matched.find(function(record){ return wmNormalizeScoreForMap_(record && (record.점수 || record.score || record.한영주관식)); }) || matched[0] || {};
   }
 
   /* WM_MAP_DB_BASED_SEQUENTIAL_COLOR_RULE_V1
