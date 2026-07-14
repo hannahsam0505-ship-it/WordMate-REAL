@@ -4293,10 +4293,45 @@ async function wmLogCodeGsAllLockStatusOnLms_(){
   return status;
 }
 
+/* WM_CODEGS_STUDENT_ASSIGNMENT_LOCK_VERIFY_ON_LMS_20260714_V1
+ * 기존 Code.gs LOCK 상태 조회·F12 출력 방식을 그대로 사용합니다.
+ */
+async function wmLogCodeGsStudentAssignmentLockStatusOnLms_(){
+  let status = null;
+  try{
+    status = await wmFetchSettingApi('codeGsStudentAssignmentLockStatus', {});
+  }catch(err){
+    status = null;
+  }
+
+  const modules = status && status.modules ? status.modules : {};
+  const moduleNames = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','SAVE','NEXT_LEVEL_PLUS_ONE'];
+
+  console.group('🔒 WORD MATE CODE.GS STUDENT ASSIGNMENT LOCK STATUS');
+  console.info('LOCK VERSION :', String(status && status.version || ''));
+  console.info('LOCK DATE    :', String(status && status.date || ''));
+  moduleNames.forEach(function(name){
+    const moduleStatus = modules[name] || {};
+    console.info(
+      name + ' : ' + (moduleStatus.verified === true ? '✅ ACTUAL LOCK' : '❌ CHECK REQUIRED'),
+      moduleStatus.functions || {}
+    );
+  });
+  console.info(status && status.registryFrozen === true ? '✅ REGISTRY FROZEN' : '❌ REGISTRY CHECK REQUIRED');
+  if(status && status.allVerified === true){
+    console.info('🔒 CODE.GS STUDENT ASSIGNMENT ALL LOCK VERIFIED');
+  }else{
+    console.error('❌ CODE.GS STUDENT ASSIGNMENT LOCK CHECK REQUIRED');
+  }
+  console.groupEnd();
+  return status;
+}
+
 
 document.addEventListener('DOMContentLoaded', function(){
   wmLogSettingCenterLockStatus();
   wmLogCodeGsAllLockStatusOnLms_();
+  wmLogCodeGsStudentAssignmentLockStatusOnLms_();
 });
 
 function setStudentIdCreateStatus(active, text){
