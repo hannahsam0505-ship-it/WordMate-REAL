@@ -4898,8 +4898,8 @@ function wmLevelConditionLockState(row){
   }
   const progressLevel = Number(String(progress['현재레벨'] || progress['Set_ID'] || '').match(/\d+/)?.[0] || 0);
   const currentLevel = Number(String(wmCurrentSetDisplayValue(row['현재세트']) || '').match(/\d+/)?.[0] || 0);
-  const hasStarted = !!String(progress['학습기록ID'] || progress['완료Step'] || progress['현재Step'] || '').trim();
-  if(hasStarted && progressLevel && currentLevel && progressLevel === currentLevel){
+  const hasStarted = !!String(row['현재세트'] || '').trim();
+  if(hasStarted){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
   }
   return {locked:false, reason:''};
