@@ -2898,10 +2898,6 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
       if(!isCompletedRecord_(record)) return;
       const plain = normalizeSetIdForMap_(record && (record.Set_ID || record.setId || record.set_id));
       if(!plain || officialRoundMap[plain] === undefined) return;
-      const explicitRound = parseCompleteRound_(record && (record.완료 || record.completeRound || record.officialRound || record['완료']));
-      if(explicitRound > 0){
-        officialRoundMap[plain] = Math.max(Number(officialRoundMap[plain] || 0), Math.min(targetLimit, explicitRound));
-      }
       completedEvents.push({
         setId: plain,
         sortTime: getSortTime_(record, index),
@@ -3439,7 +3435,6 @@ function wmApplyLearningMapStatus(mapData){
      완료 기록은 순차 current 배정 여부와 무관하게 완료 블럭으로 표시하고,
      첫 미완료 세트 1개만 학습중(current)으로 둡니다. */
   let currentAssigned = false;
-  const officialStudySetId = wmGetOfficialStudySetIdForMap_();
 
   setData = wmBuildLevelSetData(currentLevelNumber).map(function(item){
     const statusInfo = getStatusInfoForSet(item.set);
@@ -3447,21 +3442,6 @@ function wmApplyLearningMapStatus(mapData){
     const isComplete = completedSet.has(item.set) || completedSet.has('WM' + item.set);
     const recordRepeatCount = wmGetRepeatCountFromRecordsForMap_(records, item.set, normalizeSetIdForMap_, isCompletedRecord_);
     const repeatCount = Math.max(1, Number(statusInfo.repeatCount || 0), recordRepeatCount);
-
-    if(officialStudySetId && item.set === officialStudySetId){
-      currentAssigned = true;
-      return {
-        set:item.set,
-        status:'current',
-        progress:wmGetProgressFromStatusForMap_(statusInfo),
-        repeatCount:repeatCount,
-        officialRound:Number((sequentialState.officialRoundMap || {})[item.set] || 0),
-        targetRoundLimit:Number(sequentialState.targetLimit || 1),
-        levelComplete:false,
-        score:'-',
-        latestDate:String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
-      };
-    }
 
     if(isComplete){
       return {
