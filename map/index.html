@@ -2380,6 +2380,7 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
     }
+    wmApplyLearningMapStatus(wmLastLearningMapData);
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
     updateRecentScore(wmLearningRecords);
   }
