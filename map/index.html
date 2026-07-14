@@ -43,7 +43,7 @@ const WM_ENV = 'REAL';
     search: true,                 // 검색 기능 LOCK
     studentInfo: true,            // 학생정보 표시·연결 LOCK
     currentProgressDB: true,       // 현재진행_DB 연동 LOCK
-    learningHistory: false,        // 학습히스토리 LOCK 보류(기능 작업 중)
+    learningHistory: true,         // 학습히스토리 LOCK
     learningRecordDB: true,        // 학습기록_DB 연동 LOCK
     studyStart: true,              // 학습시작 및 진입 조건 LOCK
     mapReturn: true,               // 학습맵 복귀 경로 LOCK
@@ -4224,19 +4224,19 @@ function resetHomeworkFilters(){
 
 
 /* ==========================================================
-   🔒 MAP ACTUAL FUNCTION LOCK - PHASE 1 + PHASE 2 / 수정 금지
+   🔒 MAP ACTUAL FUNCTION LOCK - ALL MODULES / 수정 금지
 
    [실제 LOCK 완료 범위]
    1) 검색
    2) 학생정보 로딩
    3) 현재진행_DB
    4) 학습기록_DB
-   5) 진행률 계산
-   6) 학습시작
-   7) 학습맵 진입·이탈 경로
-
-   [LOCK 보류]
-   - 학습히스토리: 기능 작업 완료 후 마지막에 실제 LOCK 적용
+   5) 히스토리레벨
+   6) 레벨바 진행률
+   7) 세트 블록 진행률·색상·점수
+   8) 현재진행_DB 6개 공식 안내
+   9) 학습시작
+   10) 학습맵 진입·이탈 경로
 
    [보호 방식]
    - 아래 핵심 전역 함수의 현재 실행본을 그대로 유지합니다.
@@ -4249,8 +4249,8 @@ function resetHomeworkFilters(){
 (function wmApplyMapActualLockPhase1And2_(){
   'use strict';
 
-  var WM_MAP_ACTUAL_LOCK_VERSION = 'MAP_ACTUAL_LOCK_PHASE1_2_V1.0';
-  var WM_MAP_ACTUAL_LOCK_DATE = '2026-07-10';
+  var WM_MAP_ACTUAL_LOCK_VERSION = 'MAP_ACTUAL_LOCK_ALL_MODULES_V2.0';
+  var WM_MAP_ACTUAL_LOCK_DATE = '2026-07-14';
 
   var WM_MAP_ACTUAL_LOCK_GROUPS = Object.freeze({
     search: Object.freeze([
@@ -4294,7 +4294,6 @@ function resetHomeworkFilters(){
       'wmGetHomeworkPeriodRange_',
       'wmGetHomeworkPeriodDateTextByMonthsAgo_',
       'wmApplyHomeworkDefaultPeriod_',
-      'wmRenderCurrentProgressGuide_',
       'wmUpdateHomeworkPager_',
       'wmMoveHomeworkPage_',
       'renderHomeworkTable',
@@ -4307,13 +4306,36 @@ function resetHomeworkFilters(){
       'showSetDetail',
       'printRecords'
     ]),
-    progressCalculation: Object.freeze([
+    historyLevel: Object.freeze([
+      'wmBuildCurrentProgressHistoryCacheForMap_',
+      'wmGetHistoryStorageKey_',
+      'wmLoadLevelHistoryList_',
+      'wmSaveLevelHistoryList_',
+      'wmGetStudentStartLevelForHistory_',
+      'wmGetRecordLevelListForHistory_',
+      'wmGetRoundNumberForHistory_',
+      'wmBuildLevelRoundStateForHistory_',
+      'wmGetLevelHistoryClassForLevel_',
+      'wmGetLevelHistoryLabelForLevel_',
+      'wmRenderRecordLevelHistoryBoard_',
+      'wmSwitchHistoryLevel_'
+    ]),
+    levelBarProgress: Object.freeze([
+      'updateProgress'
+    ]),
+    setBlockProgress: Object.freeze([
       'wmBuildSequentialDisplayRoundMapForMap_',
       'wmGetDisplayRoundForBlock_',
       'wmApplyLearningMapStatus',
       'wmGetRepeatCountFromRecordsForMap_',
       'wmGetProgressFromStatusForMap_',
-      'updateProgress'
+      'renderSetMap',
+      'getBlockClass',
+      'getBlockContent'
+    ]),
+    currentProgressGuide: Object.freeze([
+      'wmRenderCurrentProgressGuide_',
+      'wmShowLearningModeBanner'
     ]),
     studyStart: Object.freeze([
       'wmCheckCurrentSession',
@@ -4332,7 +4354,10 @@ function resetHomeworkFilters(){
     studentInfo: '학생정보 로딩',
     currentProgressDB: '현재진행_DB',
     learningRecordDB: '학습기록_DB',
-    progressCalculation: '진행률 계산',
+    historyLevel: '히스토리레벨',
+    levelBarProgress: '레벨바 진행률',
+    setBlockProgress: '세트 블록 진행률·색상·점수',
+    currentProgressGuide: '현재진행_DB 6개 공식 안내',
     studyStart: '학습시작',
     mapReturn: '학습맵 진입·이탈 경로'
   });
@@ -4448,8 +4473,6 @@ function resetHomeworkFilters(){
       ? '✅ ' + item.lockedCount + '/' + item.totalCount + ' ACTUAL LOCK'
       : '❌ ' + item.lockedCount + '/' + item.totalCount + ' LOCK CHECK';
   });
-  moduleConsole['학습히스토리'] = '⏸ LOCK 보류 (기능 작업 중)';
-
   console.group('🔒 WORD MATE MAP ACTUAL FUNCTION LOCK STATUS');
   console.log('LOCK VERSION : ' + WM_MAP_ACTUAL_LOCK_VERSION);
   console.log('LOCK DATE    : ' + WM_MAP_ACTUAL_LOCK_DATE);
@@ -4467,10 +4490,9 @@ function resetHomeworkFilters(){
   }
 
   console.log(allCompletedModulesLocked
-    ? '🔒 COMPLETED MODULES ALL LOCK VERIFIED (학습히스토리 제외)'
+    ? '🔒 MAP LEARNING FORMULA ALL LOCK VERIFIED'
     : '⚠️ ACTUAL LOCK CHECK REQUIRED');
-  console.log('FULL MAP ACTUAL LOCK PROGRESS : 7 / 8 MODULES');
-  console.log('PENDING MODULE : 학습히스토리');
+  console.log('FULL MAP ACTUAL LOCK PROGRESS : 10 / 10 MODULES');
   console.groupEnd();
 })();
 
