@@ -2950,7 +2950,7 @@ function extractRecordRowsFromResponse(data){
       const pageRows = rows.slice(start, start + WM_MANAGE_PAGE_SIZE);
       setManageLoading('records', false);
       tbody.innerHTML = pageRows.map(rawRow=>{
-    const row = Object.assign(wmRepairShiftedStudentModeRow(rawRow), {__wmCurrentProgress:rawRow.__wmCurrentProgress || null});
+    const row = wmRepairShiftedStudentModeRow(rawRow);
         return '<tr>'+WM_RECORD_HEADERS.map(header=>{
           const value = cellValue(row, headerAliases(header));
           return '<td>'+escapeHtml(displayCellValue(value, header))+'</td>';
@@ -3234,9 +3234,9 @@ function extractRecordRowsFromResponse(data){
         const [data, currentProgressData] = await Promise.all([res.json(), currentProgressRes.json()]);
         WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
         const currentProgressRows = normalizeRows(currentProgressData && (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) ? (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) : currentProgressData);
-        const currentProgressByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim().toUpperCase(), row]));
+        const currentProgressByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim(), row]));
         WM_STUDENT_MANAGE_ROWS.forEach(row => {
-          const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim().toUpperCase());
+          const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim());
           const currentSet = currentProgress ? String(currentProgress['Set_ID'] || '').trim() : '';
           if(currentSet) row['현재세트'] = currentSet;
           row.__wmCurrentProgress = currentProgress || null;
@@ -4892,14 +4892,14 @@ function wmModeSelectHtml(studentId, key, value, options, config){
 function wmLevelConditionLockState(row){
   const progress = row && row.__wmCurrentProgress;
   if(!progress) return {locked:false, reason:''};
-  const completeText = String(progress['레벨완료여부'] || '').trim().toUpperCase();
-  if(completeText === 'Y' || completeText === 'TRUE' || completeText === '완료'){
-    return {locked:true, reason:'완료된 레벨의 완료조건은 수정할 수 없습니다.'};
-  }
-  const progressLevel = Number(String(progress['현재레벨'] || progress['Set_ID'] || '').match(/\d+/)?.[0] || 0);
-  const currentLevel = Number(String(wmCurrentSetDisplayValue(row['현재세트']) || '').match(/\d+/)?.[0] || 0);
-  const hasStarted = !!String(progress['학생ID'] || '').trim();
-  if(hasStarted && progressLevel && currentLevel && progressLevel === currentLevel){
+  /* 현재 레벨 학습 시작 판정 기준
+   * 8.현재진행_DB의 Set_ID와 완료Step만 사용합니다.
+   * Set_ID: 실제 학습한 세트
+   * 완료Step: 해당 세트에서 저장 완료된 Step
+   */
+  const setId = String(progress['Set_ID'] || '').trim();
+  const completedStep = String(progress['완료Step'] || '').trim();
+  if(setId && completedStep){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
   }
   return {locked:false, reason:''};
