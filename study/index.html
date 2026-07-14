@@ -3741,7 +3741,7 @@ const WM_STUDY_LOCKS = Object.freeze({
 
 function wmStudyInstallFunctionLocks(){
   const lockedNames = [];
-  [WM_STUDY_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS].forEach(lockRegistry=>{
+  [WM_STUDY_LOCKS, WM_STUDY_SPEED_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS].forEach(lockRegistry=>{
     Object.keys(lockRegistry).forEach(groupName=>{
       const group = lockRegistry[groupName];
       Object.keys(group).forEach(name=>{
