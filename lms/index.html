@@ -4890,9 +4890,7 @@ function wmModeSelectHtml(studentId, key, value, options, config){
 }
 
 function wmLevelConditionLockState(row){
-  const progress = row && row.__wmCurrentProgress;
-  if(!progress) return {locked:false, reason:''};
-  const hasCompletedStep = !!String(progress['완료Step'] || '').trim();
+  const hasCompletedStep = !!String((row && row['완료Step']) || '').trim();
   if(hasCompletedStep){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
   }
