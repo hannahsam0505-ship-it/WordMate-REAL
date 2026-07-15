@@ -4833,7 +4833,8 @@ function wmLearningAssignSelectHtml(studentId, value){
   ];
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const current = wmNormalizeLearningAssignForDisplay(value || '3레벨');
-  return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="최초배정" id="wmMode_최초배정_${escapeHtml(safeId)}">${opts.map(([val,label])=>`<option value="${escapeHtml(val)}" ${val === current ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>`;
+  const locked = !!String(value || '').trim();
+  return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="최초배정" id="wmMode_최초배정_${escapeHtml(safeId)}" ${locked ? 'disabled title="최초배정 저장 완료 후에는 수정할 수 없습니다."' : ''}>${opts.map(([val,label])=>`<option value="${escapeHtml(val)}" ${val === current ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>`;
 }
 
 function wmIsValidS4Value(value){
