@@ -5646,6 +5646,7 @@ function wmInstallLevelCompleteConditionFunctionLocks(){
 const WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS = wmInstallLevelCompleteConditionFunctionLocks();
 
 async function wmLogLevelCompleteConditionLockStatus(){
+  console.info('🔒 LEVEL COMPLETE CONDITION LOCK VERIFY START');
   const moduleNames = ['CURRENT_PROGRESS','LOCK_CHECK','DISABLED_RENDER','SAVE'];
   const rows = moduleNames.map(function(moduleName){
     const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
@@ -5658,7 +5659,7 @@ async function wmLogLevelCompleteConditionLockStatus(){
     return {MODULE:moduleName,FUNCTIONS:functions.length,LOCKED:verified ? 'YES' : 'NO'};
   });
   let server = null;
-  try{ server = await wmFetchSettingApi('levelCompleteConditionLockStatus', {}); }
+  try{ server = await wmFetchSettingApi('levelCompleteConditionLockStatus', {ts:Date.now()}); }
   catch(error){ server = {allVerified:false,error:String(error && error.message ? error.message : error)}; }
   const allVerified = Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCK_V1)
     && Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS)
@@ -5673,7 +5674,8 @@ async function wmLogLevelCompleteConditionLockStatus(){
   return allVerified;
 }
 
-document.addEventListener('DOMContentLoaded', wmLogLevelCompleteConditionLockStatus);
+window.WM_VERIFY_LEVEL_COMPLETE_CONDITION_LOCK = wmLogLevelCompleteConditionLockStatus;
+wmLogLevelCompleteConditionLockStatus();
 
   </script>
 
