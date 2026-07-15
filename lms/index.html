@@ -3239,6 +3239,7 @@ function extractRecordRowsFromResponse(data){
           const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim());
           const currentSet = currentProgress ? String(currentProgress['Set_ID'] || '').trim() : '';
           if(currentSet) row['현재세트'] = currentSet;
+          row['완료Step'] = currentProgress ? String(currentProgress['완료Step'] || '').trim() : '';
           row.__wmCurrentProgress = currentProgress || null;
         });
         renderStudentManageRows();
