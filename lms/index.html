@@ -4898,7 +4898,7 @@ function wmLevelConditionLockState(row){
   }
   const progressLevel = Number(String(progress['현재레벨'] || progress['Set_ID'] || '').match(/\d+/)?.[0] || 0);
   const currentLevel = Number(String(wmCurrentSetDisplayValue(row['현재세트']) || '').match(/\d+/)?.[0] || 0);
-  const hasStarted = !!String(progress['완료Step'] || '').trim();
+  const hasStarted = !!String(progress['학습기록ID'] || progress['완료Step'] || progress['현재Step'] || '').trim();
   if(hasStarted && progressLevel && currentLevel && progressLevel === currentLevel){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
   }
@@ -5615,89 +5615,6 @@ function wmLogStudentAssignmentLockStatus(){
 }
 
 document.addEventListener('DOMContentLoaded', wmLogStudentAssignmentLockStatus);
-
-/* ============================================================
-   WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 / 실제 실행 연결 + F12 검증
-   현재진행_DB 완료Step 기준 레벨완료조건 비활성화를 동결합니다.
-   ============================================================ */
-const WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 = Object.freeze({
-  version: 'WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.0',
-  CURRENT_PROGRESS: Object.freeze({
-    load: loadStudents
-  }),
-  COMPLETE_STEP_CHECK: Object.freeze({
-    lockState: wmLevelConditionLockState
-  }),
-  DISABLED_RENDER: Object.freeze({
-    render: wmModeSelectHtml
-  }),
-  SAVE: Object.freeze({
-    save: saveStudentLearningModeFromRow
-  })
-});
-
-function wmInstallLevelCompleteConditionFunctionLocks(){
-  const names = [];
-  ['CURRENT_PROGRESS','COMPLETE_STEP_CHECK','DISABLED_RENDER','SAVE'].forEach(function(moduleName){
-    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
-    Object.keys(module).forEach(function(key){
-      const fn = module[key];
-      const name = fn && fn.name;
-      if(!name || names.includes(name)) return;
-      try{
-        const descriptor = Object.getOwnPropertyDescriptor(window, name);
-        Object.defineProperty(window, name, {
-          value: fn,
-          writable: false,
-          configurable: false,
-          enumerable: descriptor ? descriptor.enumerable : true
-        });
-      }catch(error){
-        console.error('LEVEL COMPLETE CONDITION LOCK INSTALL ERROR', name, error);
-      }
-      names.push(name);
-    });
-  });
-  return Object.freeze(names);
-}
-
-const WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS = wmInstallLevelCompleteConditionFunctionLocks();
-
-async function wmLogLevelCompleteConditionLockStatus(){
-  const moduleNames = ['CURRENT_PROGRESS','COMPLETE_STEP_CHECK','DISABLED_RENDER','SAVE'];
-  const rows = moduleNames.map(function(moduleName){
-    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
-    const functions = Object.keys(module);
-    const verified = Object.isFrozen(module) && functions.every(function(key){
-      const fn = module[key];
-      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
-      return window[fn.name] === fn
-        && !!descriptor
-        && descriptor.writable === false
-        && descriptor.configurable === false;
-    });
-    return {MODULE:moduleName, FUNCTIONS:functions.length, LOCKED:verified ? 'YES' : 'NO'};
-  });
-  let server = null;
-  try{
-    server = await wmFetchSettingApi('levelCompleteConditionLockStatus', {});
-  }catch(error){
-    server = {allVerified:false, error:String(error && error.message ? error.message : error)};
-  }
-  const allVerified = Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCK_V1)
-    && Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS)
-    && rows.every(function(row){ return row.LOCKED === 'YES'; })
-    && !!(server && server.allVerified === true);
-  console.group('🔒 WORD MATE LEVEL COMPLETE CONDITION LOCK STATUS');
-  console.info('LOCK VERSION :', WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.version);
-  console.table(rows);
-  console.info(server && server.allVerified === true ? 'SERVER SAVE : ✅ ACTUAL LOCK' : 'SERVER SAVE : ❌ CHECK REQUIRED');
-  console.info(allVerified ? '🔒 LEVEL COMPLETE CONDITION ALL LOCK VERIFIED' : '❌ LEVEL COMPLETE CONDITION LOCK VERIFY FAILED');
-  console.groupEnd();
-  return allVerified;
-}
-
-document.addEventListener('DOMContentLoaded', wmLogLevelCompleteConditionLockStatus);
 
   </script>
 
