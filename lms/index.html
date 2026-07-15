@@ -4331,7 +4331,7 @@ async function wmLogCodeGsStudentAssignmentLockStatusOnLms_(){
   }
 
   const modules = status && status.modules ? status.modules : {};
-  const moduleNames = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','SAVE','NEXT_LEVEL_PLUS_ONE'];
+  const moduleNames = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','SAVE','NEXT_LEVEL_PLUS_ONE','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE'];
 
   console.group('🔒 WORD MATE CODE.GS STUDENT ASSIGNMENT LOCK STATUS');
   console.info('LOCK VERSION :', String(status && status.version || ''));
@@ -5551,8 +5551,8 @@ document.addEventListener('DOMContentLoaded', wmLogLmsDevConnectionLockStatus);
    WM_STUDENT_ASSIGNMENT_LOCK_V1 / 실제 실행 연결 + F12 검증
    ============================================================ */
 const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
-  version: 'WM_STUDENT_ASSIGNMENT_LOCK_V1.0',
-  date: '2026-07-14',
+  version: 'WM_STUDENT_MANAGE_DB_LOCK_V1.0',
+  date: '2026-07-15',
   FIRST_ASSIGNMENT: Object.freeze({
     render: wmLearningAssignSelectHtml,
     save: saveStudentLearningModeFromRow
@@ -5567,12 +5567,29 @@ const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
     saveMessage: wmNextLevelSaveMessage,
     confirm: confirmNextLevelCompleteCondition,
     save: saveStudentLearningModeFromRow
+  }),
+  LEVEL_COMPLETE_CONDITION: Object.freeze({
+    render: wmModeSelectHtml,
+    lockState: wmLevelConditionLockState,
+    save: saveStudentLearningModeFromRow
+  }),
+  SILHOUETTE_TEST_MODE: Object.freeze({
+    render: wmModeSelectHtml,
+    save: saveStudentLearningModeFromRow,
+    saveAll: saveAllStudentLearningModes
+  }),
+  FIXED_LEFT_SIX_COLUMNS: Object.freeze({
+    render: renderStudentManageRows,
+    syncScroll: syncStudentTableScroll
+  }),
+  ALTERNATING_ROW_COLOR: Object.freeze({
+    render: renderStudentManageRows
   })
 });
 
 function wmInstallStudentAssignmentFunctionLocks(){
   const names = [];
-  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].forEach(function(moduleName){
+  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE','FIXED_LEFT_SIX_COLUMNS','ALTERNATING_ROW_COLOR'].forEach(function(moduleName){
     const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
     Object.keys(module).forEach(function(key){
       const fn = module[key];
@@ -5598,7 +5615,7 @@ function wmInstallStudentAssignmentFunctionLocks(){
 const WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS = wmInstallStudentAssignmentFunctionLocks();
 
 function wmLogStudentAssignmentLockStatus(){
-  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].map(function(moduleName){
+  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE','FIXED_LEFT_SIX_COLUMNS','ALTERNATING_ROW_COLOR'].map(function(moduleName){
     const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
     const functions = Object.keys(module);
     const verified = Object.isFrozen(module) && functions.every(function(key){
