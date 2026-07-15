@@ -3234,12 +3234,28 @@ function extractRecordRowsFromResponse(data){
         const [data, currentProgressData] = await Promise.all([res.json(), currentProgressRes.json()]);
         WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
         const currentProgressRows = normalizeRows(currentProgressData && (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) ? (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) : currentProgressData);
-        const currentProgressByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim(), row]));
+        const currentProgressByStudentId = new Map(
+          currentProgressRows.map(row => [
+            String(row['학생ID'] || '').trim(),
+            row
+          ])
+        );
+
         WM_STUDENT_MANAGE_ROWS.forEach(row => {
-          const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim());
-          const currentSet = currentProgress ? String(currentProgress['Set_ID'] || '').trim() : '';
+          const currentProgress = currentProgressByStudentId.get(
+            String(row['학생ID'] || '').trim()
+          );
+
+          const currentSet = currentProgress
+            ? String(currentProgress['Set_ID'] || '').trim()
+            : '';
+
           if(currentSet) row['현재세트'] = currentSet;
-          row['완료Step'] = currentProgress ? String(currentProgress['완료Step'] || '').trim() : '';
+
+          row['완료Step'] = currentProgress
+            ? String(currentProgress['완료Step'] || '').trim()
+            : '';
+
           row.__wmCurrentProgress = currentProgress || null;
         });
         renderStudentManageRows();
