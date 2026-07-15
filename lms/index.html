@@ -4331,7 +4331,7 @@ async function wmLogCodeGsStudentAssignmentLockStatusOnLms_(){
   }
 
   const modules = status && status.modules ? status.modules : {};
-  const moduleNames = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','SAVE','NEXT_LEVEL_PLUS_ONE'];
+  const moduleNames = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','SAVE','NEXT_LEVEL_PLUS_ONE','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE'];
 
   console.group('🔒 WORD MATE CODE.GS STUDENT ASSIGNMENT LOCK STATUS');
   console.info('LOCK VERSION :', String(status && status.version || ''));
@@ -4842,7 +4842,7 @@ function wmNormalizeLearningAssignForDisplay(value){
   return m ? `${m[1]}레벨` : text;
 }
 
-function wmLearningAssignSelectHtml(studentId, value, config){
+function wmLearningAssignSelectHtml(studentId, value){
   const opts = [
     ['3레벨','3(초3)'],['4레벨','4(초4)'],['5레벨','5(초5)'],['6레벨','6(초6)'],
     ['7레벨','7(중1)'],['8레벨','8(중2)'],['9레벨','9(중3)'],['10레벨','10(고1)'],
@@ -4850,9 +4850,7 @@ function wmLearningAssignSelectHtml(studentId, value, config){
   ];
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const current = wmNormalizeLearningAssignForDisplay(value || '3레벨');
-  const locked = !!(config && config.locked);
-  const reason = String((config && config.reason) || '').trim();
-  return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="최초배정" id="wmMode_최초배정_${escapeHtml(safeId)}" ${locked ? 'disabled' : ''} ${reason ? `title="${escapeHtml(reason)}"` : ''}>${opts.map(([val,label])=>`<option value="${escapeHtml(val)}" ${val === current ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>${locked ? `<span title="${escapeHtml(reason)}" style="margin-left:5px;cursor:help;">🔒</span>` : ''}`;
+  return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="최초배정" id="wmMode_최초배정_${escapeHtml(safeId)}">${opts.map(([val,label])=>`<option value="${escapeHtml(val)}" ${val === current ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>`;
 }
 
 function wmIsValidS4Value(value){
@@ -4912,14 +4910,6 @@ function wmLevelConditionLockState(row){
   const hasCompletedStep = !!String((row && row['완료Step']) || '').trim();
   if(hasCompletedStep){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
-  }
-  return {locked:false, reason:''};
-}
-
-function wmLearningAssignLockState(row){
-  const hasCompletedStep = !!String((row && row['완료Step']) || '').trim();
-  if(hasCompletedStep){
-    return {locked:true, reason:'학습 시작 후 최초배정은 수정할 수 없습니다.'};
   }
   return {locked:false, reason:''};
 }
@@ -5312,13 +5302,12 @@ function renderStudentManageRows(){
     const complete = wmNormalizeStudentModeValue(row, '레벨완료조건', '2회');
     const nextComplete = wmNormalizeStudentModeValue(row, '다음레벨완료조건', '2회');
     const levelConditionLock = wmLevelConditionLockState(row);
-    const learningAssignLock = wmLearningAssignLockState(row);
     return `<tr>
       <td>${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>
       <td>${escapeHtml(studentId)}${duplicateBadge}</td>
       <td><button class="wm-link-btn" onclick="openStudentMap('${escapeHtml(studentName)}')">${escapeHtml(studentName)}</button></td>
       <td>${escapeHtml(row['비밀번호'] || '')}</td>
-      <td>${wmLearningAssignSelectHtml(studentId, row['최초배정'] || row['학습배정'] || '', learningAssignLock)}</td>
+      <td>${wmLearningAssignSelectHtml(studentId, row['최초배정'] || row['학습배정'] || '')}</td>
       <td>${wmModeSelectHtml(studentId, '레벨완료조건', complete, ['1회','2회','3회'], levelConditionLock)}</td>
       <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, ['0단계','1단계','2단계','3단계','전체'])}</td>
       <td>${wmModeSelectHtml(studentId, 'S6테스트모드', s6, ['기본전체','객관식(2개)','객관식+영한','객관식+한영'])}</td>
@@ -5562,8 +5551,8 @@ document.addEventListener('DOMContentLoaded', wmLogLmsDevConnectionLockStatus);
    WM_STUDENT_ASSIGNMENT_LOCK_V1 / 실제 실행 연결 + F12 검증
    ============================================================ */
 const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
-  version: 'WM_STUDENT_ASSIGNMENT_LOCK_V1.0',
-  date: '2026-07-14',
+  version: 'WM_STUDENT_MANAGE_DB_LOCK_V1.0',
+  date: '2026-07-15',
   FIRST_ASSIGNMENT: Object.freeze({
     render: wmLearningAssignSelectHtml,
     save: saveStudentLearningModeFromRow
@@ -5578,12 +5567,29 @@ const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
     saveMessage: wmNextLevelSaveMessage,
     confirm: confirmNextLevelCompleteCondition,
     save: saveStudentLearningModeFromRow
+  }),
+  LEVEL_COMPLETE_CONDITION: Object.freeze({
+    render: wmModeSelectHtml,
+    lockState: wmLevelConditionLockState,
+    save: saveStudentLearningModeFromRow
+  }),
+  SILHOUETTE_TEST_MODE: Object.freeze({
+    render: wmModeSelectHtml,
+    save: saveStudentLearningModeFromRow,
+    saveAll: saveAllStudentLearningModes
+  }),
+  FIXED_LEFT_SIX_COLUMNS: Object.freeze({
+    render: renderStudentManageRows,
+    syncScroll: syncStudentTableScroll
+  }),
+  ALTERNATING_ROW_COLOR: Object.freeze({
+    render: renderStudentManageRows
   })
 });
 
 function wmInstallStudentAssignmentFunctionLocks(){
   const names = [];
-  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].forEach(function(moduleName){
+  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE','FIXED_LEFT_SIX_COLUMNS','ALTERNATING_ROW_COLOR'].forEach(function(moduleName){
     const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
     Object.keys(module).forEach(function(key){
       const fn = module[key];
@@ -5609,7 +5615,7 @@ function wmInstallStudentAssignmentFunctionLocks(){
 const WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS = wmInstallStudentAssignmentFunctionLocks();
 
 function wmLogStudentAssignmentLockStatus(){
-  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].map(function(moduleName){
+  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION','LEVEL_COMPLETE_CONDITION','SILHOUETTE_TEST_MODE','FIXED_LEFT_SIX_COLUMNS','ALTERNATING_ROW_COLOR'].map(function(moduleName){
     const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
     const functions = Object.keys(module);
     const verified = Object.isFrozen(module) && functions.every(function(key){
