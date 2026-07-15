@@ -4892,14 +4892,8 @@ function wmModeSelectHtml(studentId, key, value, options, config){
 function wmLevelConditionLockState(row){
   const progress = row && row.__wmCurrentProgress;
   if(!progress) return {locked:false, reason:''};
-  /* 현재 레벨 학습 시작 판정 기준
-   * 8.현재진행_DB의 Set_ID와 완료Step만 사용합니다.
-   * Set_ID: 실제 학습한 세트
-   * 완료Step: 해당 세트에서 저장 완료된 Step
-   */
-  const setId = String(progress['Set_ID'] || '').trim();
-  const completedStep = String(progress['완료Step'] || '').trim();
-  if(setId && completedStep){
+  const hasCompletedStep = !!String(progress['완료Step'] || '').trim();
+  if(hasCompletedStep){
     return {locked:true, reason:'현재 진행 중인 레벨의 완료조건은 수정할 수 없습니다.'};
   }
   return {locked:false, reason:''};
