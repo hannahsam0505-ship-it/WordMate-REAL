@@ -3234,9 +3234,9 @@ function extractRecordRowsFromResponse(data){
         const [data, currentProgressData] = await Promise.all([res.json(), currentProgressRes.json()]);
         WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
         const currentProgressRows = normalizeRows(currentProgressData && (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) ? (currentProgressData.currentProgress || currentProgressData.currentProgressRows || currentProgressData.rows || currentProgressData.data) : currentProgressData);
-        const currentProgressByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim(), row]));
+        const currentProgressByStudentId = new Map(currentProgressRows.map(row => [String(row['학생ID'] || '').trim().toLowerCase(), row]));
         WM_STUDENT_MANAGE_ROWS.forEach(row => {
-          const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim());
+          const currentProgress = currentProgressByStudentId.get(String(row['학생ID'] || '').trim().toLowerCase());
           const currentSet = currentProgress ? String(currentProgress['Set_ID'] || '').trim() : '';
           if(currentSet) row['현재세트'] = currentSet;
           row.__wmCurrentProgress = currentProgress || null;
@@ -4353,7 +4353,7 @@ function setStudentIdCreateStatus(active, text){
 }
 
 /* WM_STUDENT_ID_RULE_260708_V1
-   학생ID 공식: 영문/숫자 4~10자, 대소문자 구분 없이 대문자 정규화, 중복만 차단합니다.
+   학생ID 공식: 영문/숫자 4~10자, 입력값은 그대로 유지하고 비교만 대소문자를 구분하지 않습니다.
    기존 S4821/S1057 형식은 그대로 유효합니다. */
 function normalizeWordMateStudentId(value){
   return String(value || '').trim();
@@ -4367,7 +4367,7 @@ function isValidWordMateStudentId(value){
 function wmNormalizeStudentIdInputForCreate(){
   const target = document.getElementById('studentAutoId');
   if(!target) return '';
-  const normalized = normalizeWordMateStudentId(target.value).replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  const normalized = normalizeWordMateStudentId(target.value).replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
   target.value = normalized;
   return normalized;
 }
@@ -4375,7 +4375,7 @@ function wmNormalizeStudentIdInputForCreate(){
 function collectExistingStudentIdsForCreate(){
   const set = new Set();
   const push = value => {
-    const id = String(value || '').trim();
+    const id = String(value || '').trim().toLowerCase();
     if(id) set.add(id);
   };
   (WM_STUDENT_MANAGE_ROWS || []).forEach(row => push(cellValue(row, headerAliases('학생ID')) || row['학생ID']));
@@ -4390,7 +4390,7 @@ function makeLocalRandomStudentId(){
     let id = '';
     for(let j=0; j<6; j++) id += chars.charAt(Math.floor(Math.random() * chars.length));
     if(!isValidWordMateStudentId(id)) continue;
-    if(used.has(id)) continue;
+    if(used.has(id.toLowerCase())) continue;
     return id;
   }
   return '';
@@ -4505,7 +4505,7 @@ async function saveStudentCreateToDB(){
     return;
   }
   const usedIds = collectExistingStudentIdsForCreate();
-  if(usedIds.has(issuedStudentId)) {
+  if(usedIds.has(issuedStudentId.toLowerCase())) {
     alert('이미 사용된 학생ID입니다. 다른 학생ID를 입력하거나 자동발급을 다시 실행해 주세요.');
     return;
   }
@@ -4546,7 +4546,7 @@ async function saveStudentCreateToDB(){
 let WM_STUDENT_REGISTER_CHECKED_ID = '';
 
 function wmStudentRegisterIdCompareKey(value){
-  return String(value || '').trim();
+  return String(value || '').trim().toLowerCase();
 }
 
 function wmStudentRegisterIdRawValue(value){
@@ -4624,7 +4624,7 @@ function wmStudentRegisterExistingIdSet(){
   const used = new Set();
   (WM_STUDENT_MANAGE_ROWS || []).forEach(row=>{
     const id = wmStudentRegisterIdCompareKey(cellValue(row, headerAliases('학생ID')) || row['학생ID']);
-    if(id) used.add(id.toLowerCase());
+    if(id) used.add(id);
   });
   return used;
 }
@@ -4647,7 +4647,7 @@ function wmMakeStudentRegisterLocalId(){
   for(let i=0; i<3000; i++){
     let id = '';
     for(let j=0; j<6; j++) id += chars.charAt(Math.floor(Math.random() * chars.length));
-    if(isValidWordMateStudentId(id) && !used.has(id)) return id;
+    if(isValidWordMateStudentId(id) && !used.has(wmStudentRegisterIdCompareKey(id))) return id;
   }
   return '';
 }
@@ -5285,7 +5285,7 @@ function renderStudentManageRows(){
   tbody.innerHTML = pageRows.map(rawRow=>{
     const row = wmRepairShiftedStudentModeRow(rawRow);
     const studentId = row['학생ID'] || '';
-    const normalizedStudentId = normalizeWordMateStudentId(studentId);
+    const normalizedStudentId = wmStudentRegisterIdCompareKey(studentId);
     const duplicateBadge = duplicatedStudentIds.has(normalizedStudentId) ? '<span class="wm-duplicate-id-badge">중복</span>' : '';
     const studentName = row['학생이름'] || '';
     const s4 = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '전체');
@@ -5615,6 +5615,65 @@ function wmLogStudentAssignmentLockStatus(){
 }
 
 document.addEventListener('DOMContentLoaded', wmLogStudentAssignmentLockStatus);
+
+/* WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 / 실제 실행 연결 + F12 검증 */
+const WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 = Object.freeze({
+  version: 'WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.0',
+  CURRENT_PROGRESS: Object.freeze({load:loadStudents}),
+  LOCK_CHECK: Object.freeze({lockState:wmLevelConditionLockState}),
+  DISABLED_RENDER: Object.freeze({render:wmModeSelectHtml}),
+  SAVE: Object.freeze({save:saveStudentLearningModeFromRow})
+});
+
+function wmInstallLevelCompleteConditionFunctionLocks(){
+  const names = [];
+  ['CURRENT_PROGRESS','LOCK_CHECK','DISABLED_RENDER','SAVE'].forEach(function(moduleName){
+    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
+    Object.keys(module).forEach(function(key){
+      const fn = module[key];
+      const name = fn && fn.name;
+      if(!name || names.includes(name)) return;
+      try{
+        const descriptor = Object.getOwnPropertyDescriptor(window, name);
+        Object.defineProperty(window, name, {value:fn,writable:false,configurable:false,enumerable:descriptor ? descriptor.enumerable : true});
+      }catch(error){ console.error('LEVEL COMPLETE CONDITION LOCK INSTALL ERROR', name, error); }
+      names.push(name);
+    });
+  });
+  return Object.freeze(names);
+}
+
+const WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS = wmInstallLevelCompleteConditionFunctionLocks();
+
+async function wmLogLevelCompleteConditionLockStatus(){
+  const moduleNames = ['CURRENT_PROGRESS','LOCK_CHECK','DISABLED_RENDER','SAVE'];
+  const rows = moduleNames.map(function(moduleName){
+    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
+    const functions = Object.keys(module);
+    const verified = Object.isFrozen(module) && functions.every(function(key){
+      const fn = module[key];
+      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
+      return window[fn.name] === fn && !!descriptor && descriptor.writable === false && descriptor.configurable === false;
+    });
+    return {MODULE:moduleName,FUNCTIONS:functions.length,LOCKED:verified ? 'YES' : 'NO'};
+  });
+  let server = null;
+  try{ server = await wmFetchSettingApi('levelCompleteConditionLockStatus', {}); }
+  catch(error){ server = {allVerified:false,error:String(error && error.message ? error.message : error)}; }
+  const allVerified = Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCK_V1)
+    && Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS)
+    && rows.every(function(row){ return row.LOCKED === 'YES'; })
+    && !!(server && server.allVerified === true);
+  console.group('🔒 WORD MATE LEVEL COMPLETE CONDITION LOCK STATUS');
+  console.info('LOCK VERSION :', WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.version);
+  console.table(rows);
+  console.info(server && server.allVerified === true ? 'SERVER : ✅ ACTUAL LOCK' : 'SERVER : ❌ CHECK REQUIRED');
+  console.info(allVerified ? '🔒 LEVEL COMPLETE CONDITION ALL LOCK VERIFIED' : '❌ LEVEL COMPLETE CONDITION LOCK VERIFY FAILED');
+  console.groupEnd();
+  return allVerified;
+}
+
+document.addEventListener('DOMContentLoaded', wmLogLevelCompleteConditionLockStatus);
 
   </script>
 
