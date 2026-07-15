@@ -5677,6 +5677,115 @@ async function wmLogLevelCompleteConditionLockStatus(){
 window.WM_VERIFY_LEVEL_COMPLETE_CONDITION_LOCK = wmLogLevelCompleteConditionLockStatus;
 wmLogLevelCompleteConditionLockStatus();
 
+/* WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1 / 설정센터·학생관리_DB·학습기록_DB·페이지 실제 함수 LOCK */
+const WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1 = Object.freeze({
+  version: 'WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1.0',
+  SETTING_CENTER: WM_SETTING_CENTER_LOCK_V1,
+  STUDENT_DB: Object.freeze({
+    filter: getStudentManageFilteredRows,
+    load: loadStudents,
+    render: renderStudentManageRows,
+    saveRow: saveStudentLearningModeFromRow,
+    saveAll: saveAllStudentLearningModes,
+    syncScroll: syncStudentTableScroll
+  }),
+  STUDY_RECORD_DB: Object.freeze({
+    filter: getRecordManageFilteredRows,
+    filterDbRows: filterLearningRecordRows,
+    extract: extractRecordRowsFromResponse,
+    fetch: fetchRecordRowsByUrl,
+    load: loadRecords,
+    render: renderRecordManageRows,
+    syncScroll: syncRecordTableScroll
+  }),
+  PAGINATION: Object.freeze({
+    ensure: wmEnsureManagePager,
+    update: wmUpdateManagePager,
+    move: moveManagePage
+  })
+});
+
+function wmInstallLmsCoreFunctionActualLocks(){
+  const installed = [];
+  ['SETTING_CENTER','STUDENT_DB','STUDY_RECORD_DB','PAGINATION'].forEach(function(moduleName){
+    const module = WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1[moduleName];
+    Object.keys(module).forEach(function(key){
+      const fn = module[key];
+      if(typeof fn !== 'function' || !fn.name || installed.includes(fn.name)) return;
+      try{
+        const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
+        Object.defineProperty(window, fn.name, {
+          value: fn,
+          writable: false,
+          configurable: false,
+          enumerable: descriptor ? descriptor.enumerable : true
+        });
+        installed.push(fn.name);
+      }catch(error){
+        console.error('LMS CORE FUNCTION LOCK INSTALL ERROR', moduleName, key, fn.name, error);
+      }
+    });
+  });
+  return Object.freeze(installed);
+}
+
+const WM_LMS_CORE_FUNCTION_ACTUAL_LOCKED = wmInstallLmsCoreFunctionActualLocks();
+
+function wmVerifyLmsCoreFunctionActualLocks(){
+  const rows = [];
+  ['SETTING_CENTER','STUDENT_DB','STUDY_RECORD_DB','PAGINATION'].forEach(function(moduleName){
+    const module = WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1[moduleName];
+    Object.keys(module).forEach(function(key){
+      const fn = module[key];
+      if(typeof fn !== 'function') return;
+      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
+      const sameFunction = window[fn.name] === fn;
+      const writableLocked = !!descriptor && descriptor.writable === false;
+      const configurableLocked = !!descriptor && descriptor.configurable === false;
+      let replaceBlocked = false;
+      try{
+        replaceBlocked = Reflect.defineProperty(window, fn.name, {value:function WM_TAMPER_TEST(){}}) === false;
+      }catch(error){
+        replaceBlocked = true;
+      }
+      const originalMaintained = window[fn.name] === fn;
+      rows.push({
+        MODULE: moduleName,
+        FUNCTION: fn.name,
+        WRITABLE: writableLocked ? 'FALSE' : 'TRUE',
+        CONFIGURABLE: configurableLocked ? 'FALSE' : 'TRUE',
+        REPLACE_BLOCKED: replaceBlocked ? 'YES' : 'NO',
+        ORIGINAL_MAINTAINED: originalMaintained ? 'YES' : 'NO',
+        LOCKED: sameFunction && writableLocked && configurableLocked && replaceBlocked && originalMaintained ? 'YES' : 'NO'
+      });
+    });
+  });
+  const summary = ['SETTING_CENTER','STUDENT_DB','STUDY_RECORD_DB','PAGINATION'].map(function(moduleName){
+    const moduleRows = rows.filter(function(row){ return row.MODULE === moduleName; });
+    const lockedCount = moduleRows.filter(function(row){ return row.LOCKED === 'YES'; }).length;
+    return {
+      MODULE: moduleName,
+      FUNCTIONS: moduleRows.length,
+      LOCKED: lockedCount + '/' + moduleRows.length,
+      TAMPER: lockedCount === moduleRows.length ? 'BLOCKED' : 'FAILED'
+    };
+  });
+  const allVerified = Object.isFrozen(WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1)
+    && Object.isFrozen(WM_LMS_CORE_FUNCTION_ACTUAL_LOCKED)
+    && rows.length > 0
+    && rows.every(function(row){ return row.LOCKED === 'YES'; });
+  console.group('🔒 LMS CORE FUNCTION ACTUAL LOCK STATUS');
+  console.info('LOCK VERSION :', WM_LMS_CORE_FUNCTION_ACTUAL_LOCK_V1.version);
+  console.table(summary);
+  console.table(rows);
+  console.info(allVerified ? '🔒 LMS CORE FUNCTION ACTUAL LOCK VERIFIED' : '❌ LMS CORE FUNCTION ACTUAL LOCK FAILED');
+  console.groupEnd();
+  return {verified:allVerified, summary:summary, rows:rows};
+}
+
+window.WM_VERIFY_LMS_CORE_FUNCTION_LOCKS = wmVerifyLmsCoreFunctionActualLocks;
+wmVerifyLmsCoreFunctionActualLocks();
+
   </script>
 
 <script>
