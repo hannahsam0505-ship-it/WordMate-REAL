@@ -3881,20 +3881,49 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   const replaceBlocked = Reflect.set(window, probeName, function WM_TAMPER_PROBE(){} ) === false;
   const deleteBlocked = Reflect.deleteProperty(window, probeName) === false;
   const originalMaintained = window[probeName] === original;
-  const allVerified = Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) &&
+  const clientVerified = Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) &&
     rows.every(row=>row.LOCKED === "YES") && replaceBlocked && deleteBlocked && originalMaintained;
+  const callbackName = "wmStudyRuntimeExecutionLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
 
-  console.group("🔒 WORD MATE STUDY RUNTIME EXECUTION LOCK STATUS");
-  console.log("LOCK VERSION :", WM_STUDY_RUNTIME_EXECUTION_LOCK_VERSION);
-  console.log("LOCK DATE    :", WM_STUDY_RUNTIME_EXECUTION_LOCK_DATE);
-  console.table(rows);
-  console.log(Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
-  console.log("REPLACE_BLOCKED   :", replaceBlocked ? "YES" : "NO");
-  console.log("DELETE_BLOCKED    :", deleteBlocked ? "YES" : "NO");
-  console.log("ORIGINAL_MAINTAINED:", originalMaintained ? "YES" : "NO");
-  console.log(allVerified ? "🔒 STUDY RUNTIME EXECUTION ALL LOCK VERIFIED" : "❌ STUDY RUNTIME EXECUTION LOCK VERIFY FAILED");
-  console.groupEnd();
-  return allVerified;
+  function finish(serverResult){
+    if(finished) return;
+    finished = true;
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const serverModules = serverResult && serverResult.modules ? serverResult.modules : {};
+    const serverRows = Object.keys(serverModules).map(moduleName=>{
+      const moduleStatus = serverModules[moduleName] || {};
+      return {
+        MODULE:"SERVER_" + moduleName,
+        FUNCTIONS:Object.keys(moduleStatus.functions || {}).length,
+        LOCKED:moduleStatus.verified === true ? "YES" : "NO"
+      };
+    });
+    const serverVerified = !!(serverResult && serverResult.verified);
+    const allVerified = clientVerified && serverVerified;
+
+    console.group("🔒 WORD MATE STUDY RUNTIME EXECUTION LOCK STATUS");
+    console.log("CLIENT LOCK VERSION :", WM_STUDY_RUNTIME_EXECUTION_LOCK_VERSION);
+    console.log("SERVER LOCK VERSION :", String(serverResult && serverResult.version || ""));
+    console.log("LOCK DATE           :", String(serverResult && serverResult.date || WM_STUDY_RUNTIME_EXECUTION_LOCK_DATE));
+    console.table(rows.concat(serverRows));
+    console.log(Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) ? "✅ CLIENT REGISTRY FROZEN" : "❌ CLIENT REGISTRY CHECK REQUIRED");
+    console.log(serverResult && serverResult.registryFrozen === true ? "✅ SERVER REGISTRY FROZEN" : "❌ SERVER REGISTRY CHECK REQUIRED");
+    console.log("REPLACE_BLOCKED    :", replaceBlocked ? "YES" : "NO");
+    console.log("DELETE_BLOCKED     :", deleteBlocked ? "YES" : "NO");
+    console.log("ORIGINAL_MAINTAINED:", originalMaintained ? "YES" : "NO");
+    console.log(allVerified ? "🔒 STUDY RUNTIME EXECUTION ALL LOCK VERIFIED" : "❌ STUDY RUNTIME EXECUTION LOCK VERIFY FAILED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){finish(null);};
+  script.src = API_URL + "?action=studyRuntimeExecutionLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){finish(null);},12000);
 }
 
 window.wmLogLevelTransitionNoticeLockStatus = function(){
