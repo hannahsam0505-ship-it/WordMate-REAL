@@ -5518,6 +5518,7 @@ let audioGapTimer = null;
 let audioRepeatCount = 0;
 let audioMaxRepeat = Infinity;
 let currentAudioItem = null;
+let WM_CURRENT_SET_AUDIO_URL = "";
 let isDbReady = false;
 let isDbLoading = false;
 let dbLoadError = "";
@@ -5852,6 +5853,48 @@ function fixDriveAudioUrl(url){
     return "https://drive.google.com/uc?export=download&id=" + match[1];
   }
   return raw;
+}
+
+/* WM_DEV_STUDY_WORD_AUDIO_OVERRIDE_V1_20260716
+   빠른이동테스트의 지정 단어만 Cloudinary 독립 MP3를 우선 재생합니다. */
+const WM_WORD_AUDIO_OVERRIDE_URLS = Object.freeze({
+  "WM5-1-10|favorite":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158889/WM5-1-10_favorite_v2_q3zx3e.mp3",
+  "WM5-2-7|club":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158405/WM5-2-7_club_v2_zvnxwx.mp3",
+  "WM5-2-7|few":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158956/WM5-2-7_few_v2_o5u6uq.mp3",
+  "WM5-2-7|love":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158994/WM5-2-7_love_v2_c6gb1f.mp3",
+  "WM5-2-7|remember":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158997/WM5-2-7_remember_v2_syvpyn.mp3",
+  "WM5-2-7|scissors":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159003/WM5-2-7_scissors_v2_ex9qjc.mp3",
+  "WM5-2-7|everywhere":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158927/WM5-2-7_everywhere_v2_rqi8ls.mp3",
+  "WM6-2-3|post office":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159018/WM6-2-3_post-office_v2_f6ts1o.mp3",
+  "WM6-2-8|earache":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159023/WM6-2-8_earache_v2_ribzwv.mp3",
+  "WM7-1-9|blond":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159027/WM7-1-9_blond_v2_vdwvki.mp3",
+  "WM7-2-1|curry":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159029/WM7-2-1_curry_v2_qaawed.mp3",
+  "WM7-2-4|recycle":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159031/WM7-2-4_recycle_v2_v981or.mp3",
+  "WM8-3-1|suspension":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159051/WM8-3-1__suspension_v2_zd6gqe.mp3",
+  "WM9-1-3|plagiarism":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159056/WM9-1-3_plagiarism_v2_ip8yxh.mp3",
+  "WM11-4-10|ridiculous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159066/WM11-4-10_ridiculous_v2_i8sosi.mp3",
+  "WM12-1-5|statistical":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159068/WM12-1-5_statistical_v2_igdd6o.mp3",
+  "WM12-1-6|presumption":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159074/WM12-1-6_presumption_v2_c69p6j.mp3",
+  "WM12-2-7|distortion":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159072/WM12-2-7_distortion_v2_x04cfp.mp3",
+  "WM12-2-7|malnourished":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159076/WM12-2-7_malnourished_v2_icy5ag.mp3",
+  "WM12-2-8|melancholic":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159098/WM12-2-8_melancholic_v2_rx1ne5.mp3",
+  "WM12-2-8|controvert":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159078/WM12-2-8_controvert_v2_cytwbq.mp3",
+  "WM13-1-6|uniqueness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159101/WM13-1-6_uniqueness_v2_gkk8rt.mp3",
+  "WM13-2-7|dither":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159106/WM13-2-7_dither_v2_yo0vqz.mp3",
+  "WM13-3-3|penal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159109/WM13-3-3_penal_v2_isliyr.mp3",
+  "WM13-3-7|breed":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159111/WM13-3-7_breed_v2_xqgap1.mp3",
+  "WM13-4-8|progenitor":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159119/WM13-4-8_progenitor_v2_g0fvnr.mp3",
+  "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3"
+});
+
+function wmNormalizeWordAudioOverrideKey(setId, word){
+  const normalizedSetId = String(setId || "").trim().toUpperCase();
+  const normalizedWord = String(word || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return normalizedSetId + "|" + normalizedWord;
+}
+
+function wmGetWordAudioOverrideUrl(setId, word){
+  return WM_WORD_AUDIO_OVERRIDE_URLS[wmNormalizeWordAudioOverrideKey(setId, word)] || "";
 }
 
 /* WM_STUDY_USE_DEV_FINAL_AUDIO_VALUES_V1_20260711
@@ -6528,6 +6571,7 @@ async function loadSetFromDB(){
 
     originalWords = loadedWords;
     currentWords = [...originalWords];
+    WM_CURRENT_SET_AUDIO_URL = audioUrl;
     wordAudio.src = audioUrl;
     wordAudio.load();
 
@@ -6678,12 +6722,16 @@ function waitForAudioReady(audio){
 async function playWordSegment(item, maxRepeat = 5){
   if(!item) return;
 
-  const start = Number(item.start);
-  const end = Number(item.end);
-  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
-  if(!wordAudio || !wordAudio.src) return;
+  const overrideUrl = wmGetWordAudioOverrideUrl(currentSetId, item.word);
+  const targetAudioUrl = overrideUrl || WM_CURRENT_SET_AUDIO_URL;
+  if(!wordAudio || !targetAudioUrl) return;
 
   stopWordAudio();
+
+  if(wordAudio.src !== targetAudioUrl){
+    wordAudio.src = targetAudioUrl;
+    wordAudio.load();
+  }
 
   currentAudioItem = item;
   audioRepeatCount = 0;
@@ -6694,6 +6742,13 @@ async function playWordSegment(item, maxRepeat = 5){
     await waitForAudioReady(wordAudio);
   }catch(error){
     console.error(error);
+    return;
+  }
+
+  const start = overrideUrl ? 0 : Number(item.start);
+  const end = overrideUrl ? Number(wordAudio.duration) : Number(item.end);
+  if(!Number.isFinite(start) || !Number.isFinite(end) || end <= start){
+    stopWordAudio();
     return;
   }
 
@@ -8147,7 +8202,10 @@ const WM_STUDY_LOCKS = Object.freeze({
     wmApplySet531AbsoluteFixByIndex,
     wmApplySet533AbsoluteFixByIndex
   }),
-  AUDIO_PLAY: Object.freeze({fixDriveAudioUrl, stopWordAudio, waitForAudioReady, playWordSegment}),
+  AUDIO_PLAY: Object.freeze({
+    fixDriveAudioUrl, wmNormalizeWordAudioOverrideKey, wmGetWordAudioOverrideUrl,
+    stopWordAudio, waitForAudioReady, playWordSegment
+  }),
   SET_DATA: Object.freeze({getInitialSetIdFromUrl, getSetParts, getNextSetId, loadSetFromDB}),
   STUDY_FLOW: Object.freeze({
     startLearning, render, renderStart, renderFlashCard, renderStep2, renderStep3,
