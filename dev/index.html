@@ -4606,6 +4606,7 @@ window.WORDMATE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_x_
 
 
 <!-- 실제 학생학습화면 원본 시작: 아래 코드는 업로드된 원본 그대로 삽입 -->
+<script>window.WM_DEV_ADMIN_REVIEW_MODE = true;</script>
 <!-- ============================================================
    🧪 WORD MATE Study.html - TEST / REAL 전환 설정
    ============================================================
@@ -4664,6 +4665,46 @@ const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
 const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
+
+/* WM_STUDY_DIRECT_ENTRY_GUARD_V1
+   로그인 → 학습맵 → Study 경로로 들어온 경우만 허용합니다.
+   주소창 직접 /study 진입은 Study 화면·세션검사·서버 호출 전에 로그인으로 이동합니다. */
+(function wmAuthorizeStudyEntryBeforeBoot_(){
+  if(window.WM_DEV_ADMIN_REVIEW_MODE === true) return;
+  let entry = '';
+  try{
+    entry = String(new URLSearchParams(window.location.search || '').get('wmEntry') || '').trim().toLowerCase();
+  }catch(err){}
+
+  const validEntry = entry === 'map';
+  const historyAuthorized = !!(
+    window.history &&
+    window.history.state &&
+    window.history.state.wmStudyAuthorized === true
+  );
+
+  if(validEntry){
+    try{
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('wmEntry');
+      const nextState = Object.assign({}, window.history.state || {}, {
+        wmStudyAuthorized: true,
+        wmStudyEntrySource: 'map'
+      });
+      window.history.replaceState(nextState, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    }catch(err){}
+    return;
+  }
+
+  if(historyAuthorized) return;
+
+  try{ window.stop(); }catch(err){}
+  try{
+    window.top.location.replace(WM_LOGIN_URL);
+  }catch(err){
+    window.location.replace(WM_LOGIN_URL);
+  }
+})();
 </script>
 
 <!-- TEST_BOOTH_BANNER_DELETE_START -->
@@ -4982,9 +5023,50 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
   .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
 
+  .wm-level-transition-card{
+    width:100%;
+    max-width:720px;
+    padding:34px 28px 30px;
+  }
+  .wm-level-transition-title{
+    margin:0 0 26px;
+    color:#111827;
+    font-size:22px;
+    font-weight:900;
+    line-height:1.35;
+    text-align:center;
+  }
+  .wm-level-transition-message{
+    color:#111827;
+    font-size:16px;
+    font-weight:600;
+    line-height:1.8;
+    text-align:center;
+  }
+  .wm-level-transition-message .wm-transition-line{display:block;}
+  .wm-level-transition-message .wm-transition-emphasis{color:#2563eb;font-weight:900;}
+  .wm-level-transition-actions{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:28px;
+  }
+  .wm-level-transition-actions .wm-btn{
+    width:150px;
+    max-width:150px;
+    flex:0 0 150px;
+    padding:13px 0;
+    font-size:15px;
+  }
+
   @media(max-width:480px){
     .final-title{font-size:20px;}
     .final-score-box{font-size:20px;}
+    .wm-level-transition-card{padding:28px 18px 24px;}
+    .wm-level-transition-title{font-size:20px;margin-bottom:20px;}
+    .wm-level-transition-message{font-size:15px;line-height:1.75;}
+    .wm-level-transition-actions{gap:8px;margin-top:24px;}
+    .wm-level-transition-actions .wm-btn{width:auto;max-width:none;flex:1 1 0;min-width:0;}
   }
 
   .final-result-info{
@@ -5398,6 +5480,9 @@ function getProgressApiUrl(){
    학습 중 다른 기기에서 새 로그인되면 현재 학습 접속을 종료합니다. */
 let wmStudySessionExpiredShown = false;
 let wmStudySessionCheckTimer = null;
+let wmStudySessionCheckPromise = null;
+let wmStudyLastValidSessionAt = 0;
+const WM_STUDY_SESSION_CACHE_MS = 10000;
 
 function wmStudyClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
@@ -5433,7 +5518,9 @@ function wmStudyShowSessionExpiredModal(){
   }
 }
 
-async function wmStudyCheckCurrentSession(){
+async function wmStudyCheckCurrentSession(options){
+  options = options || {};
+  if(window.WM_DEV_ADMIN_REVIEW_MODE === true) return true;
   /* WM_STUDY_SESSION_GUARD_STRICT_FIX_V2_20260611
      학생ID 또는 sessionToken이 없으면 세션검사를 통과시키지 않습니다.
      이전 코드의 return true 때문에 토큰 누락 상태에서 자동로그아웃이 무력화될 수 있었습니다. */
@@ -5442,32 +5529,49 @@ async function wmStudyCheckCurrentSession(){
     return false;
   }
 
-  try{
-    const url = API_URL
-      + '?action=checkStudentSession'
-      + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
-      + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
-      + '&t=' + Date.now();
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
-      wmStudyShowSessionExpiredModal();
-      return false;
-    }
-  }catch(err){
+  if(!options.force && wmStudyLastValidSessionAt &&
+     Date.now() - wmStudyLastValidSessionAt < WM_STUDY_SESSION_CACHE_MS){
     return true;
   }
 
-  return true;
+  if(wmStudySessionCheckPromise){
+    return wmStudySessionCheckPromise;
+  }
+
+  wmStudySessionCheckPromise = (async function(){
+    try{
+      const url = API_URL
+        + '?action=checkStudentSession'
+        + '&studentId=' + encodeURIComponent(WM_STUDENT_ID)
+        + '&sessionToken=' + encodeURIComponent(WM_SESSION_TOKEN)
+        + '&t=' + Date.now();
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if(data && (data.sessionValid === false || data.valid === false || data.sessionExpired === true)){
+        wmStudyLastValidSessionAt = 0;
+        wmStudyShowSessionExpiredModal();
+        return false;
+      }
+
+      wmStudyLastValidSessionAt = Date.now();
+      return true;
+    }catch(err){
+      return true;
+    }finally{
+      wmStudySessionCheckPromise = null;
+    }
+  })();
+
+  return wmStudySessionCheckPromise;
 }
 
 function wmStudyStartSessionWatcher(){
   if(wmStudySessionCheckTimer) clearInterval(wmStudySessionCheckTimer);
   wmStudyCheckCurrentSession();
   wmStudySessionCheckTimer = setInterval(function(){
-    wmStudyCheckCurrentSession();
+    wmStudyCheckCurrentSession({force:true});
   }, 5000);
 }
 
@@ -5487,9 +5591,13 @@ let currentSetName = makeSetName(currentSetId);
 let WM_COMPLETED_SAVE_SET_ID = "";
 let WM_COMPLETED_SAVE_SET_NAME = "";
 let finalSavePromise = null;
+let WM_OFFICIAL_TRANSITION_RESULT = null;
+let WM_OFFICIAL_NEXT_SET_ID = "";
 let WM_RECORD_SESSION_ID = ''; // 공식 학습기록ID는 Code.gs가 R+YY+MM+3자리 순번으로 생성합니다.
 let wmStepSaveChain = Promise.resolve();
 let wmStepSaveLastError = null;
+let wmStepSaveInFlight = null;
+let wmStepSaveDirty = false;
 
 let originalWords = [];
 
@@ -5659,7 +5767,15 @@ function wmCacheStudyMode(setId, mode){
   }catch(err){}
 }
 
+function wmClearCachedStudyMode(setId){
+  try{
+    localStorage.removeItem(wmStudyModeCacheKey(setId));
+  }catch(err){}
+}
+
 async function wmFetchStudentLearningMode(){
+  const activeSetCache = wmReadCachedStudyMode(currentSetId);
+  if(activeSetCache) return activeSetCache;
   const serverMode = wmReadServerStudyMode();
   if(serverMode){
     WM_ACTIVE_LEARNING_ASSIGN = wmReadServerLearningAssign();
@@ -5670,7 +5786,7 @@ async function wmFetchStudentLearningMode(){
 
   try{
     const res = await fetch(
-      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&ts=' + Date.now(),
+      API_URL + '?action=getStudentLearningMode&studentId=' + encodeURIComponent(WM_STUDENT_ID) + '&setId=' + encodeURIComponent(currentSetId) + '&ts=' + Date.now(),
       { method:'GET', cache:'no-store' }
     );
     const data = await res.json();
@@ -5855,8 +5971,9 @@ function fixDriveAudioUrl(url){
   return raw;
 }
 
-/* WM_DEV_STUDY_WORD_AUDIO_OVERRIDE_V1_20260716
-   빠른이동테스트의 지정 단어만 Cloudinary 독립 MP3를 우선 재생합니다. */
+/* WM_STUDY_WORD_AUDIO_OVERRIDE_V1_20260716
+   지정 단어만 Cloudinary 독립 MP3를 우선 재생하고,
+   나머지 단어는 기존 세트 음원과 Start/End를 그대로 사용합니다. */
 const WM_WORD_AUDIO_OVERRIDE_URLS = Object.freeze({
   "WM5-1-10|favorite":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158889/WM5-1-10_favorite_v2_q3zx3e.mp3",
   "WM5-2-7|club":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784158405/WM5-2-7_club_v2_zvnxwx.mp3",
@@ -6829,8 +6946,10 @@ function markStepCompleted(stepId, stepTitle){
 
 function queueStepSave(status){
   saveProgressSnapshot(status);
+  wmStepSaveDirty = true;
 
   if(!WM_SAVE_API_URL){
+    wmStepSaveDirty = false;
     return Promise.resolve({ok:true, localOnly:true});
   }
 
@@ -6838,11 +6957,12 @@ function queueStepSave(status){
      Step 완료 기록은 즉시 큐에 넣고 백그라운드에서 순서대로 저장합니다.
      일반 Step 이동은 저장 완료를 기다리지 않아 화면이 멈춘 것처럼 보이지 않게 합니다.
      단, 나가기/다음학습/최종이동 시점에는 wmWaitForStepSaves()로 저장 완료를 보장합니다. */
-  wmStepSaveChain = wmStepSaveChain
-    .catch(function(error){
-      wmStepSaveLastError = {ok:false, error:String(error)};
-      return null;
-    })
+  if(wmStepSaveInFlight){
+    return wmStepSaveInFlight;
+  }
+
+  wmStepSaveDirty = false;
+  wmStepSaveInFlight = Promise.resolve()
     .then(function(){ return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed"); })
     .then(function(result){
       if(result && result.ok === false){
@@ -6856,24 +6976,33 @@ function queueStepSave(status){
       console.warn("Word Mate step save failed", error);
       wmStepSaveLastError = {ok:false, error:String(error)};
       return wmStepSaveLastError;
+    })
+    .finally(function(){
+      wmStepSaveInFlight = null;
     });
 
+  wmStepSaveChain = wmStepSaveInFlight;
   return wmStepSaveChain;
 }
 
-function wmWaitForStepSaves(){
-  return wmStepSaveChain
-    .catch(function(error){
-      wmStepSaveLastError = {ok:false, error:String(error)};
-      return wmStepSaveLastError;
-    })
-    .then(function(result){
-      if(wmIsSaveSuccess(result)){
-        wmStepSaveLastError = null;
-        return result;
-      }
-      return wmStepSaveLastError || result || {ok:true};
-    });
+async function wmWaitForStepSaves(){
+  let result = await wmStepSaveChain.catch(function(error){
+    wmStepSaveLastError = {ok:false, error:String(error)};
+    return wmStepSaveLastError;
+  });
+
+  /* 진행 중 저장 사이에 완료된 Step은 오래된 저장 여러 건을 다시 기다리지 않고
+     가장 최신 전체 snapshot 한 건으로 통합 저장합니다. */
+  if(wmStepSaveDirty){
+    wmStepSaveDirty = false;
+    result = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
+  }
+
+  if(wmIsSaveSuccess(result)){
+    wmStepSaveLastError = null;
+    return result;
+  }
+  return wmStepSaveLastError || result || {ok:true};
 }
 
 function renderStepSaveWaiting(stepTitle){
@@ -7209,11 +7338,20 @@ function wmIsSaveSuccess(result){
   return response.ok === true || response.success === true;
 }
 
-/* DEV 관리자 검수모드: 실제 Study 엔진은 실행하되 학생 DB 기록은 차단합니다. */
-const WM_DEV_ADMIN_REVIEW_MODE = true;
+function wmGetOfficialSaveResponse(result){
+  if(!result) return {};
+  if(result.response && typeof result.response === "object") return result.response;
+  return result;
+}
+
+function wmNormalizeOfficialNextSetId(setId){
+  const text=String(setId || "").trim().toUpperCase();
+  if(!text) return "";
+  return text.startsWith("WM") ? text : `WM${text}`;
+}
 
 async function saveLearningRecord(status="completed"){
-  if(WM_DEV_ADMIN_REVIEW_MODE){
+  if(window.WM_DEV_ADMIN_REVIEW_MODE === true){
     const payload = saveProgressSnapshot(status);
     return {ok:true, reviewMode:true, saveBlocked:true, payload};
   }
@@ -7276,6 +7414,9 @@ async function saveLearningRecord(status="completed"){
 
     if(result && result.success && result.recordId){
       WM_RECORD_SESSION_ID = String(result.recordId || '').trim();
+    }
+    if(result && result.success && status === 'completed'){
+      wmClearCachedStudyMode(payload.Set_ID || payload.setId || currentSetId);
     }
 
     return {ok:!!(result && result.success), response:result, payload};
@@ -8086,6 +8227,9 @@ function renderFinalResult(){
   finalSavePromise = wmWaitForStepSaves().then(function(result){
     return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   }).then(result=>{
+    const officialResponse=wmGetOfficialSaveResponse(result);
+    WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
+    WM_OFFICIAL_NEXT_SET_ID=wmNormalizeOfficialNextSetId(officialResponse.nextOfficialSetId);
     const saveStatus=document.getElementById("saveStatus");
     const saveIcon=document.getElementById("saveIcon");
     if(saveStatus){
@@ -8098,11 +8242,54 @@ function renderFinalResult(){
       saveIcon.textContent = saveOk ? "✅" : "⚠️";
       saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
     }
-    if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
+    if(wmIsSaveSuccess(result) && wmIsLevelTransitionResponse(officialResponse)){
+      renderLevelTransitionNotice(officialResponse);
+    }else if(wmIsSaveSuccess(result) && WM_LMS_RETURN_URL){
       setTimeout(returnToLmsIfReady,700);
     }
     return result;
   });
+}
+
+function wmIsLevelTransitionResponse(response){
+  const type=String(response && response.transitionType || "").trim().toUpperCase();
+  return type === "ROUND_CONTINUE" || type === "LEVEL_COMPLETE" || type === "COURSE_COMPLETE";
+}
+
+function renderLevelTransitionNotice(response){
+  const type=String(response && response.transitionType || "").trim().toUpperCase();
+  const setText=String(response && response.setId || WM_COMPLETED_SAVE_SET_ID || currentSetId || "");
+  const levelFromSet=(setText.match(/(?:WM)?(\d+)-/) || [])[1];
+  const level=Number(response && response.transitionLevel || levelFromSet || 0);
+  const completedRound=Math.max(1,Number(response && response.completedRound || 1));
+  const targetRounds=Math.max(1,Number(response && response.targetRounds || completedRound));
+  const isCourseComplete=type === "COURSE_COMPLETE";
+  const isLevelComplete=type === "LEVEL_COMPLETE" || isCourseComplete;
+  const title=isLevelComplete ? "Congratulations!" : (completedRound >= 2 ? "Excellent!" : "Good Job!");
+
+  let messageHtml="";
+  if(isLevelComplete){
+    messageHtml=`
+      <span class="wm-transition-line">선생님이 지정한 <span class="wm-transition-emphasis">${level}레벨</span> 완료조건 <span class="wm-transition-emphasis">${targetRounds}회</span>를</span>
+      <span class="wm-transition-line">모두 마쳤습니다.</span>
+      <span class="wm-transition-line"><span class="wm-transition-emphasis">${level}레벨</span> 학습을 완료했습니다.</span>`;
+  }else{
+    const nextRound=completedRound + 1;
+    messageHtml=`
+      <span class="wm-transition-line">선생님이 지정한 <span class="wm-transition-emphasis">${level}레벨</span> 완료조건 <span class="wm-transition-emphasis">${targetRounds}회중</span></span>
+      <span class="wm-transition-line"><span class="wm-transition-emphasis">${completedRound}회차</span> 학습을 모두 마쳤습니다.</span>
+      <span class="wm-transition-line">지금부터 <span class="wm-transition-emphasis">${nextRound}회차</span> 학습이 시작됩니다.</span>`;
+  }
+
+  const startButton=isCourseComplete ? "" : `<button class="wm-btn" onclick="goNextLearning()">학습시작</button>`;
+  app.innerHTML=`<div class="wm-card wm-level-transition-card">
+    <div class="wm-level-transition-title">${title}</div>
+    <div class="wm-level-transition-message">${messageHtml}</div>
+    <div class="wm-level-transition-actions">
+      ${startButton}
+      <button class="wm-btn" onclick="goFinalExit()">나가기</button>
+    </div>
+  </div>`;
 }
 
 async function goFinalExit(){
@@ -8131,7 +8318,7 @@ async function goFinalExit(){
 async function goNextLearning(){
   stopWordAudio();
   clearInterval(testTimer);
-  const nextSetId = getNextSetId(currentSetId);
+  const nextSetId = WM_OFFICIAL_NEXT_SET_ID || getNextSetId(currentSetId);
   if(!nextSetId){
     alert("다음 학습 세트 정보를 확인할 수 없습니다.");
     return;
@@ -8168,13 +8355,17 @@ async function goNextLearning(){
   finalSavePromise = null;
   wmStepSaveChain = Promise.resolve();
   wmStepSaveLastError = null;
+  wmStepSaveInFlight = null;
+  wmStepSaveDirty = false;
   WM_COMPLETED_SAVE_SET_ID = "";
   WM_COMPLETED_SAVE_SET_NAME = "";
+  WM_OFFICIAL_TRANSITION_RESULT = null;
+  WM_OFFICIAL_NEXT_SET_ID = "";
   WM_ACTIVE_STUDY_MODE_SET_ID = "";
   await startLearning();
 }
 
-function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;stage=0;renderStart();afterScreenRender();}
+function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=null;wmCurrentStepStartTime=null;wmStepSaveChain=Promise.resolve();wmStepSaveLastError=null;wmStepSaveInFlight=null;wmStepSaveDirty=false;stage=0;renderStart();afterScreenRender();}
 
 /* =========================================================
  * WM_STUDY_ALL_LOCK_V1.0_20260711
@@ -8183,16 +8374,111 @@ function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=nu
 const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.1";
 const WM_STUDY_LOCK_DATE = "2026-07-13";
 
-const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.0";
-const WM_STUDY_SPEED_LOCK_DATE = "2026-07-11";
+const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.1";
+const WM_STUDY_SPEED_LOCK_DATE = "2026-07-13";
 const WM_STUDY_SPEED_LOCKS = Object.freeze({
   SET_LOAD: Object.freeze({loadSetFromDB}),
-  STEP_SAVE: Object.freeze({queueStepSave, saveLearningRecord}),
+  SESSION_CHECK: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
+  STEP_SAVE: Object.freeze({queueStepSave, wmWaitForStepSaves, saveLearningRecord}),
   FINAL_TEST_SINGLE_SAVE: Object.freeze({markStepCompleted}),
   FINAL_SAVE: Object.freeze({saveLearningRecord})
 });
 
+const WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION = "WM_LEVEL_TRANSITION_NOTICE_LOCK_V1.0";
+const WM_LEVEL_TRANSITION_NOTICE_LOCK_DATE = "2026-07-14";
+const WM_LEVEL_TRANSITION_NOTICE_LOCKS = Object.freeze({
+  GOOD_JOB_ROUND_TRANSITION: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  EXCELLENT_ROUND_TRANSITION: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEVEL_COMPLETE_NOTICE: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEVEL13_COMPLETE_NOTICE: Object.freeze({wmIsLevelTransitionResponse, renderLevelTransitionNotice}),
+  LEARNING_START: Object.freeze({goNextLearning}),
+  EXIT_TO_MAP: Object.freeze({goFinalExit})
+});
+
+/* =========================================================
+ * WM_STUDY_RUNTIME_EXECUTION_LOCK_V1.0_20260715
+ * 실제 학습 실행 중 핵심 함수가 다시 호출하는 보조 함수까지
+ * 원본 함수 참조로 고정하여 교체·삭제에 의한 동작 변동을 차단합니다.
+ * ========================================================= */
+const WM_STUDY_RUNTIME_EXECUTION_LOCK_VERSION = "WM_STUDY_RUNTIME_EXECUTION_LOCK_V1.0";
+const WM_STUDY_RUNTIME_EXECUTION_LOCK_DATE = "2026-07-15";
+const WM_STUDY_RUNTIME_EXECUTION_LOCKS = Object.freeze({
+  BOOT_CONTEXT: Object.freeze({
+    wmReadServerStudyMode, wmReadServerLearningAssign, getInitialSessionToken,
+    getInitialLearningMode, getInitialStudentId, getInitialStudentName,
+    getInitialStudentProfile, getSaveApiUrl, getProgressApiUrl,
+    wmStudyClearLoginStorage, wmStudyGoLoginAfterSessionExpired,
+    wmStudyShowSessionExpiredModal, getSimpleDeviceInfo
+  }),
+  SET_AND_MODE_FORMULA: Object.freeze({
+    makeSetName, wmSetBadgeHtml, wmGetLevelPartSetCounts,
+    wmNormalizeS4Mode, wmNormalizeS6Mode, wmNormalizeStudyMode,
+    wmGetTargetRoundsFromMode, wmStudyModeCacheKey,
+    getActiveS4Mode, getActiveS6Mode, getActiveMemorySteps,
+    getActiveMemoryTotalRounds
+  }),
+  AUDIO_FINAL_GUARD: Object.freeze({
+    wmIsLevel5AudioTargetSet, wmIsLevel3AudioTargetSet,
+    wmIsWordMateAudioFormulaTargetSet, wmKeepFirstTenWordsForLevel3,
+    wmIsLevel3AudioFinalLockedSet, wmIsLevel4AudioFinalLockedSet,
+    wmIsLevel5AudioFinalLockedSet, wmIsLevel6AudioFinalLockedSet,
+    wmIsLevel7AudioFinalLockedSet, wmIsLevel8AudioFinalLockedSet,
+    wmIsLevel9AudioFinalLockedSet, wmIsLevel10AudioFinalLockedSet,
+    wmIsLevel11AudioFinalLockedSet, wmIsLevel12AudioFinalLockedSet,
+    wmIsLevel13AudioFinalLockedSet, wmIsWordMateAudioFinalLockedSet,
+    wmGetAudioFinalLockLabel, wmGetAudioFinalLockReason,
+    wmIsLevel5AudioLockedSet
+  }),
+  AUDIO_FIXED_TABLE: Object.freeze({
+    wmGetSet528AbsoluteFixByIndex, wmApplySet528AbsoluteFixByIndex,
+    wmGetSet531AbsoluteFixByIndex, wmApplySet531AbsoluteFixByIndex,
+    wmGetSet533AbsoluteFixByIndex, wmApplySet533AbsoluteFixByIndex,
+    wmPromoteSet51CorrectionValuesToOriginal
+  }),
+  SET_DATA_CACHE: Object.freeze({
+    renderDbLoading, wmStudySetDataCacheKey, wmReadStudySetDataCache,
+    wmWriteStudySetDataCache, wmFetchStudySetData,
+    wmWarmCurrentStudySet, wmPrefetchNextStudySet
+  }),
+  ANSWER_AND_LAYOUT: Object.freeze({
+    normalizeText, splitMeaningParts, splitUserMeaningParts,
+    makeSubsets, makePermutations, isMeaningCorrect,
+    getMemoryRoundNumber, getMemoryLevelClass, renderMemoryProgress
+  }),
+  SAVE_PROGRESS_ENGINE: Object.freeze({
+    getElapsedSeconds, getCurrentStepElapsedSeconds, renderStepSaveWaiting,
+    completeStepThen, wmLastCompletedStepCode, wmCurrentProgressStepCode,
+    wmStageFromProgressStep, wmNormalizeCompletedStepsFromProgress,
+    buildOfficialTimeSummary, wmNormalizeDbStepLabel,
+    wmBuildCurrentProgressDbFields, wmIsSaveSuccess,
+    wmGetOfficialSaveResponse, wmNormalizeOfficialNextSetId
+  }),
+  STUDY_SCREEN_FLOW: Object.freeze({
+    showStudyConfirmModal, renderStep4SkippedNotice, getTestList,
+    getActiveTestGuideText, getFinalOfficialTestScore,
+    getFinalOfficialScoreText, todayString, shuffle, wrongRetryTitle,
+    learningGuide, testGuide, nextFlashCard, checkStep2, nextStep2,
+    checkStep3, nextStep3, createRandomSilhouette, getSilhouette,
+    checkMemory, nextMemory, startOneMoreFlash, nextOneMoreFlashCard,
+    renderStartTestOnly
+  }),
+  TEST_EXECUTION: Object.freeze({
+    startTest, getTestTime, renderTestQuestion,
+    activateTestQuestionEvents, addWritingEnterMove, makeChoiceOptions,
+    startTimer, formatTime, updateTimer, wmCaptureFirstTestElapsedSeconds,
+    submitTest, renderTestResult, continueAfterTestResult,
+    startSubjectiveMemory, startRetest, goNextTest
+  }),
+  EXIT_AND_SCREEN_CONTROL: Object.freeze({
+    returnToLmsIfReady, requestLearningFullscreen, exitLearningFullscreen,
+    ensureExitControls, showExitModal, continueLearning,
+    wmBuildReturnToMapUrl, wmStudyRestoreMapLoginStorage,
+    protectDirectTypingInputs, afterScreenRender
+  })
+});
+
 const WM_STUDY_LOCKS = Object.freeze({
+  SESSION_GUARD: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
   AUDIO_FORMULA: Object.freeze({
     normalizeDbWord,
     wmApplySet524FixedOriginal,
@@ -8215,6 +8501,10 @@ const WM_STUDY_LOCKS = Object.freeze({
     markStepCompleted, queueStepSave, wmLoadLearningProgress, wmApplyResumeProgress,
     buildLearningPayload, saveProgressSnapshot, saveLearningRecord
   }),
+  STUDY_MODE_SET_LOCK: Object.freeze({
+    wmReadCachedStudyMode, wmCacheStudyMode, wmClearCachedStudyMode,
+    wmFetchStudentLearningMode, wmPrepareStudyModeForCurrentSet
+  }),
   WRITING_EXACT: Object.freeze({wmIsExactEnglishAnswer}),
   STEP1_STEP5_PROGRESS_LAYOUT: Object.freeze({renderWordProgress}),
   STUDY_EXIT: Object.freeze({leaveLearning, wmStudyReturnToMap, goFinalExit, goNextLearning, restart})
@@ -8222,28 +8512,136 @@ const WM_STUDY_LOCKS = Object.freeze({
 
 function wmStudyInstallFunctionLocks(){
   const lockedNames = [];
-  Object.keys(WM_STUDY_LOCKS).forEach(groupName=>{
-    const group = WM_STUDY_LOCKS[groupName];
-    Object.keys(group).forEach(name=>{
-      const fn = group[name];
-      try{
-        const descriptor = Object.getOwnPropertyDescriptor(window, name);
-        Object.defineProperty(window, name, {
-          value: fn,
-          writable: false,
-          configurable: false,
-          enumerable: descriptor ? descriptor.enumerable : true
-        });
-      }catch(error){
-        console.error("STUDY LOCK INSTALL ERROR", name, error);
-      }
-      lockedNames.push(name);
+  [WM_STUDY_LOCKS, WM_STUDY_SPEED_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS, WM_STUDY_RUNTIME_EXECUTION_LOCKS].forEach(lockRegistry=>{
+    Object.keys(lockRegistry).forEach(groupName=>{
+      const group = lockRegistry[groupName];
+      Object.keys(group).forEach(name=>{
+        if(lockedNames.includes(name)) return;
+        const fn = group[name];
+        try{
+          const descriptor = Object.getOwnPropertyDescriptor(window, name);
+          Object.defineProperty(window, name, {
+            value: fn,
+            writable: false,
+            configurable: false,
+            enumerable: descriptor ? descriptor.enumerable : true
+          });
+        }catch(error){
+          console.error("STUDY LOCK INSTALL ERROR", name, error);
+        }
+        lockedNames.push(name);
+      });
     });
   });
   return [...new Set(lockedNames)];
 }
 
 const WM_STUDY_LOCKED_FUNCTION_NAMES = Object.freeze(wmStudyInstallFunctionLocks());
+
+function wmLogStudyRuntimeExecutionLockStatus(){
+  const rows = Object.keys(WM_STUDY_RUNTIME_EXECUTION_LOCKS).map(moduleName=>{
+    const group = WM_STUDY_RUNTIME_EXECUTION_LOCKS[moduleName];
+    const names = Object.keys(group);
+    const verified = Object.isFrozen(group) && names.every(name=>{
+      const descriptor = Object.getOwnPropertyDescriptor(window, name);
+      return window[name] === group[name] && descriptor &&
+        descriptor.writable === false && descriptor.configurable === false;
+    });
+    return {MODULE:moduleName, FUNCTIONS:names.length, LOCKED:verified ? "YES" : "NO"};
+  });
+
+  const probeName = Object.keys(WM_STUDY_RUNTIME_EXECUTION_LOCKS.AUDIO_FINAL_GUARD)[0];
+  const original = window[probeName];
+  const replaceBlocked = Reflect.set(window, probeName, function WM_TAMPER_PROBE(){} ) === false;
+  const deleteBlocked = Reflect.deleteProperty(window, probeName) === false;
+  const originalMaintained = window[probeName] === original;
+  const clientVerified = Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) &&
+    rows.every(row=>row.LOCKED === "YES") && replaceBlocked && deleteBlocked && originalMaintained;
+  const callbackName = "wmStudyRuntimeExecutionLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
+
+  function finish(serverResult){
+    if(finished) return;
+    finished = true;
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const serverModules = serverResult && serverResult.modules ? serverResult.modules : {};
+    const serverRows = Object.keys(serverModules).map(moduleName=>{
+      const moduleStatus = serverModules[moduleName] || {};
+      return {
+        MODULE:"SERVER_" + moduleName,
+        FUNCTIONS:Object.keys(moduleStatus.functions || {}).length,
+        LOCKED:moduleStatus.verified === true ? "YES" : "NO"
+      };
+    });
+    const serverVerified = !!(serverResult && serverResult.verified);
+    const allVerified = clientVerified && serverVerified;
+
+    console.group("🔒 WORD MATE STUDY RUNTIME EXECUTION LOCK STATUS");
+    console.log("CLIENT LOCK VERSION :", WM_STUDY_RUNTIME_EXECUTION_LOCK_VERSION);
+    console.log("SERVER LOCK VERSION :", String(serverResult && serverResult.version || ""));
+    console.log("LOCK DATE           :", String(serverResult && serverResult.date || WM_STUDY_RUNTIME_EXECUTION_LOCK_DATE));
+    console.table(rows.concat(serverRows));
+    console.log(Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) ? "✅ CLIENT REGISTRY FROZEN" : "❌ CLIENT REGISTRY CHECK REQUIRED");
+    console.log(serverResult && serverResult.registryFrozen === true ? "✅ SERVER REGISTRY FROZEN" : "❌ SERVER REGISTRY CHECK REQUIRED");
+    console.log("REPLACE_BLOCKED    :", replaceBlocked ? "YES" : "NO");
+    console.log("DELETE_BLOCKED     :", deleteBlocked ? "YES" : "NO");
+    console.log("ORIGINAL_MAINTAINED:", originalMaintained ? "YES" : "NO");
+    console.log(allVerified ? "🔒 STUDY RUNTIME EXECUTION ALL LOCK VERIFIED" : "❌ STUDY RUNTIME EXECUTION LOCK VERIFY FAILED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){finish(null);};
+  script.src = API_URL + "?action=studyRuntimeExecutionLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){finish(null);},12000);
+}
+
+window.wmLogLevelTransitionNoticeLockStatus = function(){
+  const clientRows = Object.keys(WM_LEVEL_TRANSITION_NOTICE_LOCKS).map(moduleName=>{
+    const group=WM_LEVEL_TRANSITION_NOTICE_LOCKS[moduleName];
+    const names=Object.keys(group);
+    const verified=Object.isFrozen(group) && names.every(name=>{
+      const descriptor=Object.getOwnPropertyDescriptor(window,name);
+      return window[name]===group[name] && descriptor &&
+        descriptor.writable===false && descriptor.configurable===false;
+    });
+    return {MODULE:moduleName,FUNCTIONS:names.length,LOCKED:verified ? "YES" : "NO"};
+  });
+  const clientVerified=Object.isFrozen(WM_LEVEL_TRANSITION_NOTICE_LOCKS) &&
+    clientRows.every(row=>row.LOCKED==="YES");
+  const callbackName="wmLevelTransitionNoticeLockCallback_"+Date.now();
+  const script=document.createElement("script");
+  let finished=false;
+
+  function finish(serverResult){
+    if(finished) return;
+    finished=true;
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    if(script.parentNode) script.parentNode.removeChild(script);
+    const serverVerified=!!(serverResult && serverResult.verified);
+    const rows=clientRows.concat([
+      {MODULE:"SERVER_TRANSITION_ENGINE",FUNCTIONS:1,LOCKED:serverResult && serverResult.transitionEngine ? "YES" : "NO"}
+    ]);
+    const allVerified=clientVerified && serverVerified;
+    console.group("🔒 WORD MATE LEVEL TRANSITION NOTICE LOCK STATUS");
+    console.log("LOCK VERSION :",WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION);
+    console.log("LOCK DATE    :",WM_LEVEL_TRANSITION_NOTICE_LOCK_DATE);
+    console.table(rows);
+    console.log(Object.isFrozen(WM_LEVEL_TRANSITION_NOTICE_LOCKS) ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
+    console.log(allVerified ? "🔒 LEVEL TRANSITION NOTICE ALL LOCK VERIFIED" : "❌ LEVEL TRANSITION NOTICE LOCK VERIFY FAILED");
+    console.groupEnd();
+  }
+
+  window[callbackName]=finish;
+  script.onerror=function(){finish(null);};
+  script.src=API_URL+"?action=levelTransitionNoticeLockStatus&callback="+encodeURIComponent(callbackName)+"&_="+Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){finish(null);},12000);
+};
 
 function wmLogStudyLockStatus(){
   const rows = [];
@@ -8314,6 +8712,45 @@ function wmLogStudySpeedLockStatus(){
   setTimeout(function(){ finish(null); }, 12000);
 }
 
+/* WM_CODEGS_ALL_LOCK_VERIFY_ON_STUDY_20260713_V1
+ * 기존 wmLogStudySpeedLockStatus()의 JSONP 성공 패턴을 그대로 사용합니다.
+ */
+function wmLogCodeGsAllLockStatusOnStudy_(){
+  const callbackName = "wmCodeGsAllLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
+
+  function finish(status){
+    if(finished) return;
+    finished = true;
+    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const modules = status && status.modules ? status.modules : {};
+    const moduleNames = ['AUTH','MAP','STUDY','DB','LMS','SETTING','SYSTEM'];
+
+    console.group("🔒 WORD MATE CODE.GS ALL LOCK STATUS");
+    console.log("LOCK VERSION :", String(status && status.version || ""));
+    console.log("LOCK DATE    :", String(status && status.date || ""));
+    moduleNames.forEach(function(name){
+      const moduleStatus = modules[name] || {};
+      console.log(
+        name + " : " + (moduleStatus.verified === true ? "✅ ACTUAL LOCK" : "❌ CHECK REQUIRED"),
+        moduleStatus.functions || {}
+      );
+    });
+    console.log(status && status.registryFrozen === true ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
+    console.log(status && status.allVerified === true ? "🔒 CODE.GS ALL LOCK VERIFIED" : "❌ CODE.GS LOCK CHECK REQUIRED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){ finish(null); };
+  script.src = API_URL + "?action=codeGsAllLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){ finish(null); }, 12000);
+}
+
 document.addEventListener("keydown",function(e){
   if(!["1","2","3","4","5"].includes(e.key)) return;
   const activeTag=document.activeElement && document.activeElement.tagName;
@@ -8335,9 +8772,13 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
+wmLogStudyRuntimeExecutionLockStatus();
 wmLogStudySpeedLockStatus();
+wmLogCodeGsAllLockStatusOnStudy_();
+window.wmLogLevelTransitionNoticeLockStatus();
 renderStart();
 </script>
+
 <!-- 실제 학생학습화면 원본 끝 -->
 
 
@@ -9420,6 +9861,20 @@ renderStart();
     finalSavePromise = null;
     completedSteps = [];
     learningStartTime = null;
+    wmCurrentStepStartTime = null;
+    WM_RECORD_SESSION_ID = '';
+    wmStepSaveChain = Promise.resolve();
+    wmStepSaveLastError = null;
+    wmStepSaveInFlight = null;
+    wmStepSaveDirty = false;
+    wmResumeProgress = null;
+    wmProgressLoaded = false;
+    latestSavedPayload = null;
+    WM_COMPLETED_SAVE_SET_ID = '';
+    WM_COMPLETED_SAVE_SET_NAME = '';
+    WM_OFFICIAL_TRANSITION_RESULT = null;
+    WM_OFFICIAL_NEXT_SET_ID = '';
+    WM_ACTIVE_STUDY_MODE_SET_ID = '';
     stage = 0;
     index = 0;
   }
