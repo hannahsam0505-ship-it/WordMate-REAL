@@ -1347,6 +1347,16 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
       localStorage.setItem(WM_LMS_AUTH_STORAGE_KEY, JSON.stringify({ teacher:res.teacher, loginAt:new Date().toISOString() }));
       wmApplyLmsAuth(res.teacher);
+      setTimeout(wmInstallLmsAllActualLocks, 0);
+    }
+
+    function wmCanUseGoogleScriptRun(){
+      const host = String(window.location && window.location.hostname || '').toLowerCase();
+      const isAppsScriptHost = host === 'script.google.com'
+        || host.endsWith('.script.google.com')
+        || host === 'script.googleusercontent.com'
+        || host.endsWith('.script.googleusercontent.com');
+      return isAppsScriptHost && !!(window.google && google.script && google.script.run);
     }
 
     async function wmFetchLmsLogin(teacherId, password){
@@ -1412,7 +1422,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
 
     function wmRequestDevReauth(teacherId, password){
       return new Promise(function(resolve, reject){
-        if(window.google && google.script && google.script.run){
+        if(wmCanUseGoogleScriptRun()){
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
@@ -1504,7 +1514,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       if(!/^\d{4}$/.test(password)){ wmSetLmsLoginMessage('비밀번호는 숫자 4자리입니다.'); return; }
       wmSetLmsLoginMessage('확인 중입니다.', true);
 
-      if(window.google && google.script && google.script.run){
+      if(wmCanUseGoogleScriptRun()){
         let done = false;
         setTimeout(function(){
           if(!done) wmSetLmsLoginMessage('서버 응답이 지연되고 있습니다. 배포 URL 또는 Code.gs 로그인 함수를 확인하세요.');
@@ -5793,7 +5803,8 @@ const WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
   authentication: Object.freeze([
     'wmFetchLmsLogin',
     'wmSubmitLmsLogin',
-    'wmHandleLmsLoginResult'
+    'wmHandleLmsLoginResult',
+    'wmCanUseGoogleScriptRun'
   ]),
   settingCenter: Object.freeze([
     'wmApplyRoleUI',
@@ -6013,8 +6024,7 @@ function wmInstallLmsAllActualLocks(){
   wmVerifyLmsAllActualLocks();
 }
 
-window.addEventListener('load', wmInstallLmsAllActualLocks, {once:true});
-if(document.readyState === 'complete') wmInstallLmsAllActualLocks();
+/* 인증 함수는 로그인 응답 처리까지 원본 실행을 유지하고, 로그인 성공 직후 실제 LOCK을 설치합니다. */
 
   </script>
 
