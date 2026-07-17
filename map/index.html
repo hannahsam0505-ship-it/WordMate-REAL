@@ -4,7 +4,7 @@
 
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
 
-      테스트부스 적용: const WM_ENV = 'REAL';
+      테스트부스 적용: const WM_ENV = 'TEST';
       리얼부스 적용: const WM_ENV = 'REAL';
 
    ⚠️ 아래 WM_ENV 한 줄 외에는 테스트/리얼 전환 목적으로 수정하지 않습니다.
@@ -1422,24 +1422,7 @@ let wmHomeworkCurrentPage = 1;
 let wmHomeworkCurrentSourceRecords = [];
 
 function wmGetApiBaseUrl(){
-  const injectedUrl = String(window.WM_APPS_SCRIPT_URL || window.WM_EXEC_URL || '').trim();
-  if(injectedUrl){
-    return injectedUrl.split('?')[0];
-  }
-
-  try{
-    const storedUrl = String(sessionStorage.getItem('WM_APPS_SCRIPT_URL') || '').trim();
-    if(storedUrl){
-      return storedUrl.split('?')[0];
-    }
-  }catch(err){}
-
-  const currentUrl = String(window.location.href || '').split('?')[0];
-  if(currentUrl.indexOf('/exec') !== -1){
-    return currentUrl;
-  }
-
-  return WM_APPS_SCRIPT_URL;
+  return String(WM_CONFIG.APPS_SCRIPT_URL || '').trim().split('?')[0];
 }
 
 /* WM_MAP_LOGIN_SERVER_SPEED_LOCK_VERIFY_20260713_V1
