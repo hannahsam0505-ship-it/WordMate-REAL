@@ -5934,27 +5934,6 @@ function wmProtectLmsActualFunction_(functionName){
 const WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS = {};
 const WM_LMS_ACTUAL_LOCK_RESULTS = {};
 
-Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS).forEach(function(groupName){
-  const names = WM_LMS_ACTUAL_LOCK_GROUPS[groupName];
-  let lockedCount = 0;
-
-  names.forEach(function(functionName){
-    const result = wmProtectLmsActualFunction_(functionName);
-    WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS[functionName] = result;
-    if(result.locked) lockedCount++;
-  });
-
-  WM_LMS_ACTUAL_LOCK_RESULTS[groupName] = Object.freeze({
-    label: WM_LMS_ACTUAL_LOCK_LABELS[groupName],
-    locked: lockedCount === names.length,
-    lockedCount: lockedCount,
-    totalCount: names.length
-  });
-});
-
-Object.freeze(WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS);
-Object.freeze(WM_LMS_ACTUAL_LOCK_RESULTS);
-
 function wmVerifyLmsAllActualLocks(){
   const consoleRows = {};
   const groupNames = Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS);
@@ -5986,28 +5965,56 @@ function wmVerifyLmsAllActualLocks(){
   return {verified:allVerified, groups:WM_LMS_ACTUAL_LOCK_RESULTS};
 }
 
-Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_GROUPS', {
-  value: WM_LMS_ACTUAL_LOCK_GROUPS,
-  writable: false,
-  configurable: false
-});
-Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_RESULTS', {
-  value: WM_LMS_ACTUAL_LOCK_RESULTS,
-  writable: false,
-  configurable: false
-});
-Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS', {
-  value: WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS,
-  writable: false,
-  configurable: false
-});
-Object.defineProperty(window, 'WM_VERIFY_LMS_ALL_ACTUAL_LOCKS', {
-  value: wmVerifyLmsAllActualLocks,
-  writable: false,
-  configurable: false
-});
+function wmInstallLmsAllActualLocks(){
+  if(Object.isFrozen(WM_LMS_ACTUAL_LOCK_RESULTS)) return;
 
-wmVerifyLmsAllActualLocks();
+  Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS).forEach(function(groupName){
+    const names = WM_LMS_ACTUAL_LOCK_GROUPS[groupName];
+    let lockedCount = 0;
+
+    names.forEach(function(functionName){
+      const result = wmProtectLmsActualFunction_(functionName);
+      WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS[functionName] = result;
+      if(result.locked) lockedCount++;
+    });
+
+    WM_LMS_ACTUAL_LOCK_RESULTS[groupName] = Object.freeze({
+      label: WM_LMS_ACTUAL_LOCK_LABELS[groupName],
+      locked: lockedCount === names.length,
+      lockedCount: lockedCount,
+      totalCount: names.length
+    });
+  });
+
+  Object.freeze(WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS);
+  Object.freeze(WM_LMS_ACTUAL_LOCK_RESULTS);
+
+  Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_GROUPS', {
+    value: WM_LMS_ACTUAL_LOCK_GROUPS,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_RESULTS', {
+    value: WM_LMS_ACTUAL_LOCK_RESULTS,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS', {
+    value: WM_LMS_ACTUAL_LOCK_FUNCTION_RESULTS,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_VERIFY_LMS_ALL_ACTUAL_LOCKS', {
+    value: wmVerifyLmsAllActualLocks,
+    writable: false,
+    configurable: false
+  });
+
+  wmVerifyLmsAllActualLocks();
+}
+
+window.addEventListener('load', wmInstallLmsAllActualLocks, {once:true});
+if(document.readyState === 'complete') wmInstallLmsAllActualLocks();
 
   </script>
 
