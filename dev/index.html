@@ -6004,6 +6004,19 @@ const WM_WORD_AUDIO_OVERRIDE_URLS = Object.freeze({
   "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3"
 });
 
+/* distortion은 세트 ID 재확인 후 2차 LOCK 대상에 포함합니다. */
+const WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS = Object.freeze([
+  "WM5-1-10|favorite", "WM5-2-7|club", "WM5-2-7|few",
+  "WM5-2-7|love", "WM5-2-7|remember", "WM5-2-7|scissors",
+  "WM5-2-7|everywhere", "WM6-2-3|post office", "WM6-2-8|earache",
+  "WM7-1-9|blond", "WM7-2-1|curry", "WM7-2-4|recycle",
+  "WM8-3-1|suspension", "WM9-1-3|plagiarism", "WM11-4-10|ridiculous",
+  "WM12-1-5|statistical", "WM12-1-6|presumption", "WM12-2-7|malnourished",
+  "WM12-2-8|melancholic", "WM12-2-8|controvert", "WM13-1-6|uniqueness",
+  "WM13-2-7|dither", "WM13-3-3|penal", "WM13-3-7|breed",
+  "WM13-4-8|progenitor", "WM13-4-8|application"
+]);
+
 function wmNormalizeWordAudioOverrideKey(setId, word){
   const normalizedSetId = String(setId || "").trim().toUpperCase();
   const normalizedWord = String(word || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -6012,6 +6025,16 @@ function wmNormalizeWordAudioOverrideKey(setId, word){
 
 function wmGetWordAudioOverrideUrl(setId, word){
   return WM_WORD_AUDIO_OVERRIDE_URLS[wmNormalizeWordAudioOverrideKey(setId, word)] || "";
+}
+
+function wmVerifyWordAudioOverrideLock(){
+  const verifiedCount = WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.reduce((count, key)=>{
+    return count + (typeof WM_WORD_AUDIO_OVERRIDE_URLS[key] === "string" &&
+      WM_WORD_AUDIO_OVERRIDE_URLS[key].trim() ? 1 : 0);
+  }, 0);
+  return Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_URLS) &&
+    Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS) &&
+    WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.length === 26 && verifiedCount === 26;
 }
 
 /* WM_STUDY_USE_DEV_FINAL_AUDIO_VALUES_V1_20260711
@@ -8429,6 +8452,10 @@ const WM_STUDY_RUNTIME_EXECUTION_LOCKS = Object.freeze({
     wmGetAudioFinalLockLabel, wmGetAudioFinalLockReason,
     wmIsLevel5AudioLockedSet
   }),
+  WORD_AUDIO_OVERRIDE: Object.freeze({
+    wmNormalizeWordAudioOverrideKey, wmGetWordAudioOverrideUrl,
+    wmVerifyWordAudioOverrideLock
+  }),
   AUDIO_FIXED_TABLE: Object.freeze({
     wmGetSet528AbsoluteFixByIndex, wmApplySet528AbsoluteFixByIndex,
     wmGetSet531AbsoluteFixByIndex, wmApplySet531AbsoluteFixByIndex,
@@ -8547,6 +8574,15 @@ function wmLogStudyRuntimeExecutionLockStatus(){
       return window[name] === group[name] && descriptor &&
         descriptor.writable === false && descriptor.configurable === false;
     });
+    if(moduleName === "WORD_AUDIO_OVERRIDE"){
+      const audioEntriesVerified = wmVerifyWordAudioOverrideLock();
+      return {
+        MODULE:moduleName,
+        FUNCTIONS:names.length,
+        ENTRIES:audioEntriesVerified ? "26/26" : "CHECK REQUIRED",
+        LOCKED:verified && audioEntriesVerified ? "YES" : "NO"
+      };
+    }
     return {MODULE:moduleName, FUNCTIONS:names.length, LOCKED:verified ? "YES" : "NO"};
   });
 
