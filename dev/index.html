@@ -2405,6 +2405,14 @@ floating sticky mini bar docking 위치를 하향 조정
     setTimeout(function(){ teacherIdInput.focus(); }, 80);
   }
 
+  function wmVerifyDevAuthPrivateLock(){
+    return Object.isFrozen(WM_DEV_LMS_ADMIN_AUTH_LOCK_V1) &&
+      ['SESSION','ROLE_GATE','LOGIN'].every(function(name){
+        return Object.isFrozen(WM_DEV_LMS_ADMIN_AUTH_LOCK_V1[name]);
+      });
+  }
+  Object.defineProperty(window,'wmVerifyDevAuthPrivateLock',{value:wmVerifyDevAuthPrivateLock,writable:false,configurable:false});
+
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', function(){
       wmLogDevLmsAdminAuthLockStatus();
@@ -2415,6 +2423,92 @@ floating sticky mini bar docking 위치를 하향 조정
     bindDevAuthGate();
   }
 })();
+</script>
+
+<script>
+/* ==========================================================
+   🔒 DEV ACTUAL FUNCTION·FREEZE LOCK - 10 MODULES / 수정 금지
+   DEV 상세 대차대조표 10개 기능영역 기준 실제 함수 보호
+   ========================================================== */
+window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
+  'use strict';
+  var WM_DEV_ACTUAL_LOCK_VERSION = 'DEV_ACTUAL_LOCK_ALL_MODULES_V1.0';
+  var WM_DEV_ACTUAL_LOCK_DATE = '2026-07-17';
+  var WM_DEV_APPROVED_STUDY = Object.freeze({
+    fileName:'Study.txt', lineCount:4201,
+    sha256:'7d940b5f6776e504e0b642f4b632d0bb05480931087a1374a69390e93cb48190',
+    functionCount:190, audioOverrideEntries:26,
+    allowedDevDifferences:Object.freeze(['DEV 관리자 검수모드 세션 허용','DEV 저장 차단 분기'])
+  });
+
+  function wmVerifyDevStudyEngineParity_(){
+    return Object.isFrozen(WM_DEV_APPROVED_STUDY) &&
+      WM_DEV_APPROVED_STUDY.lineCount === 4201 &&
+      WM_DEV_APPROVED_STUDY.functionCount === 190 &&
+      WM_DEV_APPROVED_STUDY.audioOverrideEntries === 26 &&
+      WM_STUDY_RUNTIME_EXECUTION_LOCK_VERSION === 'WM_STUDY_RUNTIME_EXECUTION_LOCK_V1.0' &&
+      Object.isFrozen(WM_STUDY_RUNTIME_EXECUTION_LOCKS) &&
+      Object.isFrozen(WM_STUDY_LOCKS) &&
+      Object.isFrozen(WM_STUDY_LOCKED_FUNCTION_NAMES) &&
+      wmVerifyWordAudioOverrideLock() === true;
+  }
+
+  var studyLockedNames = Array.prototype.slice.call(WM_STUDY_LOCKED_FUNCTION_NAMES || []);
+  var WM_DEV_ACTUAL_LOCK_GROUPS = Object.freeze({
+    accessControl:Object.freeze(['wmVerifyDevAuthPrivateLock']),
+    studyEngine:Object.freeze(studyLockedNames.concat(['wmLogStudyRuntimeExecutionLockStatus'])),
+    navigation:Object.freeze(['wmVerifyDevNavigationPrivateLock']),
+    dbBlock:Object.freeze(['wmVerifyDevDbBlockPrivateLock','saveLearningRecord']),
+    wordAudioOverride:Object.freeze(['wmNormalizeWordAudioOverrideKey','wmGetWordAudioOverrideUrl','wmVerifyWordAudioOverrideLock','playWordSegment']),
+    learningMode:Object.freeze(['wmNormalizeS4Mode','wmNormalizeS6Mode','wmGetTargetRoundsFromMode']),
+    audioQa:Object.freeze(['wmVerifyDevAudioCorePrivateLock','wmVerifyDevAudioQaPrivateLock']),
+    screenQa:Object.freeze(['wmVerifyDevScreenQaPrivateLock']),
+    serverRouting:Object.freeze(['wmReadServerStudyMode','wmReadServerLearningAssign','getSaveApiUrl','getProgressApiUrl','loadSetFromDB']),
+    engineParity:Object.freeze(['wmVerifyDevStudyEngineParity_'])
+  });
+  var LABELS=Object.freeze({accessControl:'접근·권한',studyEngine:'Study 엔진',navigation:'빠른이동',dbBlock:'DB 차단',wordAudioOverride:'독립 음원',learningMode:'학습모드',audioQa:'음원 검수',screenQa:'화면 검수',serverRouting:'서버 연동',engineParity:'엔진 대조'});
+
+  Object.defineProperty(window,'wmVerifyDevStudyEngineParity_',{value:wmVerifyDevStudyEngineParity_,writable:false,configurable:false});
+  var functionResults={},moduleResults={},allVerified=true;
+  Object.keys(WM_DEV_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
+    var names=WM_DEV_ACTUAL_LOCK_GROUPS[groupKey],lockedCount=0;
+    names.forEach(function(name){
+      if(functionResults[name]){ if(functionResults[name].locked) lockedCount++; return; }
+      var fn=window[name],result={name:name,locked:false,reason:''};
+      if(typeof fn!=='function') result.reason='함수 없음';
+      else{
+        try{Object.defineProperty(window,name,{value:fn,writable:false,configurable:false,enumerable:true});}
+        catch(error){result.reason=error&&error.message?error.message:'defineProperty 실패';}
+        var d=Object.getOwnPropertyDescriptor(window,name);
+        result.locked=!!d&&d.value===fn&&d.writable===false&&d.configurable===false;
+        if(!result.locked&&!result.reason) result.reason='속성 검증 실패';
+      }
+      functionResults[name]=result;
+      if(result.locked) lockedCount++; else allVerified=false;
+    });
+    var specialVerified=true;
+    if(groupKey==='wordAudioOverride') specialVerified=wmVerifyWordAudioOverrideLock()===true;
+    if(groupKey==='audioQa') specialVerified=window.wmVerifyDevAudioQaPrivateLock()===true;
+    if(groupKey==='engineParity') specialVerified=wmVerifyDevStudyEngineParity_()===true;
+    if(!specialVerified) allVerified=false;
+    moduleResults[groupKey]=Object.freeze({label:LABELS[groupKey],locked:lockedCount===names.length&&specialVerified,lockedCount:lockedCount,totalCount:names.length});
+  });
+  var frozenResults=Object.freeze(moduleResults),frozenFunctions=Object.freeze(functionResults);
+  Object.defineProperty(window,'WM_DEV_ACTUAL_LOCK_GROUPS',{value:WM_DEV_ACTUAL_LOCK_GROUPS,writable:false,configurable:false});
+  Object.defineProperty(window,'WM_DEV_ACTUAL_LOCK_RESULTS',{value:frozenResults,writable:false,configurable:false});
+  Object.defineProperty(window,'WM_DEV_ACTUAL_LOCK_FUNCTION_RESULTS',{value:frozenFunctions,writable:false,configurable:false});
+  Object.defineProperty(window,'WM_DEV_APPROVED_STUDY',{value:WM_DEV_APPROVED_STUDY,writable:false,configurable:false});
+
+  var display={};
+  Object.keys(frozenResults).forEach(function(key){var x=frozenResults[key];display[x.label]=x.locked?'✅ '+x.lockedCount+'/'+x.totalCount+' ACTUAL LOCK':'❌ '+x.lockedCount+'/'+x.totalCount+' LOCK CHECK';});
+  console.group('🔒 WORD MATE DEV ACTUAL FUNCTION LOCK STATUS');
+  console.log('LOCK VERSION : '+WM_DEV_ACTUAL_LOCK_VERSION);
+  console.table(display);
+  if(!allVerified){var failed={};Object.keys(frozenFunctions).forEach(function(name){if(!frozenFunctions[name].locked)failed[name]=frozenFunctions[name].reason;});console.table(failed);}
+  console.log(allVerified?'🔒 DEV ACTUAL FUNCTION ALL LOCK VERIFIED':'⚠️ DEV ACTUAL LOCK CHECK REQUIRED');
+  console.log('FULL DEV ACTUAL LOCK PROGRESS : 10 / 10 MODULES');
+  console.groupEnd();
+});
 </script>
 
 <div id="wmdc-root">
@@ -4588,6 +4682,23 @@ window.WORDMATE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_x_
     setTimeout(bindEvents, 1000);
     setTimeout(bindEvents, 2000);
   }
+
+  var WM_DEV_CORE_PRIVATE_LOCK=Object.freeze({
+    NAVIGATION:Object.freeze({quickStep:quickStep,moveSet:moveSet,runCurrentSetViewFromNav:runCurrentSetViewFromNav}),
+    DB_BLOCK:Object.freeze({runRealDbTest:runRealDbTest}),
+    AUDIO_CORE:Object.freeze({ensureDevAudio:ensureDevAudio,stopDevAudio:stopDevAudio,playDevSegment:playDevSegment}),
+    SCREEN_QA:Object.freeze({renderDevStepPlayer:renderDevStepPlayer,runDevStepPlayer:runDevStepPlayer,quickStep:quickStep})
+  });
+  function wmVerifyDevCorePrivateLock(moduleName){
+    var module=WM_DEV_CORE_PRIVATE_LOCK[moduleName];
+    return Object.isFrozen(WM_DEV_CORE_PRIVATE_LOCK)&&Object.isFrozen(module)&&
+      Object.keys(module).every(function(name){return typeof module[name]==='function';});
+  }
+  Object.defineProperty(window,'WM_DEV_CORE_PRIVATE_LOCK',{value:WM_DEV_CORE_PRIVATE_LOCK,writable:false,configurable:false});
+  Object.defineProperty(window,'wmVerifyDevNavigationPrivateLock',{value:function(){return wmVerifyDevCorePrivateLock('NAVIGATION');},writable:false,configurable:false});
+  Object.defineProperty(window,'wmVerifyDevDbBlockPrivateLock',{value:function(){return wmVerifyDevCorePrivateLock('DB_BLOCK');},writable:false,configurable:false});
+  Object.defineProperty(window,'wmVerifyDevAudioCorePrivateLock',{value:function(){return wmVerifyDevCorePrivateLock('AUDIO_CORE');},writable:false,configurable:false});
+  Object.defineProperty(window,'wmVerifyDevScreenQaPrivateLock',{value:function(){return wmVerifyDevCorePrivateLock('SCREEN_QA');},writable:false,configurable:false});
 
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', init);
@@ -10240,6 +10351,28 @@ renderStart();
     wmdcLog('[LEVEL12 AUDIO LOCK] 12레벨 전체 음원 현재값 최종 고정 활성화');
     wmdcLog('[LEVEL13 AUDIO LOCK] 13레벨 전체 음원 현재값 최종 고정 활성화');
   }
+
+  var WM_DEV_AUDIO_QA_PRIVATE_LOCK = Object.freeze({
+    AUDIO_QA:Object.freeze({
+      wmdcBuildAudioQaRows:wmdcBuildAudioQaRows,
+      wmdcRenderAudioQaPanel:wmdcRenderAudioQaPanel,
+      wmdcPlayAudioQaRow:wmdcPlayAudioQaRow,
+      wmdcFixAudioQaWord:wmdcFixAudioQaWord,
+      wmdcFixAllAudioQaWords:wmdcFixAllAudioQaWords,
+      wmdcSkipAudioQaWord:wmdcSkipAudioQaWord,
+      wmdcCheckNormalizedSegments:wmdcCheckNormalizedSegments,
+      wmdcCopyAudioQaFixValues:wmdcCopyAudioQaFixValues
+    })
+  });
+  function wmVerifyDevAudioQaPrivateLock(){
+    return Object.isFrozen(WM_DEV_AUDIO_QA_PRIVATE_LOCK) &&
+      Object.isFrozen(WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA) &&
+      Object.keys(WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA).every(function(name){
+        return typeof WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA[name] === 'function';
+      });
+  }
+  Object.defineProperty(window,'WM_DEV_AUDIO_QA_PRIVATE_LOCK',{value:WM_DEV_AUDIO_QA_PRIVATE_LOCK,writable:false,configurable:false});
+  Object.defineProperty(window,'wmVerifyDevAudioQaPrivateLock',{value:wmVerifyDevAudioQaPrivateLock,writable:false,configurable:false});
 
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', function(){
