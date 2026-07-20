@@ -2192,6 +2192,7 @@ floating sticky mini bar docking 위치를 하향 조정
 </div>
 
 <script>
+/* Apps Script URL은 하단 WM_ENV_CONFIG에서 현재 환경에 맞게 자동 선택합니다. */
 (function(){
   var WM_DEV_AUTH_KEY = 'WM_DEV_AUTH_OK_V2';
   var WM_DEV_REAUTH_KEY = 'WM_DEV_REAUTH_V1';
@@ -3098,8 +3099,6 @@ window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
 </div>
 
 <script>
-window.WORDMATE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec';
-
 (function(){
   function root(){
     return document.getElementById('wmdc-root');
@@ -4751,7 +4750,7 @@ WM_ENV 값에 따라 Study.html이 호출할 Apps Script URL과 아임웹 주소
 
 const WM_ENV_CONFIG = {
   TEST: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
     MAP_URL: 'https://word-mate-test.vercel.app/map',
     STUDY_URL: 'https://word-mate-test.vercel.app/study',
@@ -4772,6 +4771,7 @@ if(!WM_CONFIG || !WM_CONFIG.APPS_SCRIPT_URL || !WM_CONFIG.LOGIN_URL || !WM_CONFI
 }
 
 const API_URL = WM_CONFIG.APPS_SCRIPT_URL;
+window.WORDMATE_APPS_SCRIPT_URL = API_URL;
 const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
 const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
