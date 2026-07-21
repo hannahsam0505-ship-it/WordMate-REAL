@@ -303,7 +303,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-admin-only-serial.wm-hidden { display:none !important; }
     .wm-student-preview-table { margin-top:14px; }
     .wm-student-seq-col { display:none !important; }
-    body.wm-show-student-serial .wm-student-seq-col { display:revert !important; }
+    body.wm-show-student-serial .wm-student-seq-col { display:table-cell !important; }
+    body.wm-show-student-serial label.wm-student-seq-col { display:flex !important; }
     .wm-auto-managed input,.wm-auto-managed select { background:#f3f4f6 !important; color:#6b7280 !important; cursor:not-allowed !important; }
 
     .wm-class-detail-box { display:none; border:1px solid var(--wm-line); background:#fbfdff; border-radius:16px; padding:16px; margin:14px 0 18px; }
@@ -510,13 +511,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
 
   <div class="wm-note wm-inline-help-note">
     학생별로 학습모드를 설정한 후 우측의 저장 버튼을 눌러주세요.<br>
-    설정하지 않으면 기본모드(실루엣 전체 · 기본전체 · 레벨완료 2회)로 배포됩니다.
+    설정하지 않으면 기본모드(실루엣 4단계 · 기본전체 · 레벨완료 2회)로 배포됩니다.
   </div>
 </div>
 
       <div id="studentRegisterBox" class="wm-student-register-box">
         <h3 class="wm-student-register-title">학생등록</h3>
         <div class="wm-student-id-row">
+          <label class="wm-required-field">학생이름<span class="wm-required-star">*</span><input type="text" id="wmStudentRegisterName" placeholder="학생명" /></label>
           <label class="wm-required-field">학생ID<span class="wm-required-star">*</span><input type="text" id="wmStudentRegisterId" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: S4821" onfocus="wmUnlockStudentRegisterIdInput()" onkeydown="event.stopPropagation()" oninput="wmHandleStudentRegisterIdTyping(event)" /></label>
           <button type="button" class="wm-action-btn sub" onclick="wmGenerateStudentRegisterId()">자동생성</button>
           <button type="button" class="wm-action-btn sub" id="wmStudentRegisterCheckBtn" onclick="wmCheckStudentRegisterDuplicate()">중복확인</button><span id="wmStudentRegisterCheckSpinner" class="wm-student-check-spinner" aria-label="중복확인 중"></span>
@@ -525,13 +527,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <span id="wmStudentRegisterStatus" class="wm-student-register-status"></span>
         </div>
         <div class="wm-filter-grid">
-          <label class="wm-student-seq-col wm-auto-managed">학생일련번호<input type="text" id="wmStudentRegisterSerial" placeholder="자동관리" readonly /></label>
-          <label class="wm-required-field">학생이름<span class="wm-required-star">*</span><input type="text" id="wmStudentRegisterName" placeholder="학생명" /></label>
           <label class="wm-required-field">비밀번호<span class="wm-required-star">*</span><input type="text" id="wmStudentRegisterPassword" maxlength="4" inputmode="numeric" placeholder="숫자 4자리" /><button type="button" class="wm-action-btn sub" onclick="wmResetStudentRegisterPassword()" style="margin-top:6px;padding:8px 10px;">초기화(1111)</button></label>
           <label class="wm-required-field">최초배정<span class="wm-required-star">*</span><select id="wmStudentRegisterLearningAssign"><option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option></select></label>
-          <label class="wm-required-field">S4실루엣단계<span class="wm-required-star">*</span><select id="wmStudentRegisterS4"><option value="1단계">1단계(전체보기, 100%)</option><option value="2단계">2단계(힌트기억, 70%)</option><option value="3단계">3단계(부분기억, 30%)</option><option value="4단계">4단계(스스로쓰기, 0%)</option></select></label>
+          <label class="wm-required-field">S4실루엣단계<span class="wm-required-star">*</span><select id="wmStudentRegisterS4"><option value="1단계">1단계('다보기'만, 100%)</option><option value="2단계">2단계('많이보기'까지, 70%)</option><option value="3단계">3단계('조금보기'까지, 30%)</option><option value="4단계" selected>4단계('스스로쓰기'까지, 0%)</option></select></label>
           <label class="wm-required-field">S6테스트모드<span class="wm-required-star">*</span><select id="wmStudentRegisterS6"><option>기본전체</option><option>객관식(2개)</option><option>객관식+영한</option><option>객관식+한영</option></select></label>
           <label class="wm-required-field">레벨완료조건<span class="wm-required-star">*</span><select id="wmStudentRegisterComplete"><option>1회</option><option selected>2회</option><option>3회</option></select></label>
+          <label class="wm-student-seq-col wm-auto-managed">학생일련번호<input type="text" id="wmStudentRegisterSerial" placeholder="자동관리" readonly /></label>
           <label class="wm-auto-managed">현재세트<input type="text" id="wmStudentRegisterCurrentSet" placeholder="자동관리" readonly /></label>
           <label>반명<input type="text" id="wmStudentRegisterClass" placeholder="반명" /></label>
           <label>교사명<input type="text" id="wmStudentRegisterTeacher" placeholder="교사명" /></label>
@@ -559,7 +560,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th>학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>최초배정</th><th>레벨완료조건</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재세트</th><th>다음레벨완료조건</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="33">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="studentTopScroll"><div class="wm-record-scroll-inner" id="studentTopScrollInner"></div></div><div class="wm-table-wrap" id="studentTableWrap"><table id="studentManageTable"><thead><tr><th class="wm-student-seq-col">학생일련번호</th><th>학생ID</th><th>학생이름</th><th>비밀번호</th><th>최초배정</th><th>레벨완료조건</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재세트</th><th>다음레벨완료조건</th><th>반명</th><th>교사명</th><th>학교</th><th>학년</th><th>학부모명</th><th>학부모연락처</th><th>최종결제</th><th>등록일</th><th>최초등록일</th><th>최근결제일</th><th>결제공백일수</th><th>재등록횟수</th><th>총등록기간</th><th>등록상태</th><th>활성상태</th><th>반ID</th><th>교사ID</th><th>현재세션</th><th>세션상태</th><th>최종로그인</th><th>접속기기</th><th>비고</th><th>저장</th></tr></thead><tbody id="studentManageTbody"><tr><td colspan="33">학생관리_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-records">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학습기록 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학습기록_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영했습니다.</p></div>
@@ -4805,6 +4806,8 @@ function wmClearStudentRegisterForm(){
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
+  const s4El = document.getElementById('wmStudentRegisterS4');
+  if(s4El) s4El.value = '4단계';
   WM_STUDENT_REGISTER_CHECKED_ID = '';
   wmUnlockStudentRegisterIdInput();
 }
@@ -4907,7 +4910,7 @@ function wmRepairShiftedStudentModeRow(row){
   fixed['학부모연락처'] = row['학교'] || row['학부모연락처'] || '';
   fixed['최종결제'] = row['학년'] || row['최종결제'] || '';
   fixed['등록일'] = row['주소'] || row['등록일'] || '';
-  fixed['S4실루엣단계'] = '1단계';
+  fixed['S4실루엣단계'] = '4단계';
   fixed['S6테스트모드'] = '기본전체';
   fixed['레벨완료조건'] = '2회';
   return fixed;
@@ -5325,20 +5328,20 @@ function renderStudentManageRows(){
     const normalizedStudentId = wmStudentRegisterIdCompareKey(studentId);
     const duplicateBadge = duplicatedStudentIds.has(normalizedStudentId) ? '<span class="wm-duplicate-id-badge">중복</span>' : '';
     const studentName = row['학생이름'] || '';
-    const s4Raw = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '1단계');
+    const s4Raw = wmNormalizeStudentModeValue(row, 'S4실루엣단계', '4단계');
     const s4 = (s4Raw === '전체' || s4Raw === '0단계') ? '1단계' : s4Raw;
     const s6 = wmNormalizeStudentModeValue(row, 'S6테스트모드', row['학습모드'] || '기본전체');
     const complete = wmNormalizeStudentModeValue(row, '레벨완료조건', '2회');
     const nextComplete = wmNormalizeStudentModeValue(row, '다음레벨완료조건', '2회');
     const levelConditionLock = wmLevelConditionLockState(row);
     return `<tr>
-      <td>${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>
+      <td class="wm-student-seq-col">${escapeHtml(formatStudentSerial(row['학생일련번호']))}</td>
       <td>${escapeHtml(studentId)}${duplicateBadge}</td>
       <td><button class="wm-link-btn" onclick="openStudentMap('${escapeHtml(studentName)}')">${escapeHtml(studentName)}</button></td>
       <td>${escapeHtml(row['비밀번호'] || '')}</td>
       <td>${wmLearningAssignSelectHtml(studentId, row['최초배정'] || row['학습배정'] || '')}</td>
       <td>${wmModeSelectHtml(studentId, '레벨완료조건', complete, ['1회','2회','3회'], levelConditionLock)}</td>
-      <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, [['1단계','1단계(전체보기, 100%)'],['2단계','2단계(힌트기억, 70%)'],['3단계','3단계(부분기억, 30%)'],['4단계','4단계(스스로쓰기, 0%)']])}</td>
+      <td>${wmModeSelectHtml(studentId, 'S4실루엣단계', s4, [['1단계',"1단계('다보기'만, 100%)"],['2단계',"2단계('많이보기'까지, 70%)"],['3단계',"3단계('조금보기'까지, 30%)"],['4단계',"4단계('스스로쓰기'까지, 0%)"]])}</td>
       <td>${wmModeSelectHtml(studentId, 'S6테스트모드', s6, ['기본전체','객관식(2개)','객관식+영한','객관식+한영'])}</td>
       <td>${escapeHtml(wmCurrentSetDisplayValue(row['현재세트']))}</td>
       <td>${wmModeSelectHtml(studentId, '다음레벨완료조건', nextComplete, ['1회','2회','3회'])}</td>
