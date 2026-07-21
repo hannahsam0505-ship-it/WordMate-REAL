@@ -2652,10 +2652,42 @@ function wmNormalizeCurrentSetIdForMap_(setId){
 }
 
 function wmGetOfficialStudySetIdForMap_(){
-  /* 현재진행_DB 응답에서 확정된 기록Set_ID만 공식 학습 진입값으로 사용합니다.
-     URL·root data·브라우저 저장값은 화면 선표시용일 뿐 학습 진입 권한이 아닙니다. */
+  /* WM_MAP_OFFICIAL_SET_ALL_STUDENTS_V1
+     학생 ID별 예외 없이 현재진행_DB와 화면의 공식 current 상태만 사용합니다. */
   const serverProgress = wmCurrentProgressDisplayOverride || {};
-  return wmNormalizeCurrentSetIdForMap_(serverProgress.currentSet || '');
+
+  const candidates = [
+    serverProgress.currentSet,
+    serverProgress.기록Set_ID,
+    serverProgress.recordSetId,
+    serverProgress.Set_ID,
+    serverProgress.setId,
+    wmCurrentStudent && wmCurrentStudent.현재세트,
+    wmStudentProfile && wmStudentProfile.현재세트
+  ];
+
+  for(let i = 0; i < candidates.length; i++){
+    const normalized = wmNormalizeCurrentSetIdForMap_(candidates[i]);
+    if(normalized){
+      const matched = Array.isArray(setData)
+        ? setData.find(function(item){
+            return item && item.set === normalized && item.status === 'current';
+          })
+        : null;
+
+      if(matched){
+        return normalized;
+      }
+    }
+  }
+
+  const currentItem = Array.isArray(setData)
+    ? setData.find(function(item){
+        return item && item.status === 'current';
+      })
+    : null;
+
+  return currentItem ? wmNormalizeCurrentSetIdForMap_(currentItem.set) : '';
 }
 
 function wmExtractLevelNumberFromSetId_(setId){
@@ -3483,10 +3515,10 @@ function renderSetMap(){
     return `
       <div class="set-row${shortClass}"${shortStyle}>
         ${rowItems.map(function(item){
-          /* 현재진행_DB가 지정한 공식 Set_ID 한 개만 학습 진입을 허용합니다. */
-          const officialStudySetId = wmGetOfficialStudySetIdForMap_();
+          /* WM_MAP_CURRENT_STATUS_ENTRY_ALL_STUDENTS_V1
+             학생 ID가 아니라 공식 current 상태로 학습 진입을 통일합니다. */
           const blockAction =
-            officialStudySetId && item.set === officialStudySetId
+            item && item.status === 'current'
               ? 'startStudy'
               : 'showSetDetail';
           return `
@@ -3896,17 +3928,16 @@ async function startStudy(setId){
     return;
   }
 
-  const selectedSetId = String(setId || '').trim();
-  const officialStudySetId = wmGetOfficialStudySetIdForMap_();
+  const selectedSetId = wmNormalizeCurrentSetIdForMap_(setId);
+  const selectedItem = Array.isArray(setData)
+    ? setData.find(function(item){
+        return item && item.set === selectedSetId;
+      })
+    : null;
 
-  if(!officialStudySetId || selectedSetId !== officialStudySetId){
-    showSetDetail(selectedSetId);
-    return;
-  }
-
-  const selectedItem = setData.find(function(item){ return item.set === selectedSetId; });
-
-  if(selectedItem && selectedItem.status === 'locked'){
+  /* WM_MAP_STUDY_ENTRY_ALL_STUDENTS_V1
+     특정 학생 ID·서버 필드 유무와 관계없이 화면의 공식 학습중 세트만 진입합니다. */
+  if(!selectedSetId || !selectedItem || selectedItem.status !== 'current'){
     showSetDetail(selectedSetId);
     return;
   }
