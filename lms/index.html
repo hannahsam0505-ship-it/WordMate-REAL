@@ -3995,14 +3995,14 @@ async function wmFetchSettingApi(action, params){
     const timer = setTimeout(()=>{
       cleanup();
       reject(new Error('서버 응답 시간 초과'));
-    }, 30000);
+    }, 90000);
     function cleanup(){
       clearTimeout(timer);
       try{ delete window[callbackName]; }catch(ignore){ window[callbackName] = undefined; }
       if(script.parentNode) script.parentNode.removeChild(script);
     }
     window[callbackName] = data=>{ cleanup(); resolve(data); };
-    script.onerror = ()=>{ cleanup(); reject(new Error('Apps Script 연결 실패')); };
+    script.onerror = ()=>{ cleanup(); reject(new Error('Apps Script JSONP 응답 로드 실패')); };
     script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + encodeURIComponent(callbackName) + '&_=' + Date.now();
     document.head.appendChild(script);
   });
@@ -4263,8 +4263,7 @@ async function saveSettingClass(){
   const payload = {
     className: document.getElementById('settingClassName')?.value || '',
     teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택',
-    studentIds: selectedStudents.filter(v=>v.id).map(v=>v.id).join(','),
-    studentRefs: JSON.stringify(selectedStudents.filter(v=>v.id).map(v=>({id:v.id, name:v.name || ''})))
+    studentIds: selectedStudents.filter(v=>v.id).map(v=>v.id).join(',')
   };
   if(!payload.className.trim()) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
   if(selectedStudents.some(v=>!v.id)) return setSettingStatus('settingClassStatus','학생ID가 확인되지 않은 학생은 연결할 수 없습니다. 학생ID 표시를 먼저 확인하세요.');
@@ -4275,33 +4274,21 @@ async function saveSettingClass(){
   }
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
-    const requestUrl = wmSettingApiUrl('saveSettingClass', payload) + '&_=' + Date.now();
-    await fetch(requestUrl, {method:'GET', mode:'no-cors', cache:'no-store', redirect:'follow'});
-    await new Promise(resolve=>setTimeout(resolve, 1800));
-    await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
-
-    const normalizedClassName = payload.className.trim();
-    const refreshedStudents = window.wmStudentManageRows || [];
-    const savedStudentIds = new Set(
-      refreshedStudents
-        .filter(row=>String(cellValue(row, headerAliases('반')) || '').trim() === normalizedClassName)
-        .map(row=>String(cellValue(row, headerAliases('학생ID')) || '').trim().toUpperCase())
-        .filter(Boolean)
-    );
-    const requestedStudentIds = selectedStudents.map(v=>String(v.id || '').trim().toUpperCase()).filter(Boolean);
-    const verified = requestedStudentIds.length === 0 || requestedStudentIds.every(id=>savedStudentIds.has(id));
-
-    if(!verified){
-      throw new Error('저장 요청 후 DB 반영이 확인되지 않았습니다. Apps Script 실행 로그를 확인하세요.');
+    console.info('[반등록 요청]', {action:'saveSettingClass', payload:payload});
+    const data = await wmFetchSettingApi('saveSettingClass', payload);
+    console.info('[반등록 응답]', data);
+    if(!data || data.success !== true){
+      const serverMessage = data && (data.error || data.message);
+      throw new Error(serverMessage || 'Apps Script가 반등록 실패 응답을 반환했습니다.');
     }
-
-    setSettingStatus('settingClassStatus','반등록 완료', true);
+    setSettingStatus('settingClassStatus',data.message || '반등록 완료', true);
     wmSettingClassSelectedStudents.clear();
     renderSettingClassSelectedStudents();
     const results = document.getElementById('settingClassStudentResults');
     if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
     const search = document.getElementById('settingClassStudentSearch');
     if(search) search.value = '';
+    await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
   }catch(err){
     console.error('[반등록 저장 실패]', {error:err, payload:payload, url:wmSettingApiUrl('saveSettingClass', payload)});
     setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err));
