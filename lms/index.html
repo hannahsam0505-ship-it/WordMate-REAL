@@ -1276,7 +1276,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
       <div class="wm-filter-actions wm-setting-db-hidden" data-setting-db-view="class">
         <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">7-2.반관리_DB 새로고침</button>
-        <span id="settingClassDbStatus" class="wm-manage-loading"></span>
       </div>
       <div class="wm-table-wrap wm-setting-db-hidden" data-setting-db-view="class">
         <table id="settingClassDbTable">
@@ -1718,9 +1717,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
       if(selected === 'class'){
         renderSettingClassDbRows(wmSettingClassRows || []);
-        if(!WM_SETTING_CENTER_FIRST_LOAD_DONE && window.WM_SETTING_CENTER_LOCK_V1){
-          WM_SETTING_CENTER_LOCK_V1.load();
-        }
       }
     }
 
@@ -4145,11 +4141,11 @@ function renderSettingClassDbRows(rows){
   if(!tbody) return;
   const headers = ['반명','담당교사ID','담당교사명','학생ID목록','학생이름목록','학생수','상태','등록일','수정일','등록자','메모'];
   if(!rows || !rows.length){
-    tbody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB에 등록된 반이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(function(row){
-    return '<tr>'+headers.map(function(header){
+  tbody.innerHTML = rows.map(row=>{
+    return '<tr>'+headers.map(header=>{
       const value = row && row[header] !== undefined ? row[header] : '';
       return '<td>'+escapeHtml(value || (header === '학생수' ? '0' : '-'))+'</td>';
     }).join('')+'</tr>';
