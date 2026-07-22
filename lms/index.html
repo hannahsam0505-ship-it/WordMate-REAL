@@ -4133,10 +4133,46 @@ function fillSettingSelectOptions(allowedGrades){
   wmApplySettingCenterRoleUI((window.WM_LMS_AUTH_TEACHER || {}).권한 || getCurrentRole(), allowedGrades || []);
 }
 
+
+function renderSettingClassDbRows(rows, headers){
+  const table = document.getElementById('wmSettingClassDbColumnTable');
+  if(!table) return;
+
+  const officialHeaders = [
+    '반명','담당교사ID','담당교사명','학생ID목록','학생이름목록',
+    '학생수','상태','등록일','수정일','등록자','메모'
+  ];
+  const displayHeaders = Array.isArray(headers) && headers.length
+    ? officialHeaders.filter(header=>headers.includes(header))
+    : officialHeaders;
+  const finalHeaders = displayHeaders.length ? displayHeaders : officialHeaders;
+
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  if(thead){
+    thead.innerHTML = '<tr>'+finalHeaders.map(header=>'<th>'+escapeHtml(header)+'</th>').join('')+'</tr>';
+  }
+  if(!tbody) return;
+
+  if(!Array.isArray(rows) || !rows.length){
+    tbody.innerHTML = '<tr><td colspan="'+finalHeaders.length+'">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(row=>{
+    return '<tr>'+finalHeaders.map(header=>{
+      const value = row && Object.prototype.hasOwnProperty.call(row, header) ? row[header] : '';
+      return '<td>'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+}
+
 async function loadSettingCenterDB(){
   wmLockStatusMessage('SettingCenter_Search_LOCK','설정센터 조회·검색');
   const tbody = document.getElementById('settingCenterTbody');
   if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 중입니다.</td></tr>';
+  const classTableBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
+  if(classTableBody) classTableBody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 중입니다.</td></tr>';
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
@@ -4144,9 +4180,12 @@ async function loadSettingCenterDB(){
     WM_SETTING_CENTER_FIRST_LOAD_DONE = true;
     wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
+    renderSettingClassDbRows(wmSettingClassRows, (data && data.classHeaders) || []);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
+    const failedBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
+    if(failedBody) failedBody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
 }
 
