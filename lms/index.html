@@ -4267,11 +4267,12 @@ async function saveSettingClass(){
   wmLockStatusMessage('SettingCenter_ClassRegister_LOCK','설정센터 반등록');
   const selectedStudents = Array.from(wmSettingClassSelectedStudents.values());
   const className = String(document.getElementById('settingClassName')?.value || '').trim();
-  const teacherName = String(document.getElementById('settingClassTeacher')?.value || '추후선택').trim() || '추후선택';
+  const teacherName = String(document.getElementById('settingClassTeacher')?.value || '').trim();
   const studentIds = selectedStudents.filter(v=>v.id).map(v=>String(v.id).trim()).filter(Boolean);
 
   if(!className) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
-  if(selectedStudents.some(v=>!v.id)) return setSettingStatus('settingClassStatus','학생ID가 확인되지 않은 학생은 연결할 수 없습니다. 학생ID 표시를 먼저 확인하세요.');
+  if(!teacherName || teacherName === '추후선택') return setSettingStatus('settingClassStatus','담당교사를 선택하세요.');
+  if(!studentIds.length) return setSettingStatus('settingClassStatus','연결할 학생을 선택하세요.');
 
   const moving = selectedStudents.filter(v=>v.currentClass && v.currentClass !== className);
   if(moving.length){
@@ -4281,36 +4282,39 @@ async function saveSettingClass(){
 
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
-    const saveUrl = wmSettingApiUrl('saveSettingClass', {
+    const result = await wmFetchSettingApi('saveSettingClass', {
       className:className,
       teacherName:teacherName,
       studentIds:studentIds.join(','),
       ts:String(Date.now())
     });
 
-    /* Apps Script 응답 CORS/JSONP 판정에 의존하지 않고 저장 요청을 먼저 실행한 뒤,
-       학생관리_DB 재조회 결과로 실제 반영 여부를 판정합니다. */
-    await fetch(saveUrl, {method:'GET', cache:'no-store', mode:'no-cors'});
-    await new Promise(resolve=>setTimeout(resolve, 1600));
-    await loadStudents();
+    if(!result || result.success !== true){
+      throw new Error((result && (result.message || result.error)) || 'Apps Script 반등록 저장 실패');
+    }
+
+    await Promise.all([loadStudents(), WM_SETTING_CENTER_LOCK_V1.load()]);
 
     const studentRows = WM_STUDENT_MANAGE_ROWS || [];
     const savedIds = new Set(studentRows.filter(row=>
-      String(row['반명'] || row['Class'] || '').trim() === className
-    ).map(row=>String(row['학생ID'] || row.studentId || '').trim().toUpperCase()));
+      String(cellValue(row, headerAliases('반')) || '').trim() === className
+    ).map(row=>String(cellValue(row, headerAliases('학생ID')) || '').trim().toUpperCase()));
     const missingIds = studentIds.filter(id=>!savedIds.has(String(id).trim().toUpperCase()));
-    if(missingIds.length){
-      throw new Error('저장 요청 후 DB 반영이 확인되지 않았습니다. Apps Script 실행 로그를 확인하세요.');
-    }
+    if(missingIds.length) throw new Error('학생 Class 반영 확인 실패: '+missingIds.join(', '));
 
-    setSettingStatus('settingClassStatus','반등록 완료', true);
+    const teacherSaved = (wmSettingCenterRows || []).some(row=>{
+      if(String(row['교사명'] || '').trim() !== teacherName) return false;
+      return splitSettingClasses(row['담당반목록']).includes(className);
+    });
+    if(!teacherSaved) throw new Error('교사 담당반목록 반영 확인 실패');
+
+    setSettingStatus('settingClassStatus', result.message || '반등록 완료', true);
     wmSettingClassSelectedStudents.clear();
     renderSettingClassSelectedStudents();
     const results = document.getElementById('settingClassStudentResults');
     if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
     const search = document.getElementById('settingClassStudentSearch');
     if(search) search.value = '';
-    try{ await WM_SETTING_CENTER_LOCK_V1.load(); }catch(ignore){}
   }catch(err){
     setSettingStatus('settingClassStatus','반등록 실패: '+(err && err.message ? err.message : err));
   }
