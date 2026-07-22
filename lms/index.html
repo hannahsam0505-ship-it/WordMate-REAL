@@ -1193,7 +1193,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-table-wrap"><table><thead><tr><th>발송ID</th><th>학생ID</th><th>학생이름</th><th>학부모명</th><th>학부모연락처</th><th>리포트월</th><th>리포트주차</th><th>발송상태</th><th>발송일</th><th>발송시간</th><th>성적표링크</th><th>비고</th></tr></thead><tbody><tr><td colspan="12">발송기록_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-classes">
-      <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7.설정센터_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
+      <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7-1.교사관리_DB + 7-2.반관리_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
       <div class="wm-note">교사/반은 등록 순서와 관계없이 먼저 만들 수 있습니다. 담당반·담당교사는 선택값이 없을 때 <strong>추후선택</strong>으로 저장합니다.</div>
 
       <div class="wm-factory-box" id="wmSettingTeacherRegisterBox">
@@ -1263,7 +1263,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">새로고침</button></div>
       </div>
 
-      <div class="wm-table-wrap"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7.설정센터_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
       <div id="settingClassStudentDetail" class="wm-class-detail-box"></div>
     </section>
     <section class="wm-panel" id="panel-counsel">
@@ -3892,8 +3892,10 @@ function extractRecordRowsFromResponse(data){
     }
 
 /* ===== SETTING CENTER TEACHER/CLASS MANAGEMENT V1 ===== */
-const WM_SETTING_CENTER_SHEET_NAME = '7.설정센터_DB';
+const WM_SETTING_CENTER_SHEET_NAME = '7-1.교사관리_DB';
+const WM_CLASS_MANAGEMENT_SHEET_NAME = '7-2.반관리_DB';
 let wmSettingCenterRows = [];
+let wmSettingClassRows = [];
 let WM_SETTING_CENTER_FIRST_LOAD_DONE = false;
 let wmSettingCenterActorRole = '';
 let wmSettingTeacherIdChecked = '';
@@ -4072,16 +4074,17 @@ function fillSettingSelectOptions(allowedGrades){
 async function loadSettingCenterDB(){
   wmLockStatusMessage('SettingCenter_Search_LOCK','설정센터 조회·검색');
   const tbody = document.getElementById('settingCenterTbody');
-  if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 중입니다.</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 중입니다.</td></tr>';
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
+    wmSettingClassRows = (data && data.classRows) || [];
     WM_SETTING_CENTER_FIRST_LOAD_DONE = true;
     wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
   }catch(err){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="13">7.설정센터_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
 }
 
@@ -4290,7 +4293,7 @@ async function saveSettingClass(){
     });
 
     if(!result || result.success !== true){
-      throw new Error((result && (result.message || result.error)) || 'Apps Script 반등록 저장 실패');
+      throw new Error((result && (result.error || result.message)) || 'Apps Script 반등록 저장 실패');
     }
 
     await Promise.all([loadStudents(), WM_SETTING_CENTER_LOCK_V1.load()]);
@@ -4348,21 +4351,15 @@ async function openRegisteredClasses(){
   box.classList.add('active');
   try{
     await WM_SETTING_CENTER_LOCK_V1.load();
-    const rows=WM_SETTING_CENTER_ROWS || wmSettingCenterRows || [];
-    const classes={};
-    (rows||[]).forEach(r=>{
-      const teacher=String(r['교사명']||'').trim();
-      const list=String(r['담당반목록']||'').split(',').map(v=>v.trim()).filter(Boolean);
-      list.forEach(c=>{
-        if(!classes[c]) classes[c]={name:c,teacher:teacher,students:[] ,status:String(r['상태']||'Active')};
-      });
-    });
-    const html=Object.values(classes).map(c=>
-      '<tr><td>'+escapeHtml(c.name)+'</td><td>'+escapeHtml(c.teacher||'-')+'</td><td>'+c.students.length+'명</td><td><select class="wm-mode-select"><option>Active</option><option>Inactive</option></select></td></tr>'
-    ).join('');
-    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 목록</h3><div class="wm-table-wrap"><table><thead><tr><th>반명</th><th>교사명</th><th>학생수</th><th>상태</th></tr></thead><tbody>'+ (html || '<tr><td colspan="4">등록된 반이 없습니다.</td></tr>') +'</tbody></table></div>';
+    const rows=wmSettingClassRows || [];
+    const html=rows.map(c=>{
+      const studentNames=String(c['학생이름목록']||'').split(',').map(v=>v.trim()).filter(Boolean);
+      const studentCount=Number(c['학생수']||studentNames.length||0);
+      return '<tr><td>'+escapeHtml(c['반명']||'-')+'</td><td>'+escapeHtml(c['담당교사명']||'-')+'</td><td>'+escapeHtml(studentNames.join(', ')||'-')+'</td><td>'+studentCount+'명</td><td>'+escapeHtml(c['상태']||'Active')+'</td></tr>';
+    }).join('');
+    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 목록</h3><div class="wm-table-wrap"><table><thead><tr><th>반명</th><th>담당교사</th><th>학생명단</th><th>학생수</th><th>상태</th></tr></thead><tbody>'+ (html || '<tr><td colspan="5">7-2.반관리_DB에 등록된 반이 없습니다.</td></tr>') +'</tbody></table></div>';
   }catch(err){
-    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 오류</h3>';
+    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 오류: '+escapeHtml(err && err.message ? err.message : err)+'</h3>';
   }
 }
 
