@@ -4275,18 +4275,37 @@ async function saveSettingClass(){
   }
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
-    const data = await wmFetchSettingApi('saveSettingClass', payload);
-    setSettingStatus('settingClassStatus',(data && data.message) || '반등록 완료', !!(data && data.success));
-    if(data && data.success){
-      wmSettingClassSelectedStudents.clear();
-      renderSettingClassSelectedStudents();
-      const results = document.getElementById('settingClassStudentResults');
-      if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
-      const search = document.getElementById('settingClassStudentSearch');
-      if(search) search.value = '';
-      await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
+    const requestUrl = wmSettingApiUrl('saveSettingClass', payload) + '&_=' + Date.now();
+    await fetch(requestUrl, {method:'GET', mode:'no-cors', cache:'no-store', redirect:'follow'});
+    await new Promise(resolve=>setTimeout(resolve, 1800));
+    await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
+
+    const normalizedClassName = payload.className.trim();
+    const refreshedStudents = window.wmStudentManageRows || [];
+    const savedStudentIds = new Set(
+      refreshedStudents
+        .filter(row=>String(cellValue(row, headerAliases('반')) || '').trim() === normalizedClassName)
+        .map(row=>String(cellValue(row, headerAliases('학생ID')) || '').trim().toUpperCase())
+        .filter(Boolean)
+    );
+    const requestedStudentIds = selectedStudents.map(v=>String(v.id || '').trim().toUpperCase()).filter(Boolean);
+    const verified = requestedStudentIds.length === 0 || requestedStudentIds.every(id=>savedStudentIds.has(id));
+
+    if(!verified){
+      throw new Error('저장 요청 후 DB 반영이 확인되지 않았습니다. Apps Script 실행 로그를 확인하세요.');
     }
-  }catch(err){ setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err)); }
+
+    setSettingStatus('settingClassStatus','반등록 완료', true);
+    wmSettingClassSelectedStudents.clear();
+    renderSettingClassSelectedStudents();
+    const results = document.getElementById('settingClassStudentResults');
+    if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
+    const search = document.getElementById('settingClassStudentSearch');
+    if(search) search.value = '';
+  }catch(err){
+    console.error('[반등록 저장 실패]', {error:err, payload:payload, url:wmSettingApiUrl('saveSettingClass', payload)});
+    setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err));
+  }
 }
 
 function openSettingClassStudentList(className){
