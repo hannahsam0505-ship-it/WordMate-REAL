@@ -374,6 +374,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-required-field input,.wm-required-field select { border-color:#93c5fd !important; background:#fff !important; }
     .wm-student-check-spinner { display:none; width:16px; height:16px; border:2px solid #dbeafe; border-top-color:var(--wm-blue); border-radius:50%; animation:wmSpin .8s linear infinite; }
     .wm-student-check-spinner.active { display:inline-block; }
+    #wmStudentRegisterClass { border-color:#93c5fd; background:#fff; font-weight:800; }
+    #wmStudentRegisterTeacher:disabled { opacity:1; background:#f3f4f6 !important; color:#374151 !important; -webkit-text-fill-color:#374151; cursor:not-allowed; }
 
     .wm-setting-student-search-row { display:flex; gap:8px; align-items:center; margin-top:5px; }
     .wm-setting-student-search-row input { flex:1 1 auto; min-width:0; margin-top:0 !important; }
@@ -597,8 +599,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label class="wm-required-field">레벨완료조건<span class="wm-required-star">*</span><select id="wmStudentRegisterComplete"><option>1회</option><option selected>2회</option><option>3회</option></select></label>
           <label class="wm-student-seq-col wm-auto-managed">학생일련번호<input type="text" id="wmStudentRegisterSerial" placeholder="자동관리" readonly /></label>
           <label class="wm-auto-managed">현재세트<input type="text" id="wmStudentRegisterCurrentSet" placeholder="자동관리" readonly /></label>
-          <label>반명<input type="text" id="wmStudentRegisterClass" placeholder="반명" /></label>
-          <label>교사명<input type="text" id="wmStudentRegisterTeacher" placeholder="교사명" /></label>
+          <label>반명
+            <select id="wmStudentRegisterClass" onchange="wmHandleStudentRegisterClassChange(this.value)">
+              <option value="">반을 선택하세요.</option>
+            </select>
+          </label>
+          <label class="wm-auto-managed">교사명
+            <input type="text" id="wmStudentRegisterTeacher" placeholder="반을 선택하면 자동 표시" readonly disabled />
+          </label>
           <label>학교<input type="text" id="wmStudentRegisterSchool" placeholder="학교명" /></label>
           <label>학년<input type="text" id="wmStudentRegisterGrade" placeholder="예: 4" /></label>
           <label>주소<input type="text" id="wmStudentRegisterAddress" placeholder="주소" /></label>
@@ -4548,6 +4556,9 @@ async function loadSettingCenterDB(){
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
     renderSettingClassDbRows(wmSettingClassRows, (data && data.classHeaders) || []);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
+    if(document.getElementById('wmStudentRegisterClass')){
+      wmFillStudentRegisterClassOptions(document.getElementById('wmStudentRegisterClass').value);
+    }
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
     const failedBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
@@ -5221,13 +5232,58 @@ function wmStudentRegisterIdRawValue(value){
   return String(value || '').trim();
 }
 
-function toggleStudentRegisterBox(){
+function wmGetActiveStudentRegisterClasses(){
+  return (wmSettingClassRows || [])
+    .filter(row=>!/^Inactive$/i.test(String(row && row['상태'] || 'Active')))
+    .map(row=>({
+      className:String(row && row['반명'] || '').trim(),
+      teacherName:String(row && row['담당교사명'] || '').trim(),
+      teacherId:String(row && row['담당교사ID'] || '').trim()
+    }))
+    .filter(item=>item.className)
+    .sort((a,b)=>a.className.localeCompare(b.className,'ko'));
+}
+
+function wmFillStudentRegisterClassOptions(selectedClass){
+  const select = document.getElementById('wmStudentRegisterClass');
+  if(!select) return;
+  const current = String(selectedClass !== undefined ? selectedClass : select.value || '').trim();
+  const classes = wmGetActiveStudentRegisterClasses();
+  select.innerHTML = '<option value="">반을 선택하세요.</option>'
+    + classes.map(item=>'<option value="'+escapeHtml(item.className)+'">'+escapeHtml(item.className)+'</option>').join('');
+  if(current && classes.some(item=>item.className === current)) select.value = current;
+  else select.value = '';
+  wmHandleStudentRegisterClassChange(select.value);
+}
+
+function wmHandleStudentRegisterClassChange(className){
+  const teacher = document.getElementById('wmStudentRegisterTeacher');
+  const teacherId = document.getElementById('wmStudentRegisterTeacherId');
+  const selected = wmGetActiveStudentRegisterClasses().find(item=>item.className === String(className || '').trim()) || null;
+
+  if(teacher){
+    teacher.value = selected ? selected.teacherName : '';
+    teacher.disabled = true;
+    teacher.readOnly = true;
+  }
+  if(teacherId) teacherId.value = selected ? selected.teacherId : '';
+}
+
+async function wmPrepareStudentRegisterClassOptions(){
+  if(!(wmSettingClassRows || []).length){
+    try{ await loadSettingCenterDB(); }catch(ignoreClassLoad){}
+  }
+  wmFillStudentRegisterClassOptions('');
+}
+
+async function toggleStudentRegisterBox(){
   const box = document.getElementById('studentRegisterBox');
   if(!box) return;
   box.classList.toggle('active');
   if(box.classList.contains('active')){
     wmUnlockStudentRegisterIdInput();
     wmSetStudentRegisterStatus('', '');
+    await wmPrepareStudentRegisterClassOptions();
     if(!document.getElementById('wmStudentRegisterDate')?.value){
       const d = new Date();
       const yyyy = d.getFullYear();
@@ -5391,6 +5447,7 @@ function wmResetStudentRegisterPassword(){
 }
 
 function wmCollectStudentRegisterPayload(){
+  wmHandleStudentRegisterClassChange(wmStudentRegisterValue('wmStudentRegisterClass'));
   const id = wmStudentRegisterIdRawValue(wmStudentRegisterValue('wmStudentRegisterId'));
   const payload = {
     studentSerial:wmStudentRegisterValue('wmStudentRegisterSerial').trim(),
@@ -5470,6 +5527,13 @@ function wmClearStudentRegisterForm(){
   });
   const s4El = document.getElementById('wmStudentRegisterS4');
   if(s4El) s4El.value = '4단계';
+  wmFillStudentRegisterClassOptions('');
+  const teacherEl = document.getElementById('wmStudentRegisterTeacher');
+  if(teacherEl){
+    teacherEl.value = '';
+    teacherEl.disabled = true;
+    teacherEl.readOnly = true;
+  }
   WM_STUDENT_REGISTER_CHECKED_ID = '';
   wmUnlockStudentRegisterIdInput();
 }
