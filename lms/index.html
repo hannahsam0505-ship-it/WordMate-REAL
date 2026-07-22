@@ -466,7 +466,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-lms-login-msg" id="wmLmsLoginMsg"></div>
     </div>
   </section>
-  <div id="wmSaveWaitOverlay" class="wm-save-wait-overlay" aria-live="polite" aria-busy="true">
+  <div id="wmSaveWaitOverlay" class="wm-save-wait-overlay" style="display:none;" aria-live="polite" aria-busy="true">
     <div class="wm-save-wait-card">
       <div class="wm-loading-spinner"></div>
       <div id="wmSaveWaitText">저장 중입니다...</div>
@@ -1286,13 +1286,13 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassRegisterBox" data-setting-db-view="class">
         <h3>반등록</h3>
         <div class="wm-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
-          <label id="wmClassRequiredName" class="wm-class-register-required">반명<span class="wm-required-star">*</span>
+          <label id="wmClassRequiredName" class="wm-class-register-required" style="padding:8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;">반명<span style="color:#dc2626;font-weight:950;margin-left:3px;">*</span>
             <input type="text" id="settingClassName" placeholder="예: 중1A" oninput="wmClearClassRequiredError('wmClassRequiredName')" />
           </label>
-          <label id="wmClassRequiredTeacher" class="wm-class-register-required">교사 연결<span class="wm-required-star">*</span>
+          <label id="wmClassRequiredTeacher" class="wm-class-register-required" style="padding:8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;">교사 연결<span style="color:#dc2626;font-weight:950;margin-left:3px;">*</span>
             <select id="settingClassTeacher" onchange="wmClearClassRequiredError('wmClassRequiredTeacher')"><option>추후선택</option></select>
           </label>
-          <label id="wmClassRequiredStudents" class="wm-class-register-required">학생 연결<span class="wm-required-star">*</span>
+          <label id="wmClassRequiredStudents" class="wm-class-register-required" style="padding:8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;">학생 연결<span style="color:#dc2626;font-weight:950;margin-left:3px;">*</span>
             <div class="wm-setting-student-search-row">
               <input type="text" id="settingClassStudentSearch" placeholder="학생명 또는 학생ID 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSettingClassStudents();}" />
               <button type="button" class="wm-action-btn sub" onclick="searchSettingClassStudents()">검색</button>
@@ -1328,10 +1328,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <!-- WM_CLASS_DB_COLUMN_HEADER_PREVIEW_V1: 7-2.반관리_DB 하단 실제 컬럼명 우선 표시 -->
       <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassDbColumnPreview" data-setting-db-view="class">
         <div class="wm-profile-section-title">
-          <h3>7-2.반관리_DB 컬럼</h3>
-          <span>최근 수정 자료를 위에 표시하며, 상태 변경은 실제 DB에 저장됩니다.</span>
+          <h3>7-2.반관리_DB 컬럼 <span style="display:inline-block;margin-left:6px;padding:3px 8px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:950;">반관리 V3 적용</span></h3>
+          <span>Active 우선 · 등록일 최신순 · Inactive 하단 · 상태 변경은 실제 DB에 저장됩니다.</span>
         </div>
-        <div class="wm-class-search-box">
+        <div class="wm-class-search-box" style="display:block !important;border:2px solid #bfdbfe;background:#f8fbff;">
+          <div style="font-size:15px;font-weight:950;color:#1d4ed8;margin-bottom:10px;">반관리 검색</div>
           <div class="wm-class-search-grid">
             <label>반명<input type="text" id="wmClassSearchName" placeholder="반명 부분검색" onkeydown="if(event.key==='Enter'){event.preventDefault();wmRunClassSearch();}" /></label>
             <label>담당교사명<input type="text" id="wmClassSearchTeacherName" placeholder="교사명 부분검색" onkeydown="if(event.key==='Enter'){event.preventDefault();wmRunClassSearch();}" /></label>
@@ -4234,12 +4235,18 @@ function fillSettingSelectOptions(allowedGrades){
 }
 
 
+console.info('✅ WM CLASS MANAGEMENT V3 LOADED: sort/date/loading/required/search');
+
 function wmSetSaveWaiting(active, text){
   const overlay = document.getElementById('wmSaveWaitOverlay');
   const label = document.getElementById('wmSaveWaitText');
   if(label) label.textContent = text || '저장 중입니다...';
-  if(overlay) overlay.classList.toggle('active', !!active);
+  if(overlay){
+    overlay.classList.toggle('active', !!active);
+    overlay.style.display = active ? 'flex' : 'none';
+  }
   document.body.classList.toggle('wm-save-waiting', !!active);
+  return !!active;
 }
 
 function wmClearClassRequiredError(id){
@@ -4391,12 +4398,12 @@ function wmGetFilteredSortedClassRows(){
     const regDiff = Number(bRegistered ? bRegistered.getTime() : 0) - Number(aRegistered ? aRegistered.getTime() : 0);
     if(regDiff) return regDiff;
 
+    const rowDiff = Number(b && b.__sheetRow || 0) - Number(a && a.__sheetRow || 0);
+    if(rowDiff) return rowDiff;
+
     const aModified = wmParseClassDateValue(a && a['수정일']);
     const bModified = wmParseClassDateValue(b && b['수정일']);
-    const modDiff = Number(bModified ? bModified.getTime() : 0) - Number(aModified ? aModified.getTime() : 0);
-    if(modDiff) return modDiff;
-
-    return Number(b && b.__sheetRow || 0) - Number(a && a.__sheetRow || 0);
+    return Number(bModified ? bModified.getTime() : 0) - Number(aModified ? aModified.getTime() : 0);
   });
   return filtered;
 }
@@ -4436,6 +4443,10 @@ async function saveSettingClassStatus(button){
     if(!result || result.success !== true){
       throw new Error((result && (result.error || result.message)) || '반 상태 저장 실패');
     }
+    const target = (wmSettingClassRows || []).find(item=>Number(item && item.__sheetRow || 0) === sheetRow);
+    if(target) target['상태'] = status;
+    renderSettingClassDbRows(wmSettingClassRows, wmSettingClassHeaders);
+    setSettingStatus('settingClassStatus', className+' 반 상태를 '+status+'로 저장했습니다.', true);
     await loadSettingCenterDB();
   }catch(err){
     alert('반 상태 저장 실패: '+(err && err.message ? err.message : err));
@@ -4501,7 +4512,10 @@ function renderSettingClassDbRows(rows, headers){
           }
           if(header === '등록일'){
             const dateClass = wmClassRegistrationDateClass(value);
-            return '<td class="'+dateClass+'">'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
+            const dateStyle = dateClass === 'wm-class-date-today'
+              ? 'color:#dc2626;font-weight:950;'
+              : (dateClass === 'wm-class-date-yesterday' ? 'color:#2563eb;font-weight:950;' : '');
+            return '<td class="'+dateClass+'" style="'+dateStyle+'">'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
           }
           return '<td>'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
         }).join('')
@@ -4771,6 +4785,10 @@ async function saveSettingClass(){
     if(typeof loadDashboardSourceData === 'function'){
       try{ await loadDashboardSourceData(true); }catch(ignoreDashboardReload){}
     }
+    wmSettingClassStatusFilter = 'ALL';
+    wmSettingClassPage = 1;
+    const statusFilter = document.getElementById('wmSettingClassStatusFilter');
+    if(statusFilter) statusFilter.value = 'ALL';
     if(result.classRow){
       const classNameKey = String(result.classRow['반명'] || className).trim();
       const existingIndex = (wmSettingClassRows || []).findIndex(row=>
@@ -5608,6 +5626,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
     nextLevelCompleteCondition:getSel('다음레벨완료조건'),
     ts:String(Date.now())
   });
+  if(!skipLockAndToast) wmSetSaveWaiting(true, '학생 정보를 저장 중입니다...');
   try{
     const res = await fetch(WM_APPS_SCRIPT_URL + '?' + params.toString(), {method:'GET', cache:'no-store'});
     const data = await res.json();
@@ -5621,6 +5640,8 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
     }
   }catch(err){
     if(!skipLockAndToast) alert('학습모드 저장 오류: ' + (err && err.message ? err.message : err));
+  }finally{
+    if(!skipLockAndToast) wmSetSaveWaiting(false);
   }
 }
 
