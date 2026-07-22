@@ -1244,7 +1244,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div id="settingClassStudentResults" class="wm-setting-student-results">학생을 검색하면 명단이 표시됩니다.</div>
         <div id="settingClassStudentSelected" class="wm-setting-student-selected"></div>
         <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button>
+          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button><button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.openRegisteredClasses()">등록된 반보기</button>
           <span id="settingClassStatus" class="wm-manage-loading"></span>
         </div>
         <div class="wm-note">반아이디는 내부에서 자동 생성됩니다. 학생은 한 명 또는 여러 명을 연결할 수 있으며, 다른 반 소속 학생의 이동은 SUPER_ADMIN과 SPECIAL_ADMIN만 가능합니다.</div>
@@ -4334,6 +4334,34 @@ function openSettingClassStudentList(className){
 }
 
 
+
+
+async function openRegisteredClasses(){
+  wmLockStatusMessage('SettingCenter_Search_LOCK','등록된 반보기 조회');
+  const box=document.getElementById('settingClassStudentDetail');
+  if(!box) return;
+  box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 중...</h3>';
+  box.classList.add('active');
+  try{
+    await WM_SETTING_CENTER_LOCK_V1.load();
+    const rows=WM_SETTING_CENTER_ROWS || wmSettingCenterRows || [];
+    const classes={};
+    (rows||[]).forEach(r=>{
+      const teacher=String(r['교사명']||'').trim();
+      const list=String(r['담당반목록']||'').split(',').map(v=>v.trim()).filter(Boolean);
+      list.forEach(c=>{
+        if(!classes[c]) classes[c]={name:c,teacher:teacher,students:[] ,status:String(r['상태']||'Active')};
+      });
+    });
+    const html=Object.values(classes).map(c=>
+      '<tr><td>'+escapeHtml(c.name)+'</td><td>'+escapeHtml(c.teacher||'-')+'</td><td>'+c.students.length+'명</td><td><select class="wm-mode-select"><option>Active</option><option>Inactive</option></select></td></tr>'
+    ).join('');
+    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 목록</h3><div class="wm-table-wrap"><table><thead><tr><th>반명</th><th>교사명</th><th>학생수</th><th>상태</th></tr></thead><tbody>'+ (html || '<tr><td colspan="4">등록된 반이 없습니다.</td></tr>') +'</tbody></table></div>';
+  }catch(err){
+    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 오류</h3>';
+  }
+}
+
 /* ============================================================
    🔒 WM SETTING CENTER LOCK V1 / 실제 실행 연결
    설정센터의 현재 완성 기능을 동결 Registry에 연결하고
@@ -4353,7 +4381,8 @@ const WM_SETTING_CENTER_LOCK_V1 = Object.freeze({
   saveTeacherStatus: saveSettingTeacherStatus,
   generateClassId: generateSettingClassId,
   saveClass: saveSettingClass,
-  openClassStudents: openSettingClassStudentList
+  openClassStudents: openSettingClassStudentList,
+  openRegisteredClasses: openRegisteredClasses
 });
 
 function wmGetSettingCenterClientLockStatus(){
