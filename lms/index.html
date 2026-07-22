@@ -4281,24 +4281,36 @@ async function saveSettingClass(){
 
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
-    const data = await wmFetchSettingApi('saveSettingClass', {
+    const saveUrl = wmSettingApiUrl('saveSettingClass', {
       className:className,
       teacherName:teacherName,
-      studentIds:studentIds.join(',')
+      studentIds:studentIds.join(','),
+      ts:String(Date.now())
     });
-    if(!data || !data.success){
-      const detail = data && data.stage ? ' ['+data.stage+']' : '';
-      throw new Error(((data && data.message) || '반등록 저장 실패') + detail);
+
+    /* Apps Script 응답 CORS/JSONP 판정에 의존하지 않고 저장 요청을 먼저 실행한 뒤,
+       학생관리_DB 재조회 결과로 실제 반영 여부를 판정합니다. */
+    await fetch(saveUrl, {method:'GET', cache:'no-store', mode:'no-cors'});
+    await new Promise(resolve=>setTimeout(resolve, 1600));
+    await loadStudents();
+
+    const studentRows = window.wmStudentManageRows || window.wmDashboardRawRows || [];
+    const savedIds = new Set(studentRows.filter(row=>
+      String(row['반명'] || row['Class'] || '').trim() === className
+    ).map(row=>String(row['학생ID'] || row.studentId || '').trim().toUpperCase()));
+    const missingIds = studentIds.filter(id=>!savedIds.has(String(id).trim().toUpperCase()));
+    if(missingIds.length){
+      throw new Error('저장 요청 후 DB 반영이 확인되지 않았습니다. Apps Script 실행 로그를 확인하세요.');
     }
 
-    setSettingStatus('settingClassStatus',data.message || '반등록 완료', true);
+    setSettingStatus('settingClassStatus','반등록 완료', true);
     wmSettingClassSelectedStudents.clear();
     renderSettingClassSelectedStudents();
     const results = document.getElementById('settingClassStudentResults');
     if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
     const search = document.getElementById('settingClassStudentSearch');
     if(search) search.value = '';
-    await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
+    try{ await WM_SETTING_CENTER_LOCK_V1.load(); }catch(ignore){}
   }catch(err){
     setSettingStatus('settingClassStatus','반등록 실패: '+(err && err.message ? err.message : err));
   }
