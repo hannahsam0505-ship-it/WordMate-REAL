@@ -3988,10 +3988,30 @@ function wmSettingApiUrl(action, params){
 }
 
 async function wmFetchSettingApi(action, params){
-  if(window.google && google.script && google.script.run){
-    return await fetch(wmSettingApiUrl(action, params)).then(r=>r.json());
+  const url = wmSettingApiUrl(action, params);
+  try{
+    const response = await fetch(url, {method:'GET', cache:'no-store', redirect:'follow'});
+    if(!response.ok) throw new Error('HTTP '+response.status);
+    return await response.json();
+  }catch(fetchError){
+    return await new Promise((resolve, reject)=>{
+      const callbackName = '__wmSettingJsonp_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+      const script = document.createElement('script');
+      const timer = setTimeout(()=>{
+        cleanup();
+        reject(new Error('서버 응답 시간 초과'));
+      }, 30000);
+      function cleanup(){
+        clearTimeout(timer);
+        try{ delete window[callbackName]; }catch(ignore){ window[callbackName] = undefined; }
+        if(script.parentNode) script.parentNode.removeChild(script);
+      }
+      window[callbackName] = data=>{ cleanup(); resolve(data); };
+      script.onerror = ()=>{ cleanup(); reject(new Error('Apps Script 연결 실패')); };
+      script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + encodeURIComponent(callbackName) + '&_=' + Date.now();
+      document.head.appendChild(script);
+    });
   }
-  return await fetch(wmSettingApiUrl(action, params)).then(r=>r.json());
 }
 
 function splitSettingClasses(value){
@@ -4174,28 +4194,33 @@ function wmSettingStudentValue(row, names){
 function renderSettingClassSelectedStudents(){
   const box = document.getElementById('settingClassStudentSelected');
   if(!box) return;
-  box.innerHTML = Array.from(wmSettingClassSelectedStudents.values()).map(student=>
-    '<span class="wm-setting-student-chip">'+escapeHtml(student.name)+' ('+escapeHtml(student.id)+')'+
-    '<button type="button" aria-label="학생 연결 해제" onclick="removeSettingClassStudent(\''+escapeHtml(student.id)+'\')">×</button></span>'
+  box.innerHTML = Array.from(wmSettingClassSelectedStudents.entries()).map(([studentKey,student])=>
+    '<span class="wm-setting-student-chip">'+escapeHtml(student.name)+' ('+escapeHtml(student.id || '학생ID 없음')+')'+
+    '<button type="button" aria-label="학생 연결 해제" onclick="removeSettingClassStudent(\''+escapeHtml(studentKey)+'\')">×</button></span>'
   ).join('');
 }
 
-function removeSettingClassStudent(studentId){
-  wmSettingClassSelectedStudents.delete(String(studentId || '').trim().toUpperCase());
+function removeSettingClassStudent(studentKey){
+  const key = String(studentKey || '').trim();
+  wmSettingClassSelectedStudents.delete(key);
   renderSettingClassSelectedStudents();
   document.querySelectorAll('.wm-setting-student-check').forEach(check=>{
-    if(String(check.value || '').trim().toUpperCase() === String(studentId || '').trim().toUpperCase()) check.checked = false;
+    const id = String(check.value || '').trim();
+    const name = String(check.dataset.studentName || '').trim();
+    const checkKey = id ? 'ID:'+id.toUpperCase() : 'NAME:'+name;
+    if(checkKey === key) check.checked = false;
   });
 }
 
 function toggleSettingClassStudent(check){
   const id = String(check && check.value || '').trim();
-  if(!id) return;
-  const key = id.toUpperCase();
+  const name = String(check && check.dataset.studentName || '').trim();
+  if(!id && !name) return;
+  const key = id ? 'ID:'+id.toUpperCase() : 'NAME:'+name;
   if(check.checked){
     wmSettingClassSelectedStudents.set(key, {
       id:id,
-      name:String(check.dataset.studentName || id),
+      name:name || id,
       currentClass:String(check.dataset.currentClass || '')
     });
   }else{
@@ -4225,7 +4250,8 @@ async function searchSettingClassStudents(){
     const id = wmSettingStudentValue(row, ['학생ID','Student_ID']);
     const name = wmSettingStudentValue(row, ['학생이름','이름','학생명']) || id;
     const currentClass = wmSettingStudentValue(row, ['반명','현재반','Class','반']);
-    const checked = wmSettingClassSelectedStudents.has(id.toUpperCase()) ? ' checked' : '';
+    const selectedKey = id ? 'ID:'+id.toUpperCase() : 'NAME:'+name;
+    const checked = wmSettingClassSelectedStudents.has(selectedKey) ? ' checked' : '';
     const classText = currentClass ? ' · 현재 '+currentClass : ' · 미배정';
     return '<label class="wm-setting-student-result-item"><input class="wm-setting-student-check" type="checkbox" value="'+escapeHtml(id)+'" data-student-name="'+escapeHtml(name)+'" data-current-class="'+escapeHtml(currentClass)+'" onchange="toggleSettingClassStudent(this)"'+checked+' /><span><strong>'+escapeHtml(name)+'</strong> ('+escapeHtml(id)+')'+escapeHtml(classText)+'</span></label>';
   }).join('');
@@ -4241,7 +4267,8 @@ async function saveSettingClass(){
   const payload = {
     className: document.getElementById('settingClassName')?.value || '',
     teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택',
-    studentIds: selectedStudents.map(v=>v.id).join(',')
+    studentIds: selectedStudents.filter(v=>v.id).map(v=>v.id).join(','),
+    studentRefs: JSON.stringify(selectedStudents.map(v=>({id:v.id || '', name:v.name || ''})))
   };
   if(!payload.className.trim()) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
   const moving = selectedStudents.filter(v=>v.currentClass && v.currentClass !== payload.className.trim());
