@@ -1081,7 +1081,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       </div>
 
       <div class="wm-factory-box">
-        <div class="wm-profile-section-title"><h3>6. 반이동정보</h3><span>7-1.반관리_DB의 학생별 반 이동정보를 학생ID 기준으로 표시합니다.</span></div>
+        <div class="wm-profile-section-title"><h3>6. 반이동정보</h3><span>7-2.반관리_DB의 학생별 반 정보를 학생ID 기준으로 표시합니다.</span></div>
         <div class="wm-table-wrap"><table class="wm-profile-table"><thead><tr><th>반ID</th><th>학생ID</th><th>학생이름</th><th>현재반</th><th>현재담당교사</th><th>현재담당리더</th><th>이전반</th><th>이전담당교사</th><th>이전담당리더</th><th>이전일</th><th>등록일</th><th>최근결제일</th><th>이동사유</th><th>이동처리자</th><th>메모</th></tr></thead><tbody><tr><td colspan="15">학생ID 검색 후 표시됩니다.</td></tr></tbody></table></div>
       </div>
 
@@ -2211,7 +2211,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           reportRows=filterProfileRows(await readSheetRows(['4.성적표생성_DB','성적표생성_DB','reports']), studentId, studentName);
           waitRows=filterProfileRows(await readSheetRows(['5.발송대기_DB','발송대기_DB','sendWait']), studentId, studentName);
           logRows=filterProfileRows(await readSheetRows(['6.발송기록_DB','발송기록_DB','sendLog']), studentId, studentName);
-          classRows=filterProfileRows(await readSheetRows(['7-1.반관리_DB','반관리_DB','classes']), studentId, studentName);
+          classRows=filterProfileRows(await readSheetRows(['7-2.반관리_DB','반관리_DB','classes']), studentId, studentName);
           counselRows=filterProfileRows(await readSheetRows(['6.상담카페_DB','상담카페_DB','상담_DB','counsel']), studentId, studentName);
           total=studentRows.length+studyRows.length+reportRows.length+waitRows.length+logRows.length+classRows.length+counselRows.length;
         }
@@ -2459,8 +2459,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const tasks = [];
       if(!WM_STUDENT_MANAGE_ROWS || !WM_STUDENT_MANAGE_ROWS.length) tasks.push(loadStudents());
       if(!WM_RECORD_MANAGE_ROWS || !WM_RECORD_MANAGE_ROWS.length) tasks.push(loadRecords());
-      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_CLASS_ROWS', ['7-1.반관리_DB','반관리_DB','Class_DB','classes']));
-      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_TEACHER_ROWS', ['7.설정센터_DB','7-2.교사학생_DB','7-2.설정_DB','설정_DB','settings','교사학생_DB']));
+      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_CLASS_ROWS', ['7-2.반관리_DB','반관리_DB','Class_DB','classes']));
+      tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_TEACHER_ROWS', ['7-1.교사관리_DB','교사관리_DB','교사_DB','Teacher_DB']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_SEND_LOG_ROWS', ['5-1.발송기록_DB','6.발송기록_DB','발송기록_DB','sendLog','send_log']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_COUNSEL_ROWS', ['6.상담카페_DB','상담_DB','상담카페_DB','counsel','consult']));
       tasks.push(loadDashboardSheetIfEmpty('WM_DASHBOARD_PAYMENT_ROWS', ['결제_DB','결제DB','Payment_DB','payments','매출_DB']));
@@ -4417,6 +4417,9 @@ async function saveSettingClass(){
 
     await loadStudents();
     await loadSettingCenterDB();
+    if(typeof loadDashboardSourceData === 'function'){
+      try{ await loadDashboardSourceData(true); }catch(ignoreDashboardReload){}
+    }
     if(result.classRow){
       const classNameKey = String(result.classRow['반명'] || className).trim();
       const existingIndex = (wmSettingClassRows || []).findIndex(row=>
