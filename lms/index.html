@@ -1274,6 +1274,16 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       </div>
 
       <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-filter-actions wm-setting-db-hidden" data-setting-db-view="class">
+        <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">7-2.반관리_DB 새로고침</button>
+        <span id="settingClassDbStatus" class="wm-manage-loading"></span>
+      </div>
+      <div class="wm-table-wrap wm-setting-db-hidden" data-setting-db-view="class">
+        <table id="settingClassDbTable">
+          <thead><tr><th>반명</th><th>담당교사ID</th><th>담당교사명</th><th>학생ID목록</th><th>학생이름목록</th><th>학생수</th><th>상태</th><th>등록일</th><th>수정일</th><th>등록자</th><th>메모</th></tr></thead>
+          <tbody id="settingClassDbTbody"><tr><td colspan="11">7-2.반관리_DB 조회 준비 중입니다.</td></tr></tbody>
+        </table>
+      </div>
       <div id="settingClassStudentDetail" class="wm-class-detail-box wm-setting-db-hidden" data-setting-db-view="class"></div>
     </section>
     <section class="wm-panel" id="panel-counsel">
@@ -1705,6 +1715,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         const active = selected === 'class';
         classTab.classList.toggle('active', active);
         classTab.setAttribute('aria-selected', active ? 'true' : 'false');
+      }
+      if(selected === 'class'){
+        renderSettingClassDbRows(wmSettingClassRows || []);
+        if(!WM_SETTING_CENTER_FIRST_LOAD_DONE && window.WM_SETTING_CENTER_LOCK_V1){
+          WM_SETTING_CENTER_LOCK_V1.load();
+        }
       }
     }
 
@@ -4106,7 +4122,9 @@ function fillSettingSelectOptions(allowedGrades){
 async function loadSettingCenterDB(){
   wmLockStatusMessage('SettingCenter_Search_LOCK','설정센터 조회·검색');
   const tbody = document.getElementById('settingCenterTbody');
+  const classTbody = document.getElementById('settingClassDbTbody');
   if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 중입니다.</td></tr>';
+  if(classTbody) classTbody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 중입니다.</td></tr>';
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
@@ -4114,10 +4132,28 @@ async function loadSettingCenterDB(){
     WM_SETTING_CENTER_FIRST_LOAD_DONE = true;
     wmSettingCenterActorRole = String((data && data.actorRole) || '').trim().toUpperCase();
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
+    renderSettingClassDbRows(wmSettingClassRows);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
+    if(classTbody) classTbody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
+}
+
+function renderSettingClassDbRows(rows){
+  const tbody = document.getElementById('settingClassDbTbody');
+  if(!tbody) return;
+  const headers = ['반명','담당교사ID','담당교사명','학생ID목록','학생이름목록','학생수','상태','등록일','수정일','등록자','메모'];
+  if(!rows || !rows.length){
+    tbody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB에 등록된 반이 없습니다.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(row){
+    return '<tr>'+headers.map(function(header){
+      const value = row && row[header] !== undefined ? row[header] : '';
+      return '<td>'+escapeHtml(value || (header === '학생수' ? '0' : '-'))+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
 }
 
 function renderSettingCenterRows(rows){
