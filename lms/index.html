@@ -369,6 +369,17 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-student-check-spinner { display:none; width:16px; height:16px; border:2px solid #dbeafe; border-top-color:var(--wm-blue); border-radius:50%; animation:wmSpin .8s linear infinite; }
     .wm-student-check-spinner.active { display:inline-block; }
 
+    .wm-setting-student-search-row { display:flex; gap:8px; align-items:center; margin-top:5px; }
+    .wm-setting-student-search-row input { flex:1 1 auto; min-width:0; margin-top:0 !important; }
+    .wm-setting-student-search-row button { flex:0 0 auto; padding:10px 13px; }
+    .wm-setting-student-results { margin-top:12px; border:1px solid var(--wm-line); border-radius:12px; background:#fff; padding:10px; max-height:190px; overflow:auto; font-size:13px; color:var(--wm-gray); }
+    .wm-setting-student-result-item { display:flex; align-items:center; gap:9px; padding:8px 6px; border-bottom:1px solid #eef2f7; color:var(--wm-dark); }
+    .wm-setting-student-result-item:last-child { border-bottom:0; }
+    .wm-setting-student-result-item input { width:auto; margin:0; }
+    .wm-setting-student-selected { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; min-height:8px; }
+    .wm-setting-student-chip { display:inline-flex; align-items:center; gap:6px; background:var(--wm-blue-soft); border:1px solid #bfdbfe; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:900; }
+    .wm-setting-student-chip button { border:0; background:transparent; color:var(--wm-red); cursor:pointer; font-weight:900; padding:0; }
+
     @keyframes wmSpin { to { transform:rotate(360deg); } }
 
 
@@ -1218,19 +1229,25 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
 
       <div class="wm-factory-box" id="wmSettingClassRegisterBox">
         <h3>반등록</h3>
-        <div class="wm-filter-grid">
-          <label>반명<input type="text" id="settingClassName" placeholder="예: C001 / 중1A" /></label>
-          <label>반아이디<input type="text" id="settingClassId" value="자동생성" readonly /></label>
-          <label>담당교사
+        <div class="wm-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+          <label>반명<input type="text" id="settingClassName" placeholder="예: 중1A" /></label>
+          <label>교사 연결
             <select id="settingClassTeacher"><option>추후선택</option></select>
           </label>
+          <label>학생 연결
+            <div class="wm-setting-student-search-row">
+              <input type="text" id="settingClassStudentSearch" placeholder="학생명 또는 학생ID 검색" onkeydown="if(event.key==='Enter'){event.preventDefault();searchSettingClassStudents();}" />
+              <button type="button" class="wm-action-btn sub" onclick="searchSettingClassStudents()">검색</button>
+            </div>
+          </label>
         </div>
+        <div id="settingClassStudentResults" class="wm-setting-student-results">학생을 검색하면 명단이 표시됩니다.</div>
+        <div id="settingClassStudentSelected" class="wm-setting-student-selected"></div>
         <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.generateClassId()">반아이디 자동생성</button>
           <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button>
           <span id="settingClassStatus" class="wm-manage-loading"></span>
         </div>
-        <div class="wm-note">일반교사는 한 반에 한 명만 적용하고, 한 교사는 여러 반을 담당할 수 있습니다. 리더는 여러 일반교사 반을 관리할 수 있습니다.</div>
+        <div class="wm-note">반아이디는 내부에서 자동 생성됩니다. 학생은 한 명 또는 여러 명을 연결할 수 있으며, 다른 반 소속 학생의 이동은 SUPER_ADMIN과 SPECIAL_ADMIN만 가능합니다.</div>
       </div>
 
       <div class="wm-filter-box" data-filter-scope="classes">
@@ -4144,29 +4161,107 @@ async function saveSettingTeacher(){
   }catch(err){ setSettingStatus('settingTeacherStatus','교사등록 실패: '+(err.message || err)); }
 }
 
+const wmSettingClassSelectedStudents = new Map();
+
+function wmSettingStudentValue(row, names){
+  for(const name of names){
+    const value = row && row[name];
+    if(value !== undefined && value !== null && String(value).trim() !== '') return String(value).trim();
+  }
+  return '';
+}
+
+function renderSettingClassSelectedStudents(){
+  const box = document.getElementById('settingClassStudentSelected');
+  if(!box) return;
+  box.innerHTML = Array.from(wmSettingClassSelectedStudents.values()).map(student=>
+    '<span class="wm-setting-student-chip">'+escapeHtml(student.name)+' ('+escapeHtml(student.id)+')'+
+    '<button type="button" aria-label="학생 연결 해제" onclick="removeSettingClassStudent(\''+escapeHtml(student.id)+'\')">×</button></span>'
+  ).join('');
+}
+
+function removeSettingClassStudent(studentId){
+  wmSettingClassSelectedStudents.delete(String(studentId || '').trim().toUpperCase());
+  renderSettingClassSelectedStudents();
+  document.querySelectorAll('.wm-setting-student-check').forEach(check=>{
+    if(String(check.value || '').trim().toUpperCase() === String(studentId || '').trim().toUpperCase()) check.checked = false;
+  });
+}
+
+function toggleSettingClassStudent(check){
+  const id = String(check && check.value || '').trim();
+  if(!id) return;
+  const key = id.toUpperCase();
+  if(check.checked){
+    wmSettingClassSelectedStudents.set(key, {
+      id:id,
+      name:String(check.dataset.studentName || id),
+      currentClass:String(check.dataset.currentClass || '')
+    });
+  }else{
+    wmSettingClassSelectedStudents.delete(key);
+  }
+  renderSettingClassSelectedStudents();
+}
+
+async function searchSettingClassStudents(){
+  const query = String(document.getElementById('settingClassStudentSearch')?.value || '').trim().toLowerCase();
+  const results = document.getElementById('settingClassStudentResults');
+  if(!results) return;
+  if(!WM_STUDENT_MANAGE_ROWS || !WM_STUDENT_MANAGE_ROWS.length){
+    results.textContent = '학생명단을 불러오는 중입니다.';
+    try{ await loadStudents(); }catch(err){}
+  }
+  const rows = (WM_STUDENT_MANAGE_ROWS || []).filter(row=>{
+    const id = wmSettingStudentValue(row, ['학생ID','Student_ID']);
+    const name = wmSettingStudentValue(row, ['학생이름','이름','학생명']);
+    return !query || id.toLowerCase().includes(query) || name.toLowerCase().includes(query);
+  }).slice(0,100);
+  if(!rows.length){
+    results.textContent = '검색된 학생이 없습니다.';
+    return;
+  }
+  results.innerHTML = rows.map(row=>{
+    const id = wmSettingStudentValue(row, ['학생ID','Student_ID']);
+    const name = wmSettingStudentValue(row, ['학생이름','이름','학생명']) || id;
+    const currentClass = wmSettingStudentValue(row, ['반명','현재반','Class','반']);
+    const checked = wmSettingClassSelectedStudents.has(id.toUpperCase()) ? ' checked' : '';
+    const classText = currentClass ? ' · 현재 '+currentClass : ' · 미배정';
+    return '<label class="wm-setting-student-result-item"><input class="wm-setting-student-check" type="checkbox" value="'+escapeHtml(id)+'" data-student-name="'+escapeHtml(name)+'" data-current-class="'+escapeHtml(currentClass)+'" onchange="toggleSettingClassStudent(this)"'+checked+' /><span><strong>'+escapeHtml(name)+'</strong> ('+escapeHtml(id)+')'+escapeHtml(classText)+'</span></label>';
+  }).join('');
+}
+
 function generateSettingClassId(){
-  const name = String(document.getElementById('settingClassName')?.value || '').trim();
-  const base = name ? name.replace(/[^A-Za-z0-9가-힣]/g,'').slice(0,6).toUpperCase() : 'CLS';
-  const id = base + String(Date.now()).slice(-4);
-  const el = document.getElementById('settingClassId');
-  if(el) el.value = id;
+  return '';
 }
 
 async function saveSettingClass(){
   wmLockStatusMessage('SettingCenter_ClassRegister_LOCK','설정센터 반등록');
+  const selectedStudents = Array.from(wmSettingClassSelectedStudents.values());
   const payload = {
     className: document.getElementById('settingClassName')?.value || '',
-    classId: document.getElementById('settingClassId')?.value || '',
-    teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택'
+    teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택',
+    studentIds: selectedStudents.map(v=>v.id).join(',')
   };
   if(!payload.className.trim()) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
-  if(!payload.classId || payload.classId === '자동생성') generateSettingClassId();
-  payload.classId = document.getElementById('settingClassId')?.value || '';
+  const moving = selectedStudents.filter(v=>v.currentClass && v.currentClass !== payload.className.trim());
+  if(moving.length){
+    const names = moving.map(v=>v.name+'('+v.currentClass+' → '+payload.className.trim()+')').join(', ');
+    if(!confirm(names+'\n\n기존 반에서 새 반으로 이동합니다. 계속하시겠습니까?')) return;
+  }
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
     const data = await wmFetchSettingApi('saveSettingClass', payload);
     setSettingStatus('settingClassStatus',(data && data.message) || '반등록 완료', !!(data && data.success));
-    if(data && data.success) await WM_SETTING_CENTER_LOCK_V1.load();
+    if(data && data.success){
+      wmSettingClassSelectedStudents.clear();
+      renderSettingClassSelectedStudents();
+      const results = document.getElementById('settingClassStudentResults');
+      if(results) results.textContent = '학생을 검색하면 명단이 표시됩니다.';
+      const search = document.getElementById('settingClassStudentSearch');
+      if(search) search.value = '';
+      await Promise.all([WM_SETTING_CENTER_LOCK_V1.load(), loadStudents()]);
+    }
   }catch(err){ setSettingStatus('settingClassStatus','반등록 실패: '+(err.message || err)); }
 }
 
