@@ -1280,7 +1280,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassDbColumnPreview" data-setting-db-view="class">
         <div class="wm-profile-section-title">
           <h3>7-2.반관리_DB 컬럼</h3>
-          <span>이번 단계에서는 실제 DB 컬럼명만 먼저 표시하며 데이터 조회·저장 연결은 적용하지 않습니다.</span>
+          <span>반등록 실행 결과를 7-2.반관리_DB의 실제 11개 컬럼에서 조회하여 표시합니다.</span>
         </div>
         <div class="wm-table-wrap">
           <table id="wmSettingClassDbColumnTable">
@@ -1300,7 +1300,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
               </tr>
             </thead>
             <tbody>
-              <tr><td colspan="11">7-2.반관리_DB 데이터 연결 전입니다.</td></tr>
+              <tr><td colspan="11">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1640,8 +1640,15 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       }
       if(panelName === 'classes'){
         setTimeout(function(){
-          if(typeof loadSettingCenterDB === 'function' && !WM_SETTING_CENTER_FIRST_LOAD_DONE) loadSettingCenterDB();
-          else if(typeof renderSettingCenterRows === 'function') renderSettingCenterRows(wmSettingCenterRows || []);
+          if(typeof loadSettingCenterDB === 'function' && !WM_SETTING_CENTER_FIRST_LOAD_DONE){
+            loadSettingCenterDB();
+          }else{
+            if(typeof renderSettingCenterRows === 'function') renderSettingCenterRows(wmSettingCenterRows || []);
+            if(typeof renderSettingClassDbRows === 'function') renderSettingClassDbRows(wmSettingClassRows || [], [
+              '반명','담당교사ID','담당교사명','학생ID목록','학생이름목록',
+              '학생수','상태','등록일','수정일','등록자','메모'
+            ]);
+          }
         }, 0);
       }
       if(panelName === 'currentProgress'){
@@ -4386,10 +4393,21 @@ async function saveSettingClass(){
 
   setSettingStatus('settingClassStatus','반등록 저장 중...', true);
   try{
+    const selectedTeacherRow = (wmSettingCenterRows || []).find(row=>
+      String(row['교사명'] || '').trim() === teacherName
+    ) || {};
+    const teacherId = String(selectedTeacherRow['교사ID'] || '').trim();
+    const studentRefs = selectedStudents.map(student=>({
+      id:String(student.id || '').trim(),
+      name:String(student.name || '').trim()
+    })).filter(student=>student.id);
+
     const result = await wmFetchSettingApi('saveSettingClass', {
       className:className,
       teacherName:teacherName,
+      teacherId:teacherId,
       studentIds:studentIds.join(','),
+      studentRefs:JSON.stringify(studentRefs),
       ts:String(Date.now())
     });
 
@@ -4397,7 +4415,20 @@ async function saveSettingClass(){
       throw new Error((result && (result.error || result.message)) || 'Apps Script 반등록 저장 실패');
     }
 
-    await Promise.all([loadStudents(), WM_SETTING_CENTER_LOCK_V1.load()]);
+    await loadStudents();
+    await loadSettingCenterDB();
+    if(result.classRow){
+      const classNameKey = String(result.classRow['반명'] || className).trim();
+      const existingIndex = (wmSettingClassRows || []).findIndex(row=>
+        String(row['반명'] || '').trim() === classNameKey
+      );
+      if(existingIndex >= 0) wmSettingClassRows[existingIndex] = result.classRow;
+      else wmSettingClassRows.push(result.classRow);
+      renderSettingClassDbRows(wmSettingClassRows, [
+        '반명','담당교사ID','담당교사명','학생ID목록','학생이름목록',
+        '학생수','상태','등록일','수정일','등록자','메모'
+      ]);
+    }
 
     const studentRows = WM_STUDENT_MANAGE_ROWS || [];
     const savedIds = new Set(studentRows.filter(row=>
