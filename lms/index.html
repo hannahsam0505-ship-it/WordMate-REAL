@@ -4294,7 +4294,7 @@ async function saveSettingClass(){
     await new Promise(resolve=>setTimeout(resolve, 1600));
     await loadStudents();
 
-    const studentRows = window.wmStudentManageRows || window.wmDashboardRawRows || [];
+    const studentRows = WM_STUDENT_MANAGE_ROWS || [];
     const savedIds = new Set(studentRows.filter(row=>
       String(row['반명'] || row['Class'] || '').trim() === className
     ).map(row=>String(row['학생ID'] || row.studentId || '').trim().toUpperCase()));
