@@ -313,6 +313,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-class-create-box { display:none; border:1px solid var(--wm-line); background:#fbfdff; border-radius:16px; padding:16px; margin:0 0 18px; }
     .wm-class-create-box.active { display:block; }
 
+    /* WM_SETTING_CENTER_SUBTAB_V1: 설정센터 7-1/7-2 화면 전환 */
+    .wm-setting-db-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 18px; }
+    .wm-setting-db-tab { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:12px; padding:11px 16px; font-weight:900; cursor:pointer; }
+    .wm-setting-db-tab.active { background:var(--wm-blue); color:#fff; border-color:var(--wm-blue); }
+    [data-setting-db-view].wm-setting-db-hidden { display:none !important; }
+
     .wm-profile-section-title { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
     .wm-profile-section-title h3 { margin:0; font-size:17px; font-weight:900; }
     .wm-profile-section-title span { color:var(--wm-gray); font-size:13px; line-height:1.6; }
@@ -1195,8 +1201,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     <section class="wm-panel" id="panel-classes">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">설정센터</h2><p class="wm-panel-desc">연결 DB: 7-1.교사관리_DB + 7-2.반관리_DB / 교사와 반을 한 화면에서 등록·조회·관리합니다. 등록은 LMS에서만 진행하고 저장 시 구글시트로 자동 반영됩니다.</p></div>
       <div class="wm-note">교사/반은 등록 순서와 관계없이 먼저 만들 수 있습니다. 담당반·담당교사는 선택값이 없을 때 <strong>추후선택</strong>으로 저장합니다.</div>
+      <div class="wm-setting-db-tabs" role="tablist" aria-label="설정센터 DB 선택">
+        <button type="button" class="wm-setting-db-tab active" id="wmSettingTeacherDbTab" role="tab" aria-selected="true" onclick="wmSwitchSettingDbTab('teacher')">7-1.교사관리_DB</button>
+        <button type="button" class="wm-setting-db-tab" id="wmSettingClassDbTab" role="tab" aria-selected="false" onclick="wmSwitchSettingDbTab('class')">7-2.반관리_DB</button>
+      </div>
 
-      <div class="wm-factory-box" id="wmSettingTeacherRegisterBox">
+      <div class="wm-factory-box" id="wmSettingTeacherRegisterBox" data-setting-db-view="teacher">
         <h3>교사등록</h3>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" id="settingTeacherName" placeholder="예: 김철수" /></label>
@@ -1227,7 +1237,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
       </div>
 
-      <div class="wm-factory-box" id="wmSettingClassRegisterBox">
+      <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassRegisterBox" data-setting-db-view="class">
         <h3>반등록</h3>
         <div class="wm-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
           <label>반명<input type="text" id="settingClassName" placeholder="예: 중1A" /></label>
@@ -1250,7 +1260,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-note">반아이디는 내부에서 자동 생성됩니다. 학생은 한 명 또는 여러 명을 연결할 수 있으며, 다른 반 소속 학생의 이동은 SUPER_ADMIN과 SPECIAL_ADMIN만 가능합니다.</div>
       </div>
 
-      <div class="wm-filter-box" data-filter-scope="classes">
+      <div class="wm-filter-box" data-filter-scope="classes" data-setting-db-view="teacher">
         <div class="wm-filter-title">검색조건</div>
         <div class="wm-filter-grid">
           <label>교사명<input type="text" placeholder="교사명" data-filter="teacher" /></label>
@@ -1263,8 +1273,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">새로고침</button></div>
       </div>
 
-      <div class="wm-table-wrap"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
-      <div id="settingClassStudentDetail" class="wm-class-detail-box"></div>
+      <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div id="settingClassStudentDetail" class="wm-class-detail-box wm-setting-db-hidden" data-setting-db-view="class"></div>
     </section>
     <section class="wm-panel" id="panel-counsel">
       <h2 class="wm-panel-title">상담카페</h2>
@@ -1674,6 +1684,28 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const devPanel = document.getElementById('panel-dev');
       const settingPanel = document.getElementById('panel-classes');
       if(!adminLike && (devPanel && devPanel.classList.contains('active'))) showPanel('dashboard');
+    }
+
+    /* WM_SETTING_CENTER_SUBTAB_V1: 저장·조회 연결 없이 화면만 전환 */
+    function wmSwitchSettingDbTab(viewName){
+      const panel = document.getElementById('panel-classes');
+      if(!panel) return;
+      const selected = viewName === 'class' ? 'class' : 'teacher';
+      panel.querySelectorAll('[data-setting-db-view]').forEach(function(el){
+        el.classList.toggle('wm-setting-db-hidden', el.getAttribute('data-setting-db-view') !== selected);
+      });
+      const teacherTab = document.getElementById('wmSettingTeacherDbTab');
+      const classTab = document.getElementById('wmSettingClassDbTab');
+      if(teacherTab){
+        const active = selected === 'teacher';
+        teacherTab.classList.toggle('active', active);
+        teacherTab.setAttribute('aria-selected', active ? 'true' : 'false');
+      }
+      if(classTab){
+        const active = selected === 'class';
+        classTab.classList.toggle('active', active);
+        classTab.setAttribute('aria-selected', active ? 'true' : 'false');
+      }
     }
 
     function getFilterValue(scope, filterName){
