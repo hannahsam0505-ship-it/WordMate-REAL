@@ -386,6 +386,23 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-setting-student-chip { display:inline-flex; align-items:center; gap:6px; background:var(--wm-blue-soft); border:1px solid #bfdbfe; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:900; }
     .wm-setting-student-chip button { border:0; background:transparent; color:var(--wm-red); cursor:pointer; font-weight:900; padding:0; }
 
+    /* WM_CLASS_DB_MANAGEMENT_UI_V1 */
+    .wm-class-db-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 0 10px; }
+    .wm-class-db-toolbar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .wm-class-db-toolbar label { font-size:12px; font-weight:900; color:var(--wm-gray); }
+    .wm-class-db-toolbar select { margin-left:6px; border:1px solid var(--wm-line); border-radius:10px; padding:8px 10px; background:#fff; font-weight:800; }
+    .wm-class-db-count { font-size:13px; font-weight:900; color:var(--wm-gray); }
+    #wmSettingClassDbTableWrap { max-height:620px; overflow:auto; }
+    #wmSettingClassDbTableWrap thead th { position:sticky; top:0; z-index:20; background:#f9fafb; }
+    #wmSettingClassDbColumnTable { min-width:1320px; }
+    #wmSettingClassDbColumnTable th:first-child, #wmSettingClassDbColumnTable td:first-child { min-width:58px; width:58px; text-align:center; }
+    .wm-class-status-select { min-width:104px; border:1px solid var(--wm-line); border-radius:9px; padding:7px 8px; background:#fff; font-weight:800; }
+    .wm-class-status-save { margin-left:5px; }
+    .wm-class-db-pager { display:flex; align-items:center; justify-content:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
+    .wm-class-db-pager button { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:900; cursor:pointer; }
+    .wm-class-db-pager button:disabled { opacity:.45; cursor:not-allowed; }
+    .wm-class-db-page-info { font-size:13px; font-weight:900; color:var(--wm-gray); }
+
     @keyframes wmSpin { to { transform:rotate(360deg); } }
 
 
@@ -1254,10 +1271,10 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div id="settingClassStudentResults" class="wm-setting-student-results">학생을 검색하면 명단이 표시됩니다.</div>
         <div id="settingClassStudentSelected" class="wm-setting-student-selected"></div>
         <div class="wm-filter-actions" style="margin-top:14px;">
-          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button><button type="button" class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.openRegisteredClasses()">등록된 반보기</button>
+          <button type="button" class="wm-action-btn" onclick="WM_SETTING_CENTER_LOCK_V1.saveClass()">반등록 실행</button>
           <span id="settingClassStatus" class="wm-manage-loading"></span>
         </div>
-        <div class="wm-note">반아이디는 내부에서 자동 생성됩니다. 학생은 한 명 또는 여러 명을 연결할 수 있으며, 다른 반 소속 학생의 이동은 SUPER_ADMIN과 SPECIAL_ADMIN만 가능합니다.</div>
+        <div class="wm-note">학생은 한 명 또는 여러 명을 연결할 수 있으며, 다른 반 소속 학생의 이동은 SUPER_ADMIN과 SPECIAL_ADMIN만 가능합니다.</div>
       </div>
 
       <div class="wm-filter-box" data-filter-scope="classes" data-setting-db-view="teacher">
@@ -1280,12 +1297,25 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassDbColumnPreview" data-setting-db-view="class">
         <div class="wm-profile-section-title">
           <h3>7-2.반관리_DB 컬럼</h3>
-          <span>반등록 실행 결과를 7-2.반관리_DB의 실제 11개 컬럼에서 조회하여 표시합니다.</span>
+          <span>최근 수정 자료를 위에 표시하며, 상태 변경은 실제 DB에 저장됩니다.</span>
         </div>
-        <div class="wm-table-wrap">
+        <div class="wm-class-db-toolbar">
+          <div class="wm-class-db-toolbar-left">
+            <label>상태
+              <select id="wmSettingClassStatusFilter" onchange="wmChangeClassStatusFilter(this.value)">
+                <option value="ALL">전체</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </label>
+          </div>
+          <span id="wmSettingClassDbCount" class="wm-class-db-count">총 0개</span>
+        </div>
+        <div class="wm-table-wrap" id="wmSettingClassDbTableWrap">
           <table id="wmSettingClassDbColumnTable">
             <thead>
               <tr>
+                <th>번호</th>
                 <th>반명</th>
                 <th>담당교사ID</th>
                 <th>담당교사명</th>
@@ -1300,9 +1330,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
               </tr>
             </thead>
             <tbody>
-              <tr><td colspan="11">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>
+              <tr><td colspan="12">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="wm-class-db-pager">
+          <button type="button" id="wmSettingClassPrevBtn" onclick="wmMoveClassDbPage(-1)">이전</button>
+          <span id="wmSettingClassPageInfo" class="wm-class-db-page-info">1 / 1</span>
+          <button type="button" id="wmSettingClassNextBtn" onclick="wmMoveClassDbPage(1)">다음</button>
         </div>
       </div>
     </section>
@@ -3965,6 +4000,10 @@ const WM_SETTING_CENTER_SHEET_NAME = '7-1.교사관리_DB';
 const WM_CLASS_MANAGEMENT_SHEET_NAME = '7-2.반관리_DB';
 let wmSettingCenterRows = [];
 let wmSettingClassRows = [];
+let wmSettingClassPage = 1;
+const WM_SETTING_CLASS_PAGE_SIZE = 25;
+let wmSettingClassStatusFilter = 'ALL';
+let wmSettingClassHeaders = [];
 let WM_SETTING_CENTER_FIRST_LOAD_DONE = false;
 let wmSettingCenterActorRole = '';
 let wmSettingTeacherIdChecked = '';
@@ -4141,6 +4180,81 @@ function fillSettingSelectOptions(allowedGrades){
 }
 
 
+function wmClassDateSortValue(row){
+  const explicit = Number(row && row.__sortTime || 0);
+  if(explicit) return explicit;
+  const value = String((row && (row['수정일'] || row['등록일'])) || '').trim();
+  if(!value) return 0;
+  const normalized = value
+    .replace(/\.\s*/g,'-')
+    .replace(/오후/g,'PM')
+    .replace(/오전/g,'AM')
+    .replace(/\s+/g,' ')
+    .replace(/-\s*$/,'');
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function wmGetFilteredSortedClassRows(){
+  const rows = Array.isArray(wmSettingClassRows) ? wmSettingClassRows.slice() : [];
+  const filtered = wmSettingClassStatusFilter === 'ALL'
+    ? rows
+    : rows.filter(row=>{
+        const status = /^Inactive$/i.test(String(row && row['상태'] || '')) ? 'Inactive' : 'Active';
+        return status === wmSettingClassStatusFilter;
+      });
+  filtered.sort((a,b)=>{
+    const timeDiff = wmClassDateSortValue(b) - wmClassDateSortValue(a);
+    if(timeDiff) return timeDiff;
+    return Number(b && b.__sheetRow || 0) - Number(a && a.__sheetRow || 0);
+  });
+  return filtered;
+}
+
+function wmChangeClassStatusFilter(value){
+  wmSettingClassStatusFilter = ['Active','Inactive'].includes(value) ? value : 'ALL';
+  wmSettingClassPage = 1;
+  renderSettingClassDbRows(wmSettingClassRows, wmSettingClassHeaders);
+}
+
+function wmMoveClassDbPage(delta){
+  const rows = wmGetFilteredSortedClassRows();
+  const totalPages = Math.max(1, Math.ceil(rows.length / WM_SETTING_CLASS_PAGE_SIZE));
+  wmSettingClassPage = Math.min(totalPages, Math.max(1, wmSettingClassPage + Number(delta || 0)));
+  renderSettingClassDbRows(wmSettingClassRows, wmSettingClassHeaders);
+}
+
+async function saveSettingClassStatus(button){
+  const row = button && button.closest('tr');
+  const select = row && row.querySelector('.wm-class-status-select');
+  if(!row || !select) return;
+  const sheetRow = Number(row.dataset.sheetRow || 0);
+  const className = String(row.dataset.className || '').trim();
+  const status = /^Inactive$/i.test(select.value) ? 'Inactive' : 'Active';
+
+  button.disabled = true;
+  const previousText = button.textContent;
+  button.textContent = '저장중';
+  try{
+    const result = await wmFetchSettingApi('saveSettingClassStatus', {
+      sheetRow:String(sheetRow || ''),
+      className:className,
+      status:status,
+      ts:String(Date.now())
+    });
+    if(!result || result.success !== true){
+      throw new Error((result && (result.error || result.message)) || '반 상태 저장 실패');
+    }
+    await loadSettingCenterDB();
+  }catch(err){
+    alert('반 상태 저장 실패: '+(err && err.message ? err.message : err));
+    await loadSettingCenterDB();
+  }finally{
+    button.disabled = false;
+    button.textContent = previousText;
+  }
+}
+
 function renderSettingClassDbRows(rows, headers){
   const table = document.getElementById('wmSettingClassDbColumnTable');
   if(!table) return;
@@ -4149,29 +4263,64 @@ function renderSettingClassDbRows(rows, headers){
     '반명','담당교사ID','담당교사명','학생ID목록','학생이름목록',
     '학생수','상태','등록일','수정일','등록자','메모'
   ];
-  const displayHeaders = Array.isArray(headers) && headers.length
-    ? officialHeaders.filter(header=>headers.includes(header))
+  wmSettingClassHeaders = Array.isArray(headers) && headers.length ? headers.slice() : officialHeaders.slice();
+  const displayHeaders = wmSettingClassHeaders.length
+    ? officialHeaders.filter(header=>wmSettingClassHeaders.includes(header))
     : officialHeaders;
   const finalHeaders = displayHeaders.length ? displayHeaders : officialHeaders;
+  const tableHeaders = ['번호'].concat(finalHeaders);
+
+  const filteredRows = wmGetFilteredSortedClassRows();
+  const totalRows = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / WM_SETTING_CLASS_PAGE_SIZE));
+  wmSettingClassPage = Math.min(totalPages, Math.max(1, wmSettingClassPage));
+  const startIndex = (wmSettingClassPage - 1) * WM_SETTING_CLASS_PAGE_SIZE;
+  const pageRows = filteredRows.slice(startIndex, startIndex + WM_SETTING_CLASS_PAGE_SIZE);
 
   const thead = table.querySelector('thead');
   const tbody = table.querySelector('tbody');
   if(thead){
-    thead.innerHTML = '<tr>'+finalHeaders.map(header=>'<th>'+escapeHtml(header)+'</th>').join('')+'</tr>';
+    thead.innerHTML = '<tr>'+tableHeaders.map(header=>'<th>'+escapeHtml(header)+'</th>').join('')+'</tr>';
   }
   if(!tbody) return;
 
-  if(!Array.isArray(rows) || !rows.length){
-    tbody.innerHTML = '<tr><td colspan="'+finalHeaders.length+'">7-2.반관리_DB에 등록된 데이터가 없습니다.</td></tr>';
-    return;
+  const canChangeStatus = wmSettingCenterActorRole === 'SUPER_ADMIN' || wmSettingCenterActorRole === 'SPECIAL_ADMIN';
+
+  if(!pageRows.length){
+    tbody.innerHTML = '<tr><td colspan="'+tableHeaders.length+'">조건에 맞는 7-2.반관리_DB 데이터가 없습니다.</td></tr>';
+  }else{
+    tbody.innerHTML = pageRows.map((row,pageIndex)=>{
+      const serial = startIndex + pageIndex + 1;
+      const sheetRow = Number(row && row.__sheetRow || 0);
+      const className = String(row && row['반명'] || '').trim();
+      return '<tr data-sheet-row="'+sheetRow+'" data-class-name="'+escapeHtml(className)+'">'
+        +'<td>'+serial+'</td>'
+        +finalHeaders.map(header=>{
+          const value = row && Object.prototype.hasOwnProperty.call(row, header) ? row[header] : '';
+          if(header === '상태'){
+            const currentStatus = /^Inactive$/i.test(String(value || '')) ? 'Inactive' : 'Active';
+            if(canChangeStatus){
+              return '<td><select class="wm-class-status-select">'
+                +'<option value="Active"'+(currentStatus === 'Active' ? ' selected' : '')+'>Active</option>'
+                +'<option value="Inactive"'+(currentStatus === 'Inactive' ? ' selected' : '')+'>Inactive</option>'
+                +'</select><button type="button" class="wm-mode-save-btn wm-class-status-save" onclick="saveSettingClassStatus(this)">저장</button></td>';
+            }
+            return '<td>'+escapeHtml(currentStatus)+'</td>';
+          }
+          return '<td>'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
+        }).join('')
+        +'</tr>';
+    }).join('');
   }
 
-  tbody.innerHTML = rows.map(row=>{
-    return '<tr>'+finalHeaders.map(header=>{
-      const value = row && Object.prototype.hasOwnProperty.call(row, header) ? row[header] : '';
-      return '<td>'+escapeHtml(value === '' ? '-' : String(value))+'</td>';
-    }).join('')+'</tr>';
-  }).join('');
+  const count = document.getElementById('wmSettingClassDbCount');
+  if(count) count.textContent = '총 '+totalRows+'개';
+  const pageInfo = document.getElementById('wmSettingClassPageInfo');
+  if(pageInfo) pageInfo.textContent = wmSettingClassPage+' / '+totalPages;
+  const prev = document.getElementById('wmSettingClassPrevBtn');
+  const next = document.getElementById('wmSettingClassNextBtn');
+  if(prev) prev.disabled = wmSettingClassPage <= 1;
+  if(next) next.disabled = wmSettingClassPage >= totalPages;
 }
 
 async function loadSettingCenterDB(){
@@ -4179,7 +4328,7 @@ async function loadSettingCenterDB(){
   const tbody = document.getElementById('settingCenterTbody');
   if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 중입니다.</td></tr>';
   const classTableBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
-  if(classTableBody) classTableBody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 중입니다.</td></tr>';
+  if(classTableBody) classTableBody.innerHTML = '<tr><td colspan="12">7-2.반관리_DB 조회 중입니다.</td></tr>';
   try{
     const data = await wmFetchSettingApi('getSettingCenter', {});
     wmSettingCenterRows = (data && data.rows) || [];
@@ -4192,7 +4341,7 @@ async function loadSettingCenterDB(){
   }catch(err){
     if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
     const failedBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
-    if(failedBody) failedBody.innerHTML = '<tr><td colspan="11">7-2.반관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
+    if(failedBody) failedBody.innerHTML = '<tr><td colspan="12">7-2.반관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
 }
 
@@ -4478,25 +4627,6 @@ function openSettingClassStudentList(className){
 
 
 
-async function openRegisteredClasses(){
-  wmLockStatusMessage('SettingCenter_Search_LOCK','등록된 반보기 조회');
-  const box=document.getElementById('settingClassStudentDetail');
-  if(!box) return;
-  box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 중...</h3>';
-  box.classList.add('active');
-  try{
-    await WM_SETTING_CENTER_LOCK_V1.load();
-    const rows=wmSettingClassRows || [];
-    const html=rows.map(c=>{
-      const studentNames=String(c['학생이름목록']||'').split(',').map(v=>v.trim()).filter(Boolean);
-      const studentCount=Number(c['학생수']||studentNames.length||0);
-      return '<tr><td>'+escapeHtml(c['반명']||'-')+'</td><td>'+escapeHtml(c['담당교사명']||'-')+'</td><td>'+escapeHtml(studentNames.join(', ')||'-')+'</td><td>'+studentCount+'명</td><td>'+escapeHtml(c['상태']||'Active')+'</td></tr>';
-    }).join('');
-    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 목록</h3><div class="wm-table-wrap"><table><thead><tr><th>반명</th><th>담당교사</th><th>학생명단</th><th>학생수</th><th>상태</th></tr></thead><tbody>'+ (html || '<tr><td colspan="5">7-2.반관리_DB에 등록된 반이 없습니다.</td></tr>') +'</tbody></table></div>';
-  }catch(err){
-    box.innerHTML='<h3 class="wm-class-detail-title">등록된 반 조회 오류: '+escapeHtml(err && err.message ? err.message : err)+'</h3>';
-  }
-}
 
 /* ============================================================
    🔒 WM SETTING CENTER LOCK V1 / 실제 실행 연결
@@ -4517,8 +4647,7 @@ const WM_SETTING_CENTER_LOCK_V1 = Object.freeze({
   saveTeacherStatus: saveSettingTeacherStatus,
   generateClassId: generateSettingClassId,
   saveClass: saveSettingClass,
-  openClassStudents: openSettingClassStudentList,
-  openRegisteredClasses: openRegisteredClasses
+  openClassStudents: openSettingClassStudentList
 });
 
 function wmGetSettingCenterClientLockStatus(){
