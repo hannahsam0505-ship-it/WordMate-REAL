@@ -1275,6 +1275,36 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
 
       <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
       <div id="settingClassStudentDetail" class="wm-class-detail-box wm-setting-db-hidden" data-setting-db-view="class"></div>
+
+      <!-- WM_CLASS_DB_COLUMN_HEADER_PREVIEW_V1: 7-2.반관리_DB 하단 실제 컬럼명 우선 표시 -->
+      <div class="wm-factory-box wm-setting-db-hidden" id="wmSettingClassDbColumnPreview" data-setting-db-view="class">
+        <div class="wm-profile-section-title">
+          <h3>7-2.반관리_DB 컬럼</h3>
+          <span>이번 단계에서는 실제 DB 컬럼명만 먼저 표시하며 데이터 조회·저장 연결은 적용하지 않습니다.</span>
+        </div>
+        <div class="wm-table-wrap">
+          <table id="wmSettingClassDbColumnTable">
+            <thead>
+              <tr>
+                <th>반명</th>
+                <th>담당교사ID</th>
+                <th>담당교사명</th>
+                <th>학생ID목록</th>
+                <th>학생이름목록</th>
+                <th>학생수</th>
+                <th>상태</th>
+                <th>등록일</th>
+                <th>수정일</th>
+                <th>등록자</th>
+                <th>메모</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="11">7-2.반관리_DB 데이터 연결 전입니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
     <section class="wm-panel" id="panel-counsel">
       <h2 class="wm-panel-title">상담카페</h2>
