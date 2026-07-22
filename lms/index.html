@@ -3982,7 +3982,7 @@ function wmLmsActorQuery(){
 }
 
 function wmSettingApiUrl(action, params){
-  const authParams = {action:action, actorTeacherId:wmGetSettingActorTeacherId()};
+  const authParams = {action:action, mode:action, actorTeacherId:wmGetSettingActorTeacherId()};
   const query = new URLSearchParams(Object.assign(authParams, params || {}));
   return WM_APPS_SCRIPT_URL + '?' + query.toString();
 }
@@ -4215,8 +4215,8 @@ function removeSettingClassStudent(studentKey){
 function toggleSettingClassStudent(check){
   const id = String(check && check.value || '').trim();
   const name = String(check && check.dataset.studentName || '').trim();
-  if(!id && !name) return;
-  const key = id ? 'ID:'+id.toUpperCase() : 'NAME:'+name;
+  if(!id){ if(check) check.checked = false; return; }
+  const key = 'ID:'+id.toUpperCase();
   if(check.checked){
     wmSettingClassSelectedStudents.set(key, {
       id:id,
@@ -4238,8 +4238,8 @@ async function searchSettingClassStudents(){
     try{ await loadStudents(); }catch(err){}
   }
   const rows = (WM_STUDENT_MANAGE_ROWS || []).filter(row=>{
-    const id = wmSettingStudentValue(row, ['학생ID','Student_ID']);
-    const name = wmSettingStudentValue(row, ['학생이름','이름','학생명']);
+    const id = String(cellValue(row, headerAliases('학생ID')) || '').trim();
+    const name = String(cellValue(row, headerAliases('학생이름')) || '').trim();
     return !query || id.toLowerCase().includes(query) || name.toLowerCase().includes(query);
   }).slice(0,100);
   if(!rows.length){
@@ -4247,13 +4247,15 @@ async function searchSettingClassStudents(){
     return;
   }
   results.innerHTML = rows.map(row=>{
-    const id = wmSettingStudentValue(row, ['학생ID','Student_ID']);
-    const name = wmSettingStudentValue(row, ['학생이름','이름','학생명']) || id;
+    const id = String(cellValue(row, headerAliases('학생ID')) || '').trim();
+    const name = String(cellValue(row, headerAliases('학생이름')) || '').trim() || id;
     const currentClass = wmSettingStudentValue(row, ['반명','현재반','Class','반']);
-    const selectedKey = id ? 'ID:'+id.toUpperCase() : 'NAME:'+name;
-    const checked = wmSettingClassSelectedStudents.has(selectedKey) ? ' checked' : '';
+    const selectedKey = 'ID:'+id.toUpperCase();
+    const checked = id && wmSettingClassSelectedStudents.has(selectedKey) ? ' checked' : '';
     const classText = currentClass ? ' · 현재 '+currentClass : ' · 미배정';
-    return '<label class="wm-setting-student-result-item"><input class="wm-setting-student-check" type="checkbox" value="'+escapeHtml(id)+'" data-student-name="'+escapeHtml(name)+'" data-current-class="'+escapeHtml(currentClass)+'" onchange="toggleSettingClassStudent(this)"'+checked+' /><span><strong>'+escapeHtml(name)+'</strong> ('+escapeHtml(id)+')'+escapeHtml(classText)+'</span></label>';
+    const disabled = id ? '' : ' disabled';
+    const idText = id || '학생ID 확인 필요';
+    return '<label class="wm-setting-student-result-item"><input class="wm-setting-student-check" type="checkbox" value="'+escapeHtml(id)+'" data-student-name="'+escapeHtml(name)+'" data-current-class="'+escapeHtml(currentClass)+'" onchange="toggleSettingClassStudent(this)"'+checked+disabled+' /><span><strong>'+escapeHtml(name)+'</strong> ('+escapeHtml(idText)+')'+escapeHtml(classText)+'</span></label>';
   }).join('');
 }
 
@@ -4268,9 +4270,10 @@ async function saveSettingClass(){
     className: document.getElementById('settingClassName')?.value || '',
     teacherName: document.getElementById('settingClassTeacher')?.value || '추후선택',
     studentIds: selectedStudents.filter(v=>v.id).map(v=>v.id).join(','),
-    studentRefs: JSON.stringify(selectedStudents.map(v=>({id:v.id || '', name:v.name || ''})))
+    studentRefs: JSON.stringify(selectedStudents.filter(v=>v.id).map(v=>({id:v.id, name:v.name || ''})))
   };
   if(!payload.className.trim()) return setSettingStatus('settingClassStatus','반명을 입력하세요.');
+  if(selectedStudents.some(v=>!v.id)) return setSettingStatus('settingClassStatus','학생ID가 확인되지 않은 학생은 연결할 수 없습니다. 학생ID 표시를 먼저 확인하세요.');
   const moving = selectedStudents.filter(v=>v.currentClass && v.currentClass !== payload.className.trim());
   if(moving.length){
     const names = moving.map(v=>v.name+'('+v.currentClass+' → '+payload.className.trim()+')').join(', ');
