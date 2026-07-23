@@ -1170,7 +1170,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-table-wrap"><table><thead><tr><th>코멘트ID</th><th>코멘트분류</th><th>코멘트제목</th><th>Teacher’s Comment</th><th>사용여부</th><th>비고</th></tr></thead><tbody><tr><td>CMT001</td><td>격려</td><td>꾸준한 학습</td><td>꾸준히 잘 따라오고 있습니다.</td><td>Y</td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-reports">
-      <div class="wm-panel-title-row"><h2 class="wm-panel-title">성적표 생성 센터</h2><p class="wm-panel-desc">연결 DB: 4-1.성적표생성_DB / 구글시트 현재 1행 컬럼명을 임의 수정 없이 그대로 반영합니다.</p></div>
+      <div class="wm-panel-title-row"><h2 class="wm-panel-title">성적표 생성 센터</h2><p class="wm-panel-desc">연결 DB: 4-1.성적표생성_DB / 확정된 1행 컬럼명을 그대로 조회·검색·표시합니다.</p></div>
       <div class="wm-filter-box" data-filter-scope="reports">
         <div class="wm-manage-filter-head">
           <div class="wm-filter-title">검색조건</div>
@@ -3961,6 +3961,8 @@ function extractRecordRowsFromResponse(data){
 
     function getReportManageFilteredRows(rows){
       rows = (rows || []).filter(isValidReportDbRow);
+      const studentId = getFilterValue('reports','studentId').toLowerCase();
+      const studentName = getFilterValue('reports','studentName').toLowerCase();
       const teacher = getFilterValue('reports','teacher').toLowerCase();
       const leader = getFilterValue('reports','leader').toLowerCase();
       const className = getFilterValue('reports','class').toLowerCase();
@@ -3971,6 +3973,8 @@ function extractRecordRowsFromResponse(data){
       const dateEnd = getFilterValue('reports','dateEnd');
 
       return (rows || []).filter(row=>{
+        const rowStudentId = String(cellValue(row, headerAliases('학생ID')) || '').toLowerCase();
+        const rowStudentName = String(cellValue(row, headerAliases('학생이름')) || '').toLowerCase();
         const rowTeacher = String(cellValue(row, headerAliases('교사명')) || cellValue(row, ['담당교사','Teacher','Teacher_Name']) || '').toLowerCase();
         const rowLeader = String(cellValue(row, ['담당리더','리더','리더명','Leader','Leader_Name']) || '').toLowerCase();
         const rowClass = String(cellValue(row, headerAliases('반')) || cellValue(row, headerAliases('Class')) || '').toLowerCase();
@@ -3980,6 +3984,8 @@ function extractRecordRowsFromResponse(data){
         const rowDate = cellValue(row, headerAliases('학습날짜')) || cellValue(row, ['학습일','날짜','date']);
 
         if(!isWithinManageDateRange(rowDate, dateStart, dateEnd)) return false;
+        if(studentId && !rowStudentId.includes(studentId)) return false;
+        if(studentName && !rowStudentName.includes(studentName)) return false;
         if(teacher && !rowTeacher.includes(teacher)) return false;
         if(leader && !rowLeader.includes(leader)) return false;
         if(className && !rowClass.includes(className)) return false;
