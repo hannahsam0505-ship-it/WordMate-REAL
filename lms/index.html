@@ -1504,7 +1504,9 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         return;
       }
       localStorage.setItem(WM_LMS_AUTH_STORAGE_KEY, JSON.stringify({ teacher:res.teacher, loginAt:new Date().toISOString() }));
+      wmSetLmsLoginMessage('로그인 성공 · 대시보드 자료를 불러오는 중입니다.', true);
       wmApplyLmsAuth(res.teacher);
+      setTimeout(function(){ wmSetLmsLoginMessage('', true); }, 300);
     }
 
     async function wmFetchLmsLogin(teacherId, password){
@@ -3393,7 +3395,7 @@ function extractRecordRowsFromResponse(data){
         dateEnd: getFilterValue('students','dateEnd')
       };
 
-      return (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
+      const filtered = (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
         const rowDate = wmStudentField(row, ['등록일','최초등록일','최근결제일','최종결제','수정일']);
         if(!isWithinManageDateRange(rowDate, filters.dateStart, filters.dateEnd)) return false;
         if(!wmStudentMatch(row, filters.studentId, ['학생ID','StudentID','아이디'])) return false;
@@ -3406,12 +3408,28 @@ function extractRecordRowsFromResponse(data){
         if(!wmStudentMatchLevel(row, filters.level)) return false;
         return true;
       });
+
+      filtered.sort((a,b)=>{
+        const aDate = parseManageDate(formatKoreaDate(wmStudentField(a, ['등록일','최초등록일'])));
+        const bDate = parseManageDate(formatKoreaDate(wmStudentField(b, ['등록일','최초등록일'])));
+        const dateDiff = Number(bDate ? bDate.getTime() : 0) - Number(aDate ? aDate.getTime() : 0);
+        if(dateDiff) return dateDiff;
+
+        const aSerial = Number(String(wmStudentField(a, ['학생일련번호']) || '').replace(/[^0-9.-]/g,'')) || 0;
+        const bSerial = Number(String(wmStudentField(b, ['학생일련번호']) || '').replace(/[^0-9.-]/g,'')) || 0;
+        if(bSerial !== aSerial) return bSerial - aSerial;
+
+        return String(wmStudentField(b, ['학생ID']) || '').localeCompare(String(wmStudentField(a, ['학생ID']) || ''), 'ko');
+      });
+      return filtered;
     }
 
     async function loadStudents() {
       const tbody = document.getElementById('studentManageTbody');
       setManageLoading('students', true);
-      if(tbody) tbody.innerHTML = '<tr><td colspan="33">학생관리_DB 조회 중입니다.</td></tr>';
+      if(tbody && (!WM_STUDENT_MANAGE_ROWS || !WM_STUDENT_MANAGE_ROWS.length)) {
+        tbody.innerHTML = '<tr><td colspan="33">학생관리_DB 조회 중입니다.</td></tr>';
+      }
 
       try {
         const [res, currentProgressRes] = await Promise.all([
@@ -5575,9 +5593,13 @@ async function wmApplyStudentRegister(){
       wmSetStudentRegisterStatus('err', (data && data.message) ? data.message : '학생관리_DB 저장 실패');
       return;
     }
-    wmSetStudentRegisterStatus('ok', '학생관리_DB 저장완료');
+    wmSetStudentRegisterStatus('ok', '학생관리_DB·반관리_DB 저장완료');
     wmClearStudentRegisterForm();
-    await loadStudents();
+    WM_STUDENT_MANAGE_PAGE = 1;
+    await Promise.all([
+      loadStudents(),
+      loadSettingCenterDB()
+    ]);
   }catch(err){
     wmSetStudentRegisterStatus('err', '학생관리_DB 저장 오류: ' + (err && err.message ? err.message : err));
   }finally{
@@ -6223,11 +6245,8 @@ function wmScheduleDashboardFirstLoad(){
   const run = function(){
     if(typeof renderDashboard === 'function') renderDashboard({allowFallback:false});
   };
-  if(window.requestIdleCallback){
-    window.requestIdleCallback(run, {timeout:1800});
-  }else{
-    setTimeout(run, 900);
-  }
+  /* 화면은 즉시 연 뒤 대시보드만 짧게 지연하여 백그라운드 조회합니다. */
+  setTimeout(run, 120);
 }
 
 document.addEventListener('DOMContentLoaded', function(){
