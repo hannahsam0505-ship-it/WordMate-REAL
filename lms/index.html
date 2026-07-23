@@ -351,6 +351,42 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-report-detail-loading { display:flex; align-items:center; justify-content:center; gap:10px; min-height:86px; font-size:15px; font-weight:900; color:var(--wm-gray); }
     .wm-report-detail-loading .wm-loading-spinner { width:32px; height:32px; border-width:4px; }
 
+    /* WM_REPORT_DESIGN_PREVIEW_V1 */
+    #panel-reports .wm-report-workspace { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.72fr); gap:16px; align-items:stretch; margin:0 0 18px; }
+    #panel-reports .wm-report-search-side { min-width:0; }
+    #panel-reports .wm-report-search-side .wm-filter-box { height:100%; margin:0; }
+    #panel-reports .wm-report-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    #panel-reports .wm-report-date-row { flex-wrap:wrap; }
+    #panel-reports .wm-report-preview-side { min-width:0; border:1px solid #d9e4f3; border-radius:16px; background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%); padding:12px; display:flex; flex-direction:column; }
+    .wm-report-preview-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; }
+    .wm-report-preview-title { font-size:15px; font-weight:950; color:#173b75; }
+    .wm-report-preview-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .wm-report-preview-btn { border:1px solid #b9cbea; background:#fff; color:#173b75; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:900; cursor:pointer; }
+    .wm-report-preview-btn:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:#f8fbff; }
+    .wm-report-preview-frame { position:relative; flex:1 1 auto; min-height:410px; overflow:hidden; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; cursor:pointer; }
+    .wm-report-preview-canvas { width:210mm; min-width:210mm; transform:scale(.43); transform-origin:top center; pointer-events:none; }
+    .wm-report-preview-frame:after { content:"클릭하면 크게 보기"; position:absolute; left:50%; bottom:9px; transform:translateX(-50%); padding:6px 10px; border-radius:999px; background:rgba(7,59,143,.88); color:#fff; font-size:11px; font-weight:900; box-shadow:0 4px 12px rgba(7,59,143,.22); }
+    .wm-report-preview-modal { position:fixed; inset:0; z-index:120000; display:none; align-items:flex-start; justify-content:center; padding:22px; background:rgba(15,23,42,.72); overflow:auto; }
+    .wm-report-preview-modal.active { display:flex; }
+    .wm-report-preview-modal-card { width:min(1120px,96vw); background:#fff; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); overflow:hidden; }
+    .wm-report-preview-modal-head { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fff; border-bottom:1px solid var(--wm-line); padding:12px 16px; }
+    .wm-report-preview-modal-title { font-size:16px; font-weight:950; color:#173b75; }
+    .wm-report-preview-modal-body { padding:18px; background:#eaf0f8; display:flex; justify-content:center; }
+    .wm-report-preview-modal-body .wmr-sheet { margin:0 auto; }
+    body.wm-report-preview-open { overflow:hidden; }
+    @media (max-width:1150px) {
+      #panel-reports .wm-report-workspace { grid-template-columns:1fr; }
+      .wm-report-preview-frame { min-height:520px; }
+      .wm-report-preview-canvas { transform:scale(.52); }
+    }
+    @media (max-width:720px) {
+      #panel-reports .wm-report-filter-grid { grid-template-columns:1fr; }
+      .wm-report-preview-frame { min-height:430px; }
+      .wm-report-preview-canvas { transform:scale(.40); }
+      .wm-report-preview-modal { padding:8px; }
+      .wm-report-preview-modal-body { padding:8px; overflow:auto; justify-content:flex-start; }
+    }
+
     /* WM_STUDENT_REGISTER_UI_260708_V1 */
     .wm-student-register-box { display:none; border:1px solid var(--wm-line); background:#fbfdff; border-radius:16px; padding:16px; margin:0 0 18px; }
     .wm-student-register-box.active { display:block; }
@@ -472,6 +508,15 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     <div class="wm-save-wait-card">
       <div class="wm-loading-spinner"></div>
       <div id="wmSaveWaitText">저장 중입니다...</div>
+    </div>
+  </div>
+  <div id="wmReportDesignPreviewModal" class="wm-report-preview-modal" role="dialog" aria-modal="true" aria-label="성적표 디자인 자세히 보기" onclick="wmReportPreviewBackdropClose(event)">
+    <div class="wm-report-preview-modal-card">
+      <div class="wm-report-preview-modal-head">
+        <div class="wm-report-preview-modal-title">영어잡는 Word Mate Monthly Report · 디자인 샘플</div>
+        <button type="button" class="wm-action-btn sub" onclick="closeReportDesignPreview()">닫기</button>
+      </div>
+      <div id="wmReportDesignPreviewModalBody" class="wm-report-preview-modal-body"></div>
     </div>
   </div>
   <main class="wm-admin-wrap">
@@ -867,32 +912,48 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     </section>
     <section class="wm-panel" id="panel-reports">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">성적표 생성 센터</h2><p class="wm-panel-desc">연결 DB: 2.학습기록_DB / 완료된 모든 세트를 세트당 1행으로 표시합니다.</p></div>
-      <div class="wm-filter-box" data-filter-scope="reports">
-        <div class="wm-manage-filter-head">
-          <div class="wm-filter-title">검색조건</div>
-          <div class="wm-report-date-row" aria-label="성적표생성 검색기간">
-            <label class="wm-report-date-field">시작일<input type="date" data-filter="dateStart" /></label>
-            <label class="wm-report-date-field">마지막일<input type="date" data-filter="dateEnd" /></label>
-            <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','today')">오늘</button>
-            <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','week')">일주일</button>
-            <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','month')">한달</button>
+      <div class="wm-report-workspace">
+        <div class="wm-report-search-side">
+          <div class="wm-filter-box" data-filter-scope="reports">
+            <div class="wm-manage-filter-head">
+              <div class="wm-filter-title">검색조건</div>
+              <div class="wm-report-date-row" aria-label="성적표생성 검색기간">
+                <label class="wm-report-date-field">시작일<input type="date" data-filter="dateStart" /></label>
+                <label class="wm-report-date-field">마지막일<input type="date" data-filter="dateEnd" /></label>
+                <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','today')">오늘</button>
+                <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','week')">일주일</button>
+                <button type="button" class="wm-report-date-btn" onclick="setManageDateRange('reports','month')">한달</button>
+              </div>
+            </div>
+            <div class="wm-filter-grid wm-report-filter-grid">
+              <label>학생ID<input type="text" placeholder="학생ID" data-filter="studentId" /></label>
+              <label>학생이름<input type="text" placeholder="학생명" data-filter="studentName" /></label>
+              <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
+              <label>레벨<input type="text" placeholder="예: Basic 5 / 5" data-filter="level" /></label>
+              <label>교사<input type="text" list="teacherList" placeholder="교사명" data-filter="teacher" /></label>
+              <label>리더<input type="text" list="leaderList" placeholder="리더명" data-filter="leader" /></label>
+              <label>학교<input type="text" placeholder="학교명" data-filter="school" /></label>
+              <label>지역<input type="text" placeholder="지역명" data-filter="region" /></label>
+            </div>
+            <div class="wm-filter-actions">
+              <button class="wm-action-btn" onclick="runFilter('reports')">검색</button>
+              <span id="wmReportManageLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span>
+              <button class="wm-action-btn sub" onclick="resetFilter('reports')">초기화</button>
+            </div>
           </div>
         </div>
-        <div class="wm-filter-grid wm-report-filter-grid">
-          <label>학생ID<input type="text" placeholder="학생ID" data-filter="studentId" /></label>
-          <label>학생이름<input type="text" placeholder="학생명" data-filter="studentName" /></label>
-          <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
-          <label>레벨<input type="text" placeholder="예: Basic 5 / 5" data-filter="level" /></label>
-          <label>교사<input type="text" list="teacherList" placeholder="교사명" data-filter="teacher" /></label>
-          <label>리더<input type="text" list="leaderList" placeholder="리더명" data-filter="leader" /></label>
-          <label>학교<input type="text" placeholder="학교명" data-filter="school" /></label>
-          <label>지역<input type="text" placeholder="지역명" data-filter="region" /></label>
-        </div>
-        <div class="wm-filter-actions">
-          <button class="wm-action-btn" onclick="runFilter('reports')">검색</button>
-          <span id="wmReportManageLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span>
-          <button class="wm-action-btn sub" onclick="resetFilter('reports')">초기화</button>
-        </div>
+        <aside class="wm-report-preview-side" aria-label="성적표 디자인 샘플 미리보기">
+          <div class="wm-report-preview-head">
+            <div class="wm-report-preview-title">성적표 디자인 샘플</div>
+            <div class="wm-report-preview-actions">
+              <button type="button" class="wm-report-preview-btn" onclick="openReportDesignPreview()">미리보기</button>
+              <button type="button" class="wm-report-preview-btn" onclick="openReportDesignPreview()">자세히 보기</button>
+            </div>
+          </div>
+          <div class="wm-report-preview-frame" onclick="openReportDesignPreview()" title="성적표 디자인을 크게 봅니다.">
+            <div id="wmReportDesignPreviewCanvas" class="wm-report-preview-canvas"></div>
+          </div>
+        </aside>
       </div>
       <div class="wm-action-row">
         <button type="button" class="wm-action-btn" onclick="loadReports()">성적표조회</button>
@@ -2574,6 +2635,50 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const el = id ? document.getElementById(id) : null;
       if(el) el.classList.toggle('active', !!isLoading);
     }
+
+    /* WM_REPORT_DESIGN_PREVIEW_V1 */
+    function wmReportDesignSampleHtml(){
+      const template=document.getElementById('wmReportTemplate');
+      return template ? template.innerHTML : '<div class="wm-note">성적표 디자인 템플릿을 찾을 수 없습니다.</div>';
+    }
+
+    function renderReportDesignPreview(){
+      const canvas=document.getElementById('wmReportDesignPreviewCanvas');
+      if(!canvas) return;
+      canvas.innerHTML=wmReportDesignSampleHtml();
+      const sheet=canvas.querySelector('.wmr-sheet');
+      if(sheet){
+        sheet.style.margin='0 auto';
+        sheet.setAttribute('aria-label','영어잡는 Word Mate 성적표 디자인 샘플');
+      }
+    }
+
+    function openReportDesignPreview(){
+      const modal=document.getElementById('wmReportDesignPreviewModal');
+      const body=document.getElementById('wmReportDesignPreviewModalBody');
+      if(!modal || !body) return;
+      body.innerHTML=wmReportDesignSampleHtml();
+      modal.classList.add('active');
+      document.body.classList.add('wm-report-preview-open');
+    }
+
+    function closeReportDesignPreview(){
+      const modal=document.getElementById('wmReportDesignPreviewModal');
+      if(modal) modal.classList.remove('active');
+      document.body.classList.remove('wm-report-preview-open');
+    }
+
+    function wmReportPreviewBackdropClose(event){
+      if(event && event.target && event.target.id==='wmReportDesignPreviewModal') closeReportDesignPreview();
+    }
+
+    document.addEventListener('keydown',function(event){
+      if(event.key==='Escape') closeReportDesignPreview();
+    });
+
+    document.addEventListener('DOMContentLoaded',function(){
+      renderReportDesignPreview();
+    });
     function openStudentMap(studentName){ alert(studentName+' 학생 개인학습기록 / 학습맵 자동 호출 예정입니다.'); }
     async function openReportDetail(reportId){
       closeReportStudentRecords();
