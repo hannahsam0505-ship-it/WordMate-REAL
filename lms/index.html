@@ -804,14 +804,18 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-kpi-label{font-size:11px;font-weight:900;line-height:1.2}.wmr-kpi-main{display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:6px;white-space:nowrap}
   .wmr-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;align-self:center}.wmr-kpi-icon svg{width:24px;height:24px;display:block;overflow:visible}.wmr-kpi-icon.book{color:#0750b8}.wmr-kpi-icon.word{color:#2f9d45}.wmr-kpi-icon.score{color:#e43c31}.wmr-kpi-icon.time{color:#6a55b5}.wmr-kpi-icon.days{color:#f47b18}
   .wmr-kpi-value{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-unit{font-size:8px;line-height:1;font-weight:900;margin-left:-1px}.wmr-kpi-time{display:inline-flex;align-items:baseline;gap:1px;white-space:nowrap}.wmr-kpi-time-number{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-time-unit{font-size:7px;line-height:1;font-weight:900;margin-right:2px}.wmr-kpi-sub{margin-top:6px;font-size:9px;color:#5c6d85;font-weight:700;white-space:nowrap}
-  .wmr-visuals{display:grid;grid-template-columns:1fr 1.05fr;gap:14px;margin-top:10px;border:1px solid var(--wmr-line);border-radius:14px;padding:10px}
-  .wmr-box-title{font-size:16px;font-weight:950;color:#073b8f;margin-bottom:4px}
-  .wmr-chart{height:115px;position:relative}.wmr-chart svg{width:100%;height:100%;display:block}
-  .wmr-level{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:8px}
-  .wmr-donut{width:126px;height:126px;border-radius:50%;margin:auto;display:grid;place-items:center;background:conic-gradient(#0d55c8 var(--wmr-progress),#dbe7f7 0)}
+  .wmr-visuals{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,1.47fr);gap:0;margin-top:10px;border:1px solid var(--wmr-line);border-radius:14px;padding:10px 10px 9px;min-height:180px}
+  .wmr-visuals>div{min-width:0;padding:0 12px 0 0}
+  .wmr-visuals>div+div{border-left:1px solid #b8cbea;padding:0 0 0 18px}
+  .wmr-box-title{font-size:16px;font-weight:950;color:#073b8f;margin-bottom:3px}
+  .wmr-box-title small{font-size:10px;color:#334155;font-weight:800}
+  .wmr-chart{height:142px;position:relative}.wmr-chart svg{width:100%;height:100%;display:block}
+  .wmr-level{display:grid;grid-template-columns:138px minmax(0,1fr);align-items:center;gap:13px;min-height:142px}
+  .wmr-donut{position:relative;width:126px;height:126px;border-radius:50%;margin:auto;display:grid;place-items:center;background:conic-gradient(#0d55c8 var(--wmr-progress),#dbe7f7 0)}
   .wmr-donut:before{content:"";width:86px;height:86px;border-radius:50%;background:#fff;position:absolute}
-  .wmr-donut-text{position:relative;text-align:center;font-weight:900;color:#0b3272}.wmr-donut-text b{display:block;font-size:31px}
-  .wmr-mini-table{width:100%;border-collapse:collapse;min-width:0}.wmr-mini-table td{font-size:11px;padding:6px 8px;border:1px solid var(--wmr-line);white-space:normal}
+  .wmr-donut-text{position:relative;text-align:center;font-weight:900;color:#0b3272;line-height:1.15}.wmr-donut-text span{font-size:14px}.wmr-donut-text b{display:block;font-size:31px;margin-top:3px}
+  .wmr-mini-table{width:100%;border-collapse:collapse;min-width:0;table-layout:fixed}.wmr-mini-table td{font-size:11px;padding:6px 9px;border:1px solid var(--wmr-line);white-space:nowrap}
+  .wmr-mini-table td:first-child{width:58%;background:#f8fbff}.wmr-mini-table td:last-child{text-align:center;font-weight:850}
   .wmr-mini-table tr:last-child td{font-weight:950;color:#073b8f;background:#e8f1ff}
   .wmr-week-summary{width:100%;border-collapse:collapse;min-width:0;border-radius:12px;overflow:hidden}
   .wmr-week-summary th{background:#073b8f;color:#fff;text-align:center;font-size:11px;padding:6px;border:1px solid #3f6eaf}
@@ -3700,13 +3704,15 @@ function extractRecordRowsFromResponse(data){
       const scoreValues=weekly.map(item=>item.rows.length?item.summary.average:null);
       const chart=sheet.querySelector('[data-wmr-score-chart]');
       if(chart){
-        const pts=scoreValues.map((v,i)=>v==null?null:{x:48+i*82,y:96-(Math.max(0,Math.min(100,v))*0.72),v}).filter(Boolean);
-        chart.innerHTML='<svg viewBox="0 0 390 118" aria-label="주차별 평균점수 추이">'
-          +'<g stroke="#d9e4f3" stroke-width="1">'+[24,48,72,96].map(y=>'<line x1="36" y1="'+y+'" x2="375" y2="'+y+'"/>').join('')+'</g>'
-          +'<line x1="36" y1="96" x2="375" y2="96" stroke="#64748b"/>'
-          +(pts.length?'<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" points="'+pts.map(p=>p.x+','+p.y).join(' ')+'"/>':'')
-          +pts.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#0d55c8"/><text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" font-size="10">'+escapeHtml(String(p.v))+'</text>').join('')
-          +Array.from({length:5},(_,i)=>'<text x="'+(48+i*82)+'" y="112" text-anchor="middle" font-size="10">'+(i+1)+'주차</text>').join('')
+        const plotLeft=42, plotRight=374, plotTop=18, plotBottom=118;
+        const pts=scoreValues.map((v,i)=>v==null?null:{x:62+i*76,y:plotBottom-(Math.max(0,Math.min(100,v))*(plotBottom-plotTop)/100),v}).filter(Boolean);
+        chart.innerHTML='<svg viewBox="0 0 390 145" aria-label="주차별 평균점수 추이">'
+          +'<g stroke="#d9e4f3" stroke-width="1">'+[0,20,40,60,80,100].map(v=>{const y=plotBottom-(v*(plotBottom-plotTop)/100);return '<line x1="'+plotLeft+'" y1="'+y+'" x2="'+plotRight+'" y2="'+y+'"/><text x="32" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#334155">'+v+'</text>';}).join('')+'</g>'
+          +'<line x1="'+plotLeft+'" y1="'+plotTop+'" x2="'+plotLeft+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
+          +'<line x1="'+plotLeft+'" y1="'+plotBottom+'" x2="'+plotRight+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
+          +(pts.length?'<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="'+pts.map(p=>p.x+','+p.y).join(' ')+'"/>':'')
+          +pts.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#0d55c8"/><text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" font-size="10" fill="#111827">'+escapeHtml(String(p.v))+'</text>').join('')
+          +Array.from({length:5},(_,i)=>'<text x="'+(62+i*76)+'" y="137" text-anchor="middle" font-size="10" fill="#111827">'+(i+1)+'주차</text>').join('')
           +'</svg>';
       }
 
