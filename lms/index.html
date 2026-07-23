@@ -777,30 +777,22 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   }
   .wmr-sheet:before{left:-2px;border-left:2px solid var(--wmr-gold);border-radius:18px 0 0 0}
   .wmr-sheet:after{right:-2px;border-right:2px solid var(--wmr-gold);border-radius:0 18px 0 0}
-  .wmr-head{display:grid;grid-template-columns:minmax(0,1fr) 92px 205px;align-items:center;gap:14px;padding:3px 8px 12px}
-  .wmr-brand{display:flex;align-items:center;gap:11px;white-space:nowrap;min-width:0}
-  .wmr-brand-motion{position:relative;font-size:34px;line-height:1;color:#f2a000;font-weight:950;font-style:italic;letter-spacing:-2px;transform:rotate(-4deg);padding-left:7px}
-  .wmr-brand-motion:before{content:"✦";position:absolute;left:-5px;top:-13px;color:#0d55c8;font-size:13px;font-style:normal;transform:rotate(8deg)}
-  .wmr-brand-motion:after{content:"";position:absolute;left:15px;right:3px;bottom:-7px;height:2px;background:#f2a000;border-radius:999px;transform:rotate(-5deg)}
-  .wmr-brand-lockup{display:flex;flex-direction:column;align-items:center;line-height:1}
-  .wmr-brand-static{font:800 46px/1 Georgia,"Times New Roman",serif;color:#0b3272;letter-spacing:-1.7px}
-  .wmr-brand-ribbon{position:relative;margin-top:5px;background:#073b8f;color:#fff;font:700 16px/1.25 Georgia,"Times New Roman",serif;padding:3px 26px 4px;min-width:185px;text-align:center}
-  .wmr-brand-ribbon:before,.wmr-brand-ribbon:after{content:"";position:absolute;top:0;border-top:14px solid #073b8f;border-bottom:14px solid #073b8f}
-  .wmr-brand-ribbon:before{left:-16px;border-left:16px solid transparent}.wmr-brand-ribbon:after{right:-16px;border-right:16px solid transparent}
-  .wmr-month{background:linear-gradient(180deg,#0f4db2,#052f78);color:#fff;border-radius:16px;text-align:center;padding:8px 5px;box-shadow:0 5px 13px rgba(5,47,120,.22)}
-  .wmr-month small{display:block;font-size:13px}.wmr-month strong{display:block;font-size:38px;line-height:1}.wmr-month span{display:none}
-  .wmr-head-note h2{margin:0 0 7px;font-size:18px;color:#0b3272;white-space:nowrap}.wmr-head-note p{margin:0;font-size:11px;line-height:1.5}
-  .wmr-info{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden;margin-bottom:10px;background:#fff}
-  .wmr-info-item{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:6px;padding:9px 7px;border-right:1px solid var(--wmr-line);text-align:left;min-width:0}.wmr-info-item:last-child{border-right:0}
-  .wmr-info-icon{font-size:24px;line-height:1;color:#0d55c8;text-align:center;filter:saturate(.95)}
-  .wmr-info-copy{min-width:0}.wmr-info-copy span{display:block;font-size:10px;color:#5c6d85;font-weight:800}.wmr-info-copy strong{display:block;margin-top:3px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .wmr-section-title{display:flex;align-items:center;gap:8px;margin:9px 0 7px;font-size:17px;font-weight:950;color:#073b8f}
-  .wmr-section-title:before,.wmr-section-title:after{content:"";height:1px;background:#a9c6eb;flex:1}.wmr-section-title:before{max-width:none}
-  .wmr-kpis{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden;background:#fff}
-  .wmr-kpi{min-height:100px;padding:10px 7px 8px;text-align:center;border-right:1px solid var(--wmr-line)}.wmr-kpi:last-child{border-right:0}
-  .wmr-kpi-label{font-size:11px;font-weight:900}.wmr-kpi-main{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:7px}
-  .wmr-kpi-icon{display:inline-grid;place-items:center;width:37px;height:37px;font-size:29px;line-height:1}.wmr-kpi-icon.book{color:#0750b8}.wmr-kpi-icon.word{color:#2f9d45}.wmr-kpi-icon.score{color:#e43c31}.wmr-kpi-icon.time{color:#6a55b5}.wmr-kpi-icon.days{color:#f47b18}
-  .wmr-kpi-value{font-size:25px;font-weight:950}.wmr-kpi-unit{font-size:11px;font-weight:800}.wmr-kpi-sub{margin-top:7px;font-size:10px;color:#5c6d85;font-weight:700;white-space:nowrap}
+  .wmr-head{display:grid;grid-template-columns:1fr 92px 205px;align-items:center;gap:16px;padding:5px 8px 14px}
+  .wmr-brand{display:flex;align-items:flex-end;gap:12px;white-space:nowrap}
+  .wmr-brand-motion{font-size:35px;line-height:1;color:#f2a400;font-weight:950;font-style:italic;transform:rotate(-3deg)}
+  .wmr-brand-static{font:800 48px/1 Georgia,"Times New Roman",serif;color:#0b3272;letter-spacing:-1.5px}
+  .wmr-month{background:linear-gradient(180deg,#0f4db2,#052f78);color:#fff;border-radius:18px;text-align:center;padding:8px 5px;box-shadow:0 5px 13px rgba(5,47,120,.22)}
+  .wmr-month small{display:block;font-size:13px}.wmr-month strong{display:block;font-size:38px;line-height:1}.wmr-month span{font-size:10px}
+  .wmr-head-note h2{margin:0 0 5px;font-size:18px;color:#0b3272}.wmr-head-note p{margin:0;font-size:11px;line-height:1.5}
+  .wmr-info{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden;margin-bottom:10px}
+  .wmr-info div{padding:8px 6px;text-align:center;border-right:1px solid var(--wmr-line)}.wmr-info div:last-child{border-right:0}
+  .wmr-info span{display:block;font-size:10px;color:#5c6d85;font-weight:800}.wmr-info strong{display:block;margin-top:3px;font-size:14px}
+  .wmr-section-title{display:flex;align-items:center;gap:8px;margin:8px 0 7px;font-size:17px;font-weight:950;color:#073b8f}
+  .wmr-section-title:before,.wmr-section-title:after{content:"";height:1px;background:#a9c6eb;flex:1}.wmr-section-title:before{max-width:42px}
+  .wmr-kpis{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden}
+  .wmr-kpi{min-height:76px;padding:9px 6px;text-align:center;border-right:1px solid var(--wmr-line)}.wmr-kpi:last-child{border-right:0}
+  .wmr-kpi-label{font-size:11px;font-weight:900}.wmr-kpi-main{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:4px}
+  .wmr-kpi-icon{font-size:22px;line-height:1}.wmr-kpi-value{font-size:25px;font-weight:950}.wmr-kpi-unit{font-size:11px;font-weight:800}
   .wmr-visuals{display:grid;grid-template-columns:1fr 1.05fr;gap:14px;margin-top:10px;border:1px solid var(--wmr-line);border-radius:14px;padding:10px}
   .wmr-box-title{font-size:16px;font-weight:950;color:#073b8f;margin-bottom:4px}
   .wmr-chart{height:115px;position:relative}.wmr-chart svg{width:100%;height:100%;display:block}
@@ -842,25 +834,22 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
 </style>
 <article class="wmr-sheet">
   <header class="wmr-head">
-    <div class="wmr-brand"><span class="wmr-brand-motion">영어잡는</span><span class="wmr-brand-lockup"><span class="wmr-brand-static">Word Mate</span><span class="wmr-brand-ribbon">Monthly Report</span></span></div>
+    <div class="wmr-brand"><span class="wmr-brand-motion">영어잡는</span><span class="wmr-brand-static">Word Mate</span></div>
     <div class="wmr-month"><small data-wmr-year>2026년</small><strong data-wmr-month>6월</strong><span>Monthly Report</span></div>
     <div class="wmr-head-note"><h2 data-wmr-report-title>6월 누적 리포트 (3주차)</h2><p data-wmr-period>2026. 6. 1 ~ 2026. 6. 21</p><p>매주 월요일 자동 발송되는 누적 성적표입니다.</p></div>
   </header>
   <section class="wmr-info">
-    <div class="wmr-info-item"><span class="wmr-info-icon">🏫</span><span class="wmr-info-copy"><span>학교</span><strong data-wmr-school>해나초등학교</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon">🎓</span><span class="wmr-info-copy"><span>학년</span><strong data-wmr-grade>3학년</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon">♙</span><span class="wmr-info-copy"><span>이름</span><strong data-wmr-name>김해나</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon">🏅</span><span class="wmr-info-copy"><span>학습레벨</span><strong data-wmr-level>Level 3</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon">♙</span><span class="wmr-info-copy"><span>담당교사</span><strong data-wmr-teacher>해나샘</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon">▤</span><span class="wmr-info-copy"><span>리포트ID</span><strong data-wmr-report-id>R2506-S4821</strong></span></div>
+    <div><span>학교</span><strong data-wmr-school>해나초등학교</strong></div><div><span>학년</span><strong data-wmr-grade>3학년</strong></div>
+    <div><span>이름</span><strong data-wmr-name>김해나</strong></div><div><span>학습레벨</span><strong data-wmr-level>Level 3</strong></div>
+    <div><span>담당교사</span><strong data-wmr-teacher>해나샘</strong></div><div><span>리포트ID</span><strong data-wmr-report-id>R2506-S4821</strong></div>
   </section>
   <div class="wmr-section-title">✦ 월 누적 학습 결과 ✦</div>
   <section class="wmr-kpis">
-    <div class="wmr-kpi"><div class="wmr-kpi-label">완료 세트 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon book">▤</span><span class="wmr-kpi-value" data-wmr-completed>8</span><span class="wmr-kpi-unit">세트</span></div><div class="wmr-kpi-sub">전체 12세트 중 8세트 완료</div></div>
-    <div class="wmr-kpi"><div class="wmr-kpi-label">총 단어 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon word">A</span><span class="wmr-kpi-value" data-wmr-words>80</span><span class="wmr-kpi-unit">단어</span></div><div class="wmr-kpi-sub">전체 기간 기준</div></div>
-    <div class="wmr-kpi"><div class="wmr-kpi-label">평균 점수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon score">◎</span><span class="wmr-kpi-value" data-wmr-average>92.5</span><span class="wmr-kpi-unit">점</span></div><div class="wmr-kpi-sub">총 평균 95점</div></div>
-    <div class="wmr-kpi"><div class="wmr-kpi-label">총 소요 시간</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon time">◷</span><span class="wmr-kpi-value" data-wmr-time>3시간 27분</span></div><div class="wmr-kpi-sub">총 135분</div></div>
-    <div class="wmr-kpi"><div class="wmr-kpi-label">출석 일수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon days">▦</span><span class="wmr-kpi-value" data-wmr-days>10</span><span class="wmr-kpi-unit">일</span></div><div class="wmr-kpi-sub">누적 출석</div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">완료 세트 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon">▣</span><span class="wmr-kpi-value" data-wmr-completed>8</span><span class="wmr-kpi-unit">세트</span></div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">총 단어 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon">A</span><span class="wmr-kpi-value" data-wmr-words>80</span><span class="wmr-kpi-unit">단어</span></div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">평균 점수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon">◎</span><span class="wmr-kpi-value" data-wmr-average>92.5</span><span class="wmr-kpi-unit">점</span></div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">총 소요 시간</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon">◷</span><span class="wmr-kpi-value" data-wmr-time>3시간 27분</span></div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">출석 일수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon">▦</span><span class="wmr-kpi-value" data-wmr-days>10</span><span class="wmr-kpi-unit">일</span></div></div>
   </section>
   <section class="wmr-visuals">
     <div><div class="wmr-box-title">점수 추이 <small>(평균 점수)</small></div><div class="wmr-chart" data-wmr-score-chart></div></div>
