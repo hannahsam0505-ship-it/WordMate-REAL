@@ -352,18 +352,18 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-report-detail-loading .wm-loading-spinner { width:32px; height:32px; border-width:4px; }
 
     /* WM_REPORT_DESIGN_PREVIEW_V1 */
-    #panel-reports .wm-report-workspace { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.72fr); gap:16px; align-items:start; margin:0 0 18px; }
-    #panel-reports .wm-report-search-side { min-width:0; }
-    #panel-reports .wm-report-search-side .wm-filter-box { height:auto; margin:0; }
+    #panel-reports .wm-report-workspace { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.72fr); gap:16px; align-items:stretch; margin:0 0 18px; }
+    #panel-reports .wm-report-search-side { min-width:0; height:100%; }
+    #panel-reports .wm-report-search-side .wm-filter-box { height:100%; margin:0; }
     #panel-reports .wm-report-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
     #panel-reports .wm-report-date-row { flex-wrap:wrap; }
-    #panel-reports .wm-report-preview-side { min-width:0; border:1px solid #d9e4f3; border-radius:16px; background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%); padding:12px; display:flex; flex-direction:column; height:auto; align-self:start; }
+    #panel-reports .wm-report-preview-side { min-width:0; height:100%; border:1px solid #d9e4f3; border-radius:16px; background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%); padding:12px; display:flex; flex-direction:column; }
     .wm-report-preview-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; }
     .wm-report-preview-title { font-size:15px; font-weight:950; color:#173b75; }
     .wm-report-preview-actions { display:flex; gap:7px; flex-wrap:wrap; }
     .wm-report-preview-btn { border:1px solid #b9cbea; background:#fff; color:#173b75; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:900; cursor:pointer; }
     .wm-report-preview-btn:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:#f8fbff; }
-    .wm-report-preview-frame { position:relative; flex:0 0 auto; height:340px; overflow:hidden; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; cursor:pointer; }
+    .wm-report-preview-frame { position:relative; flex:1 1 auto; min-height:410px; overflow:hidden; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; }
     .wm-report-preview-canvas { width:210mm; min-width:210mm; transform:scale(.43); transform-origin:top center; pointer-events:none; }
     .wm-report-preview-modal { position:fixed; inset:0; z-index:120000; display:none; align-items:flex-start; justify-content:center; padding:22px; background:rgba(15,23,42,.72); overflow:auto; }
     .wm-report-preview-modal.active { display:flex; }
@@ -375,12 +375,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     body.wm-report-preview-open { overflow:hidden; }
     @media (max-width:1150px) {
       #panel-reports .wm-report-workspace { grid-template-columns:1fr; }
-      .wm-report-preview-frame { height:360px; }
+      .wm-report-preview-frame { min-height:520px; }
       .wm-report-preview-canvas { transform:scale(.52); }
     }
     @media (max-width:720px) {
       #panel-reports .wm-report-filter-grid { grid-template-columns:1fr; }
-      .wm-report-preview-frame { height:330px; }
+      .wm-report-preview-frame { min-height:430px; }
       .wm-report-preview-canvas { transform:scale(.40); }
       .wm-report-preview-modal { padding:8px; }
       .wm-report-preview-modal-body { padding:8px; overflow:auto; justify-content:flex-start; }
@@ -941,14 +941,14 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
             </div>
           </div>
         </div>
-        <aside class="wm-report-preview-side" aria-label="성적표 샘플보기 미리보기">
+        <aside class="wm-report-preview-side" aria-label="성적표샘플보기">
           <div class="wm-report-preview-head">
-            <div class="wm-report-preview-title">성적표 샘플보기</div>
+            <div class="wm-report-preview-title">성적표샘플보기</div>
             <div class="wm-report-preview-actions">
               <button type="button" class="wm-report-preview-btn" onclick="openReportDesignPreview()">자세히 보기</button>
             </div>
           </div>
-          <div class="wm-report-preview-frame" onclick="openReportDesignPreview()" title="성적표 디자인을 크게 봅니다.">
+          <div class="wm-report-preview-frame">
             <div id="wmReportDesignPreviewCanvas" class="wm-report-preview-canvas"></div>
           </div>
         </aside>
@@ -2647,7 +2647,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       const sheet=canvas.querySelector('.wmr-sheet');
       if(sheet){
         sheet.style.margin='0 auto';
-        sheet.setAttribute('aria-label','영어잡는 Word Mate 성적표 샘플보기');
+        sheet.setAttribute('aria-label','영어잡는 Word Mate 성적표 디자인 샘플');
       }
     }
 
