@@ -1198,7 +1198,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <button class="wm-action-btn sub" onclick="resetFilter('reports')">초기화</button>
         </div>
       </div>
-      <div class="wm-action-row"><button class="wm-action-btn">추가</button><button class="wm-action-btn sub">수정</button><button class="wm-action-btn sub">조회</button></div>
+      <div class="wm-action-row">
+        <button type="button" class="wm-action-btn" onclick="wmInitializeReportsFromLearningRecords()">기존학습기록 초기생성</button>
+        <button type="button" class="wm-action-btn sub" onclick="loadReports()">조회</button>
+        <span id="wmReportInitStatus" class="wm-manage-loading"></span>
+      </div>
       
       <div class="wm-table-wrap"><table><thead><tr><th>리포트ID</th><th>리포트주차</th><th>학생ID</th><th>학교</th><th>학년</th><th>학생이름</th><th>학습레벨</th><th>Set_ID</th><th>단어수</th><th>학습날짜</th><th>점수</th><th>총소요시간</th><th>성적표보기</th><th>Teacher’s Comment</th><th>격려메시지</th><th>로고URL</th><th>비고</th></tr></thead><tbody id="reportManageTbody"><tr><td colspan="17">4-1.성적표생성_DB 연결 대기 중입니다.</td></tr></tbody></table></div>
       <div id="wmReportStudentRecordDetail" class="wm-factory-box" style="display:none;"></div>
@@ -4009,6 +4013,59 @@ function extractRecordRowsFromResponse(data){
       const rows = extractReportRowsFromResponse(data);
       console.log('성적표생성_DB 조회 응답:', url, rows.length, data);
       return rows;
+    }
+
+
+    function wmSetReportInitStatus(message, active, isError){
+      const el = document.getElementById('wmReportInitStatus');
+      if(!el) return;
+      el.classList.toggle('active', !!active);
+      el.style.color = isError ? 'var(--wm-red)' : 'var(--wm-gray)';
+      el.innerHTML = active
+        ? '<span class="wm-loading-spinner"></span>'+escapeHtml(message || '처리 중')
+        : escapeHtml(message || '');
+    }
+
+    async function wmInitializeReportsFromLearningRecords(){
+      const studentId = getFilterValue('reports','studentId').trim();
+      const targetText = studentId ? studentId+' 학생' : '학습기록_DB에 있는 전체 학생';
+      if(!confirm(targetText+'의 기존 학습기록을 학생별·주차별로 묶어 성적표생성_DB에 초기 생성합니다.\\n\\n이미 같은 학생ID와 리포트주차가 존재하면 중복 생성하지 않습니다.\\n진행하시겠습니까?')) return;
+
+      wmSetReportInitStatus('기존 학습기록을 성적표로 생성 중입니다.', true, false);
+      setManageLoading('reports', true);
+
+      try{
+        const params = new URLSearchParams({action:'initializeReportsFromLearningRecords', ts:String(Date.now())});
+        if(studentId) params.set('studentId', studentId);
+
+        const actorQuery = wmLmsActorQuery();
+        const actorText = actorQuery ? actorQuery.replace(/^&/,'') : '';
+        if(actorText){
+          new URLSearchParams(actorText).forEach((value,key)=>params.set(key,value));
+        }
+
+        const res = await fetch(WM_APPS_SCRIPT_URL+'?'+params.toString(), {method:'GET', cache:'no-store'});
+        const text = await res.text();
+        let data;
+        try{ data = JSON.parse(text); }
+        catch(err){ throw new Error('서버 응답을 해석할 수 없습니다.'); }
+
+        if(!data || data.success !== true){
+          throw new Error((data && (data.message || data.error)) || '초기 생성에 실패했습니다.');
+        }
+
+        const created = Number(data.createdCount || 0);
+        const skipped = Number(data.skippedCount || 0);
+        const students = Number(data.studentCount || 0);
+        wmSetReportInitStatus('완료: '+students+'명 / 신규 '+created+'건 / 중복제외 '+skipped+'건', false, false);
+        await loadReports();
+        alert('기존 학습기록 초기 생성이 완료되었습니다.\\n\\n대상 학생: '+students+'명\\n신규 생성: '+created+'건\\n기존 중복 제외: '+skipped+'건');
+      }catch(err){
+        console.error('성적표 초기생성 실패', err);
+        wmSetReportInitStatus('초기생성 실패: '+(err && err.message ? err.message : err), false, true);
+        setManageLoading('reports', false);
+        alert('성적표 초기생성 실패\\n'+(err && err.message ? err.message : err));
+      }
     }
 
     async function loadReports(){
