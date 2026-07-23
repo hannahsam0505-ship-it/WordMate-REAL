@@ -1295,7 +1295,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <h3>반등록</h3>
         <div class="wm-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
           <label id="wmClassRequiredName" class="wm-class-register-required" style="padding:8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;">반명<span style="color:#dc2626;font-weight:950;margin-left:3px;">*</span>
-            <input type="text" id="settingClassName" placeholder="예: 중1A" oninput="wmClearClassRequiredError('wmClassRequiredName')" />
+            <input type="text" id="settingClassName" placeholder="예: 중1A" oninput="wmClearClassRequiredError('wmClassRequiredName');wmHandleSettingClassNameInput(this.value)" />
           </label>
           <label id="wmClassRequiredTeacher" class="wm-class-register-required" style="padding:8px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;">교사 연결<span style="color:#dc2626;font-weight:950;margin-left:3px;">*</span>
             <select id="settingClassTeacher" onchange="wmClearClassRequiredError('wmClassRequiredTeacher')"><option>추후선택</option></select>
@@ -4243,6 +4243,41 @@ function wmApplySettingCenterRoleUI(role, allowedGrades){
   }
 }
 
+function wmNormalizeClassLookupKey(value){
+  return String(value || '').trim().toUpperCase();
+}
+
+function wmFindExistingClassRowByName(className){
+  const key = wmNormalizeClassLookupKey(className);
+  if(!key) return null;
+  return (wmSettingClassRows || []).find(row=>
+    wmNormalizeClassLookupKey(row && row['반명']) === key
+  ) || null;
+}
+
+function wmHandleSettingClassNameInput(className){
+  const teacherSelect = document.getElementById('settingClassTeacher');
+  if(!teacherSelect) return;
+
+  const existingClass = wmFindExistingClassRowByName(className);
+  if(!existingClass){
+    teacherSelect.disabled = false;
+    teacherSelect.removeAttribute('disabled');
+    teacherSelect.dataset.existingClass = '';
+    return;
+  }
+
+  const teacherName = String(existingClass['담당교사명'] || '').trim() || '추후선택';
+  const hasOption = Array.from(teacherSelect.options || []).some(option=>
+    String(option.value || option.textContent || '').trim() === teacherName
+  );
+  if(!hasOption) teacherSelect.add(new Option(teacherName, teacherName));
+  teacherSelect.value = teacherName;
+  teacherSelect.disabled = true;
+  teacherSelect.dataset.existingClass = String(existingClass['반명'] || '').trim();
+  wmClearClassRequiredError('wmClassRequiredTeacher');
+}
+
 function fillSettingSelectOptions(allowedGrades){
   const classOptions = ['추후선택', ...getSettingClassList()];
   const teacherOptions = ['추후선택', ...wmSettingCenterRows.map(r=>String(r['교사명'] || '').trim()).filter(Boolean)];
@@ -4574,6 +4609,7 @@ async function loadSettingCenterDB(){
     WM_SETTING_CENTER_LOCK_V1.render(wmSettingCenterRows);
     renderSettingClassDbRows(wmSettingClassRows, (data && data.classHeaders) || []);
     WM_SETTING_CENTER_LOCK_V1.fillOptions((data && data.allowedGrades) || []);
+    wmHandleSettingClassNameInput(document.getElementById('settingClassName')?.value || '');
     if(document.getElementById('wmStudentRegisterClass')){
       wmFillStudentRegisterClassOptions(document.getElementById('wmStudentRegisterClass').value);
     }
