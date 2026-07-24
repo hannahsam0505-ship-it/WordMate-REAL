@@ -841,11 +841,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-comment h3{margin:0 0 5px;font-size:16px;color:#073b8f}.wmr-comment.message h3{color:#ef8b00}
   .wmr-comment p{margin:0;font-size:11px;line-height:1.55;white-space:pre-line;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;max-height:68px}
   .wmr-footer{position:relative;margin:10px -7mm -7mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);color:#fff;display:flex;align-items:center;justify-content:space-between;min-height:55px;padding:6px 18px}
-  .wmr-footer-brand{font-size:14px;font-weight:900;line-height:1.05;white-space:nowrap}.wmr-footer-brand small{display:block;margin-top:2px;font-size:7px;font-weight:700;letter-spacing:.01em;text-transform:none}
+  .wmr-footer-brand{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;font-weight:900;line-height:1.05;white-space:nowrap;text-align:center}.wmr-footer-brand small{display:block;width:100%;margin-top:2px;font-size:7px;font-weight:700;letter-spacing:.01em;text-transform:none;text-align:center}
   .wmr-footer-copy{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;text-align:center;font:italic 18px Georgia,serif;letter-spacing:.08em}
-  .wmr-footer-logo{width:42px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .wmr-footer-logo img{display:block;max-width:42px;max-height:32px;object-fit:contain}
-  .wmr-footer-logo-fallback{width:30px;height:30px;border:1px solid rgba(255,208,74,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#ffd04a;font-size:9px;font-weight:950;letter-spacing:-.04em}
+  .wmr-footer-logo{width:30px;height:30px;border:1px solid rgba(255,208,74,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .wmr-footer-logo img{display:block;width:18px;height:18px;max-width:18px;max-height:18px;object-fit:contain}
+  .wmr-footer-logo-fallback{display:none}
   @media print{
     @page{size:A4 portrait;margin:0}
     body{background:#fff!important}
@@ -900,7 +900,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   <div class="wmr-section-title" style="justify-content:flex-start">세트별 상세 성적표</div>
   <table class="wmr-detail"><thead><tr><th>일련번호</th><th>리포트주차</th><th>학습날짜</th><th>학습레벨</th><th>Set_ID</th><th>세트학습시간</th><th>단어수</th><th>점수</th><th>시험소요시간</th><th>기기정보</th></tr></thead><tbody data-wmr-detail-body><tr><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>4</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>6</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>7</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>8</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>9</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>10</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table>
   <section class="wmr-comments"><div class="wmr-comment"><h3>💬 Teacher's Comment</h3><p data-wmr-teacher-comment>이번 달에도 꾸준히 학습에 참여해 주었습니다.</p></div><div class="wmr-comment message"><h3>★ 해나샘의 메시지</h3><p data-wmr-message>매일 꾸준히 노력하는 모습이 정말 멋집니다.</p></div></section>
-  <footer class="wmr-footer"><div class="wmr-footer-brand">해나샘영어<small>Hannahsam English</small></div><div class="wmr-footer-copy">Thank you for your great effort.</div><div class="wmr-footer-logo"><img data-wmr-logo alt="해나샘영어 로고" style="display:none"><span class="wmr-footer-logo-fallback" data-wmr-logo-fallback>WM</span></div></footer>
+  <footer class="wmr-footer"><div class="wmr-footer-brand">해나샘영어<small>Hannahsam English</small></div><div class="wmr-footer-copy">Thank you for your great effort.</div><div class="wmr-footer-logo"><img data-wmr-logo src="/35" alt="해나샘영어 로고"></div></footer>
 </article>
 </template>
 
@@ -3793,12 +3793,7 @@ function extractRecordRowsFromResponse(data){
       setText('[data-wmr-teacher-comment]',String(teacherComment||'이번 달에도 꾸준히 학습에 참여해 주었습니다.').slice(0,110));
       setText('[data-wmr-message]',String(encourage||'매일 꾸준히 노력하는 모습이 좋은 성장을 만듭니다.').slice(0,110));
       const logoImg=sheet.querySelector('[data-wmr-logo]');
-      const logoFallback=sheet.querySelector('[data-wmr-logo-fallback]');
-      if(logoImg&&logoUrl){
-        logoImg.src=String(logoUrl);
-        logoImg.style.display='block';
-        if(logoFallback) logoFallback.style.display='none';
-      }
+      if(logoImg) logoImg.src=String(logoUrl||'/35');
       return parser.innerHTML;
     }
 
