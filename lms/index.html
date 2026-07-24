@@ -487,7 +487,21 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-lms-logout-btn { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:999px; padding:9px 13px; font-size:13px; font-weight:900; cursor:pointer; }
     @media (max-width:520px) { .wm-lms-login-card { padding:32px 22px 30px; border-radius:22px; } .wm-lms-login-title { font-size:24px !important; } }
 
-  </style>
+  
+
+/* Footer bottom white line cover */
+.report-footer,.footer,.wm-report-footer{
+  position:relative;
+}
+.report-footer::after,.footer::after,.wm-report-footer::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:-2px;
+  height:2px;
+  background:inherit;
+}
+
+</style>
 </head>
 <body>
   <section class="wm-lms-login-gate" id="wmLmsLoginGate">
