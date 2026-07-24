@@ -821,10 +821,19 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-week-summary th{background:#073b8f;color:#fff;text-align:center;font-size:11px;padding:6px;border:1px solid #3f6eaf}
   .wmr-week-summary td{text-align:center;font-size:11px;padding:5px;border:1px solid var(--wmr-line)}
   .wmr-week-summary tbody tr:last-child td{background:#dceaff;font-weight:950;color:#073b8f}
-  .wmr-detail{width:100%;border-collapse:collapse;min-width:0}
-  .wmr-detail th{background:#073b8f;color:#fff;text-align:center;font-size:10px;padding:5px 3px;border:1px solid #4b74ab}
-  .wmr-detail td{text-align:center;font-size:10px;padding:4px 3px;border:1px solid var(--wmr-line)}
-  .wmr-detail tfoot td{background:#dceaff;font-weight:950;color:#073b8f}
+  .wmr-detail{width:100%;border-collapse:collapse;min-width:0;table-layout:fixed}
+  .wmr-detail th{background:#073b8f;color:#fff;text-align:center;font-size:9px;line-height:1.15;padding:3px 2px;border:1px solid #4b74ab;white-space:nowrap}
+  .wmr-detail td{text-align:center;font-size:9px;line-height:1.15;padding:2px 2px;height:18px;border:1px solid var(--wmr-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wmr-detail th:nth-child(1),.wmr-detail td:nth-child(1){width:7%}
+  .wmr-detail th:nth-child(2),.wmr-detail td:nth-child(2){width:9%}
+  .wmr-detail th:nth-child(3),.wmr-detail td:nth-child(3){width:11%}
+  .wmr-detail th:nth-child(4),.wmr-detail td:nth-child(4){width:9%}
+  .wmr-detail th:nth-child(5),.wmr-detail td:nth-child(5){width:11%}
+  .wmr-detail th:nth-child(6),.wmr-detail td:nth-child(6){width:12%}
+  .wmr-detail th:nth-child(7),.wmr-detail td:nth-child(7){width:7%}
+  .wmr-detail th:nth-child(8),.wmr-detail td:nth-child(8){width:7%}
+  .wmr-detail th:nth-child(9),.wmr-detail td:nth-child(9){width:12%}
+  .wmr-detail th:nth-child(10),.wmr-detail td:nth-child(10){width:10%}
   .wmr-comments{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
   .wmr-comment{border:1px solid var(--wmr-line);border-radius:14px;padding:10px 12px;min-height:105px}
   .wmr-comment.message{border-color:#f5c168;background:#fffaf0}
@@ -886,7 +895,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     </tbody>
   </table>
   <div class="wmr-section-title" style="justify-content:flex-start">세트별 상세 성적표</div>
-  <table class="wmr-detail"><thead><tr><th>일련번호</th><th>학습 날짜</th><th>학습 레벨</th><th>Set_ID</th><th>단어 수</th><th>점수</th><th>소요 시간</th><th>리포트 주차</th><th>Teacher's Comment</th><th>격려 메시지</th></tr></thead><tbody data-wmr-detail-body></tbody><tfoot data-wmr-detail-foot></tfoot></table>
+  <table class="wmr-detail"><thead><tr><th>일련번호</th><th>리포트주차</th><th>학습날짜</th><th>학습레벨</th><th>Set_ID</th><th>세트학습시간</th><th>단어수</th><th>점수</th><th>시험소요시간</th><th>기기정보</th></tr></thead><tbody data-wmr-detail-body></tbody></table>
   <section class="wmr-comments"><div class="wmr-comment"><h3>◯ Teacher's Comment</h3><p data-wmr-teacher-comment>이번 달에도 꾸준히 학습에 참여해 주었습니다.</p></div><div class="wmr-comment message"><h3>★ 해나샘의 메시지</h3><p data-wmr-message>매일 꾸준히 노력하는 모습이 정말 멋집니다.</p></div></section>
   <footer class="wmr-footer"><div class="wmr-footer-brand">해나샘영어<small>HANNA ENGLISH</small></div><div class="wmr-footer-copy">Thank you for your great effort.</div><div class="wmr-footer-stars">✦ ✧</div></footer>
 </article>
@@ -3752,22 +3761,30 @@ function extractRecordRowsFromResponse(data){
       }
 
       const detailBody=sheet.querySelector('[data-wmr-detail-body]');
-      let detailSeconds=0,detailScoreSum=0,detailScoreCount=0;
       if(detailBody){
-        detailBody.innerHTML=cumulativeRows.slice(0,10).map((row,idx)=>{
+        const detailRows=cumulativeRows.slice(0,10);
+        detailBody.innerHTML=Array.from({length:10},(_,idx)=>{
+          const row=detailRows[idx];
+          if(!row) return '<tr><td>'+(idx+1)+'</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
+
           const date=reportDetailDate(row);
+          const week=reportDetailWeek(row);
           const setId=reportDetailFirst(row,['Set_ID','Set ID','세트ID']);
           const rowLevel=reportDetailFirst(row,['학습레벨','Level','레벨'])||level;
+          const setTimeText=reportDetailFirst(row,['총소요시간','총 소요시간','세트학습시간','세트 학습시간']);
+          const setSeconds=secondsFromTimeText(setTimeText);
           const words=numberFromText(reportDetailFirst(row,reportDetailValueKeys('단어수')))||0;
           const score=numberFromText(reportDetailFirst(row,['점수','Score']))||0;
-          const timeText=reportDetailFirst(row,reportDetailValueKeys('총 소요시간'));
-          const seconds=secondsFromTimeText(timeText);
-          detailSeconds+=seconds;if(score){detailScoreSum+=score;detailScoreCount++;}
-          return '<tr><td>'+(idx+1)+'</td><td>'+escapeHtml(String(date||''))+'</td><td>'+escapeHtml(String(rowLevel||''))+'</td><td>'+escapeHtml(String(setId||''))+'</td><td>'+words+'</td><td>'+score+'</td><td>'+escapeHtml(formatSecondsForReport(seconds))+'</td><td>'+reportDetailWeek(row)+'주차</td><td></td><td></td></tr>';
+          const testTimeText=reportDetailFirst(row,['Test_총시간','Test 총시간','Test 시간','시험소요시간','시험 소요시간']);
+          const testSeconds=secondsFromTimeText(testTimeText);
+          const rawDevice=String(reportDetailFirst(row,['기기정보','Device','deviceType','기기'])||'').trim().toLowerCase();
+          let device='PC';
+          if(/phone|mobile|iphone|android|휴대폰|스마트폰/.test(rawDevice)) device='Phone';
+          else if(/tap|tablet|ipad|태블릿/.test(rawDevice)) device='Tap';
+
+          return '<tr><td>'+(idx+1)+'</td><td>'+week+'주차</td><td>'+escapeHtml(String(date||'-'))+'</td><td>'+escapeHtml(String(rowLevel||'-'))+'</td><td>'+escapeHtml(String(setId||'-'))+'</td><td>'+escapeHtml(setSeconds?formatSecondsForReport(setSeconds):'-')+'</td><td>'+(words||'-')+'</td><td>'+(score||'-')+'</td><td>'+escapeHtml(testSeconds?formatSecondsForReport(testSeconds):'-')+'</td><td>'+device+'</td></tr>';
         }).join('');
       }
-      const detailFoot=sheet.querySelector('[data-wmr-detail-foot]');
-      if(detailFoot) detailFoot.innerHTML='<tr><td colspan="4">합계 / 평균</td><td>'+(summary.wordTotal||0)+'</td><td>'+(detailScoreCount?Math.round(detailScoreSum/detailScoreCount):0)+'</td><td>'+formatSecondsForReport(detailSeconds)+'</td><td colspan="3"></td></tr>';
 
       setText('[data-wmr-teacher-comment]',teacherComment||'이번 달에도 꾸준히 학습에 참여해 주었습니다.');
       setText('[data-wmr-message]',encourage||'매일 꾸준히 노력하는 모습이 좋은 성장을 만듭니다.');
