@@ -779,8 +779,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-sheet:after{right:-2px;border-right:2px solid var(--wmr-gold);border-radius:0 18px 0 0}
   /* WM_REPORT_TOP_PART_1_2_SAMPLE_MATCH_V2 */
   .wmr-head{position:relative;display:flex;align-items:center;justify-content:center;padding:1px 11px 10px;min-height:92px}
-  .wmr-brand{position:relative;left:auto;transform:none;display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;min-width:0}
-  .wmr-brand-motion{position:relative;font-size:35px;line-height:.98;color:#f39a00;font-weight:950;font-style:italic;letter-spacing:-2.4px;transform:rotate(-5deg);padding:2px 0 0 9px;text-shadow:0 1px 0 rgba(255,255,255,.65)}
+  .wmr-brand{position:absolute;left:50%;transform:translateX(-50%);display:block;white-space:nowrap;min-width:0}
+  .wmr-brand-motion{position:absolute;right:calc(100% + 10px);top:50%;font-size:35px;line-height:.98;color:#f39a00;font-weight:950;font-style:italic;letter-spacing:-2.4px;transform:translateY(-50%) rotate(-5deg);padding:2px 0 0 9px;text-shadow:0 1px 0 rgba(255,255,255,.65)}
   .wmr-brand-motion:before{content:"";position:absolute;left:-2px;top:-12px;width:28px;height:21px;background:linear-gradient(72deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 0 0/9px 18px no-repeat,linear-gradient(98deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 10px 0/9px 15px no-repeat,linear-gradient(118deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 20px 6px/8px 12px no-repeat;transform:rotate(-9deg)}
   .wmr-brand-motion:after{content:"";position:absolute;left:17px;right:1px;bottom:-8px;height:2px;background:#f39a00;border-radius:999px;transform:rotate(-6deg);box-shadow:25px 4px 0 -0.4px #f39a00}
   .wmr-brand-lockup{display:flex;flex-direction:column;align-items:center;line-height:1;min-width:0}
@@ -802,7 +802,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-kpis{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden;background:#fff}
   .wmr-kpi{min-height:88px;padding:9px 6px 7px;text-align:center;border-right:1px solid var(--wmr-line)}.wmr-kpi:last-child{border-right:0}
   .wmr-kpi-label{font-size:11px;font-weight:900;line-height:1.2}.wmr-kpi-main{display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:6px;white-space:nowrap}
-  .wmr-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;align-self:center}.wmr-kpi-icon svg{width:24px;height:24px;display:block;overflow:visible}.wmr-kpi-icon.book{color:#0750b8}.wmr-kpi-icon.word{color:#2f9d45}.wmr-kpi-icon.score{color:#e43c31}.wmr-kpi-icon.time{color:#6a55b5}.wmr-kpi-icon.days{color:#f47b18}
+  .wmr-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;align-self:center}.wmr-kpi-icon svg{width:24px;height:24px;display:block;overflow:visible}.wmr-kpi-icon.book{color:#0750b8}.wmr-kpi-icon.word{color:#fff;background:#4aa43f;border-radius:3px;transform:rotate(-6deg);box-shadow:0 1px 2px rgba(15,23,42,.16)}.wmr-kpi-icon.word svg{width:17px;height:17px}.wmr-kpi-icon.score{color:#e43c31}.wmr-kpi-icon.time{color:#6a55b5}.wmr-kpi-icon.days{color:#f47b18}
   .wmr-kpi-value{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-unit{font-size:8px;line-height:1;font-weight:900;margin-left:-1px}.wmr-kpi-time{display:inline-flex;align-items:baseline;gap:1px;white-space:nowrap}.wmr-kpi-time-number{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-time-unit{font-size:7px;line-height:1;font-weight:900;margin-right:2px}.wmr-kpi-sub{margin-top:6px;font-size:9px;color:#5c6d85;font-weight:700;white-space:nowrap}
   .wmr-visuals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;margin-top:10px;border:1px solid var(--wmr-line);border-radius:14px;padding:10px 10px 9px;min-height:180px}
   .wmr-visuals>div{min-width:0;padding:0 16px 0 0}
@@ -840,50 +840,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-comment.message{border-color:#f5c168;background:#fffaf0}
   .wmr-comment h3{margin:0 0 5px;font-size:16px;color:#073b8f}.wmr-comment.message h3{color:#ef8b00}
   .wmr-comment p{margin:0;font-size:11px;line-height:1.55;white-space:pre-line;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;max-height:68px; line-clamp: 4;}
-  .wmr-footer{position:relative;margin:10px -7mm -7mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);color:#fff;display:flex;align-items:center;justify-content:space-between;min-height:55px;padding:6px 18px}
+  .wmr-footer{position:relative;margin:10px -7mm -7mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);color:#fff;display:flex;align-items:center;justify-content:space-between;min-height:55px;padding:6px 18px}.wmr-footer:after{content:"";position:absolute;left:0;right:0;top:100%;height:30mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);pointer-events:none}
   .wmr-footer-brand{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;font-weight:900;line-height:1.05;white-space:nowrap;text-align:center}.wmr-footer-brand small{display:block;width:100%;margin-top:2px;font-size:7px;font-weight:700;letter-spacing:.01em;text-transform:none;text-align:center}
   .wmr-footer-copy{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;text-align:center;font:italic 18px Georgia,serif;letter-spacing:.08em}
   .wmr-footer-logo{width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:visible}
   .wmr-footer-logo img{display:block;width:32px;height:32px;max-width:32px;max-height:32px;object-fit:contain}
   .wmr-footer-logo-fallback{display:none}
-  /* ==========================================================================================
-     WM_REPORT_TEMPLATE_LOCK_V1
-     - 성적표 1~7번 영역의 디자인 구조를 기준 템플릿으로 고정
-     - DB 연결 / 데이터 바인딩 / 기능 추가 없음
-     - 이후 실제 데이터는 고정된 영역 내부의 값만 교체
-  ========================================================================================== */
-  .wmr-sheet[data-wmr-template-lock="V1"]{
-    width:210mm;
-    height:297mm;
-    min-height:297mm;
-    max-height:297mm;
-    overflow:hidden;
-    contain:layout paint;
-  }
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-head,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-info,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-kpis,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-visuals,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-week-summary,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-detail,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-comments,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-footer{
-    flex-shrink:0;
-  }
-  .wmr-sheet[data-wmr-template-lock="V1"] table{
-    table-layout:fixed;
-  }
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-info-copy strong,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-kpi-main,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-mini-table td,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-week-summary th,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-week-summary td,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-detail th,
-  .wmr-sheet[data-wmr-template-lock="V1"] .wmr-detail td{
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-
   @media print{
     @page{size:A4 portrait;margin:0}
     body{background:#fff!important}
@@ -897,6 +859,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wmr-footer{margin:10px -16px -16px;grid-template-columns:1fr;text-align:center;gap:5px}.wmr-footer-stars{text-align:center}
   }
 </style>
+<!-- WM_REPORT_TEMPLATE_LOCK_V1
+1~7번 성적표 디자인 기준본.
+HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구조 변경 금지.
+이후 작업은 데이터 값 연결만 허용.
+-->
 <article class="wmr-sheet" data-wmr-template-lock="V1" aria-label="Word Mate Monthly Report 고정 디자인 템플릿">
   <header class="wmr-head">
     <div class="wmr-brand"><span class="wmr-brand-motion">영어잡는</span><span class="wmr-brand-lockup"><span class="wmr-brand-static">Word Mate</span><span class="wmr-brand-ribbon">Monthly Report</span></span></div>
@@ -907,9 +874,9 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 27V12h7v15M21 27V8h7v19M2 27h28M7 16h1M7 20h1M7 24h1M24 12h1M24 16h1M24 20h1M14 27V4h5v23M16.5 8v3M16.5 15v3M16.5 22v3"/></svg></span><span class="wmr-info-copy"><span>학교</span><strong data-wmr-school>해나초등학교</strong></span></div>
     <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 11 16 4l13 7-13 7L3 11Z M8 14v8c5 4 11 4 16 0v-8M28 12v9M28 21l-2 4h4l-2-4Z"/></svg></span><span class="wmr-info-copy"><span>학년</span><strong data-wmr-grade>3학년</strong></span></div>
     <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="9" r="5"/><path d="M5 28c1-8 5-12 11-12s10 4 11 12"/></svg></span><span class="wmr-info-copy"><span>이름</span><strong data-wmr-name>김해나</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="m12 3 4 4 4-4 4 7-4 4H12L8 10l4-7Z"/><circle cx="16" cy="20" r="8"/><path d="m16 15 1.6 3.2 3.5.5-2.5 2.5.6 3.5-3.2-1.7-3.2 1.7.6-3.5-2.5-2.5 3.5-.5L16 15Z"/></svg></span><span class="wmr-info-copy"><span>학습레벨</span><strong data-wmr-level>Level 3</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="8" r="4.5"/><path d="M7 27c1-7 4-11 9-11s8 4 9 11M9 27h14M12 20h8"/></svg></span><span class="wmr-info-copy"><span>담당교사</span><strong data-wmr-teacher>해나샘</strong></span></div>
-    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="7" y="3" width="18" height="26" rx="1.5"/><path d="M11 8h10M11 12h10M11 18h3M17 18h4M11 22h3M17 22h4"/></svg></span><span class="wmr-info-copy"><span>리포트ID</span><strong data-wmr-report-id>R2506-S4821</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="m12 3 4 4 4-4 4 7-4 4H12L8 10l4-7Z"/><circle cx="16" cy="20" r="8"/><path d="m16 15 1.6 3.2 3.5.5-2.5 2.5.6 3.5-3.2-1.7-3.2 1.7.6-3.5-2.5-2.5 3.5-.5L16 15Z"/></svg></span><span class="wmr-info-copy"><span>학생 ID</span><strong data-wmr-student-id>S4821</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="8" r="4.5"/><path d="M7 27c1-7 4-11 9-11s8 4 9 11M9 27h14M12 20h8"/></svg></span><span class="wmr-info-copy"><span>Class</span><strong data-wmr-class>해나반</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="7" y="3" width="18" height="26" rx="1.5"/><path d="M11 8h10M11 12h10M11 18h3M17 18h4M11 22h3M17 22h4"/></svg></span><span class="wmr-info-copy"><span>학습레벨</span><strong data-wmr-level>Level 3</strong></span></div>
   </section>
   <div class="wmr-section-title">✦ 월 누적 학습 결과 ✦</div>
   <section class="wmr-kpis">
@@ -3717,6 +3684,8 @@ function extractRecordRowsFromResponse(data){
       const school=reportDetailFirst(clickedRow,['학교','School','Student_School']);
       const grade=reportDetailFirst(clickedRow,['학년','Grade']);
       const studentName=reportDetailStudentName(clickedRow);
+      const studentId=reportDetailStudentId(clickedRow);
+      const className=reportDetailFirst(clickedRow,['Class','반명','반','Class_Name']);
       const level=reportDetailFirst(clickedRow,['학습레벨','Level','레벨']);
       const teacher=reportDetailFirst(clickedRow,['교사명','담당교사','Teacher']);
       const teacherComment=reportDetailFirst(clickedRow,['Teacher’s Comment','Teachers Comment','Teacher_Comment','Comment']);
@@ -3736,9 +3705,9 @@ function extractRecordRowsFromResponse(data){
       setText('[data-wmr-school]',school);
       setText('[data-wmr-grade]',grade);
       setText('[data-wmr-name]',studentName);
+      setText('[data-wmr-student-id]',studentId);
+      setText('[data-wmr-class]',className);
       setText('[data-wmr-level]',level);
-      setText('[data-wmr-teacher]',teacher);
-      setText('[data-wmr-report-id]',reportId);
       setText('[data-wmr-completed]',cumulativeRows.length);
       setText('[data-wmr-words]',summary.wordTotal||0);
       setText('[data-wmr-average]',summary.average||0);
