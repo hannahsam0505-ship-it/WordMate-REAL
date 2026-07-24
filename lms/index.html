@@ -779,7 +779,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-sheet:after{right:-2px;border-right:2px solid var(--wmr-gold);border-radius:0 18px 0 0}
   /* WM_REPORT_TOP_PART_1_2_SAMPLE_MATCH_V2 */
   .wmr-head{position:relative;display:flex;align-items:center;justify-content:center;padding:1px 11px 10px;min-height:92px}
-  .wmr-brand{display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;min-width:0}
+  .wmr-brand{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;min-width:0}
   .wmr-brand-motion{position:relative;font-size:35px;line-height:.98;color:#f39a00;font-weight:950;font-style:italic;letter-spacing:-2.4px;transform:rotate(-5deg);padding:2px 0 0 9px;text-shadow:0 1px 0 rgba(255,255,255,.65)}
   .wmr-brand-motion:before{content:"";position:absolute;left:-2px;top:-12px;width:28px;height:21px;background:linear-gradient(72deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 0 0/9px 18px no-repeat,linear-gradient(98deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 10px 0/9px 15px no-repeat,linear-gradient(118deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 20px 6px/8px 12px no-repeat;transform:rotate(-9deg)}
   .wmr-brand-motion:after{content:"";position:absolute;left:17px;right:1px;bottom:-8px;height:2px;background:#f39a00;border-radius:999px;transform:rotate(-6deg);box-shadow:25px 4px 0 -0.4px #f39a00}
@@ -789,7 +789,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
   .wmr-brand-ribbon:before,.wmr-brand-ribbon:after{content:"";position:absolute;top:0;width:20px;height:100%;background:#073b8f}
   .wmr-brand-ribbon:before{left:-15px;clip-path:polygon(0 0,100% 0,72% 50%,100% 100%,0 100%,28% 50%)}
   .wmr-brand-ribbon:after{right:-15px;clip-path:polygon(0 0,100% 0,72% 50%,100% 100%,0 100%,28% 50%);transform:scaleX(-1)}
-  .wmr-month{position:absolute;right:11px;top:50%;transform:translateY(-50%);width:88px;background:linear-gradient(180deg,#0f4db2 0%,#052f78 100%);color:#fff;border-radius:13px;text-align:center;padding:7px 5px 6px;box-shadow:0 5px 13px rgba(5,47,120,.22);border:1px solid rgba(0,38,105,.22)}
+  .wmr-month{position:absolute;right:11px;top:auto;bottom:10px;transform:none;width:88px;background:linear-gradient(180deg,#0f4db2 0%,#052f78 100%);color:#fff;border-radius:13px;text-align:center;padding:7px 5px 6px;box-shadow:0 5px 13px rgba(5,47,120,.22);border:1px solid rgba(0,38,105,.22)}
   .wmr-month small{display:block;font-size:11px;font-weight:850;line-height:1.15}.wmr-month strong{display:block;font-size:33px;line-height:1;letter-spacing:-1.7px;margin:2px 0}.wmr-month span{display:block;font-size:11px;font-weight:850;line-height:1.15}
   .wmr-head-note{align-self:center}.wmr-head-note h2{margin:0 0 7px;font-size:17px;color:#0b3272;white-space:nowrap;letter-spacing:-.4px}.wmr-head-note p{margin:0;font-size:10.5px;line-height:1.55;color:#24364f}
   .wmr-info{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--wmr-line);border-radius:12px;overflow:hidden;margin:0 10px 10px;background:#fff;min-height:61px}
