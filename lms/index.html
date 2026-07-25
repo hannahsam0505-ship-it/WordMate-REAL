@@ -3247,25 +3247,6 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         }
         const reportSourceRows=(WM_REPORT_MANAGE_ROWS || []).filter(isValidReportDbRow);
         const clickedReportRow=findReportDetailRow(reportId, reportSourceRows);
-        const targetStudentId=clickedReportRow ? reportDetailStudentId(clickedReportRow) : '';
-        const targetStudentName=clickedReportRow ? reportDetailStudentName(clickedReportRow) : '';
-
-        /* 260602.18 속도개선 핵심: 성적표보기 전용 mode=reportDetail만 호출합니다.
-           전체 학습기록_DB(mode=records) 재조회와 studentId 통합조회는 여기서 사용하지 않습니다. */
-        const fastData=await fetchReportDetailFastData(reportId, targetStudentId, targetStudentName);
-        const fastReports=normalizeRows(fastData && fastData.reports).filter(isValidReportDbRow);
-        const fastRecords=filterLearningRecordRows(fastData && fastData.records);
-        const fastStudents=normalizeRows(fastData && fastData.students);
-
-        if(fastReports.length){
-          WM_REPORT_MANAGE_ROWS=fastReports;
-        }
-        if(fastRecords.length){
-          WM_RECORD_MANAGE_ROWS=mergeRecordRowsByKey([], fastRecords);
-        }
-        if(fastStudents.length){
-          WM_STUDENT_MANAGE_ROWS=(typeof mergeRowsByStudentId === 'function') ? mergeRowsByStudentId(WM_STUDENT_MANAGE_ROWS || [], fastStudents) : fastStudents;
-        }
 
         let reportHtml=buildMonthlyCumulativeReportHtml(reportId, template.innerHTML);
         const monthlyReportResponse=await fetchMonthlyReportSingleData(clickedReportRow);
@@ -3286,27 +3267,6 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       }else{
         detailBox.scrollIntoView({behavior:'smooth',block:'start'});
       }
-    }
-
-    async function fetchReportDetailFastData(reportId, studentId, studentName){
-      const params=new URLSearchParams();
-      params.set('mode','reportDetail');
-      if(reportId) params.set('reportId', reportId);
-      if(studentId) params.set('studentId', studentId);
-      if(studentName) params.set('studentName', studentName);
-      params.set('ts', Date.now());
-      const url=WM_APPS_SCRIPT_URL+'?'+params.toString();
-      const res=await fetch(url, {method:'GET', cache:'no-store'});
-      const text=await res.text();
-      let data;
-      try{
-        data=JSON.parse(text);
-      }catch(parseErr){
-        console.warn('reportDetail JSON 파싱 실패:', text.slice(0,180));
-        throw parseErr;
-      }
-      console.log('성적표보기 reportDetail 응답:', data);
-      return data || {};
     }
 
     /* WM_REPORT_SINGLE_VALUE_BIND_V1
@@ -4875,7 +4835,7 @@ function extractRecordRowsFromResponse(data){
             return '<td><button type="button" class="wm-action-btn sub" disabled aria-disabled="true">리포트주차</button></td>';
           }
           if(header === '성적표보기'){
-            return '<td><button type="button" class="wm-action-btn sub" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button></td>';
+            return '<td><button type="button" class="wm-action-btn" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button></td>';
           }
           if(header === 'Teacher’s Comment' || header === '격려메시지'){
             return '<td></td>';
