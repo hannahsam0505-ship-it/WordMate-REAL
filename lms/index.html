@@ -1373,7 +1373,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
   </section>
   <section class="wmr-visuals" data-wmr-section="4" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="charts-progress">
     <div><div class="wmr-box-title">점수 추이 <small>(평균 점수)</small></div><div class="wmr-chart" data-wmr-score-chart><svg viewBox="0 0 390 145" aria-label="주차별 평균점수 추이"><g stroke="#d9e4f3" stroke-width="1"><line x1="42" y1="118" x2="374" y2="118"/><text x="32" y="121" text-anchor="end" font-size="9" fill="#334155">0</text><line x1="42" y1="98" x2="374" y2="98"/><text x="32" y="101" text-anchor="end" font-size="9" fill="#334155">20</text><line x1="42" y1="78" x2="374" y2="78"/><text x="32" y="81" text-anchor="end" font-size="9" fill="#334155">40</text><line x1="42" y1="58" x2="374" y2="58"/><text x="32" y="61" text-anchor="end" font-size="9" fill="#334155">60</text><line x1="42" y1="38" x2="374" y2="38"/><text x="32" y="41" text-anchor="end" font-size="9" fill="#334155">80</text><line x1="42" y1="18" x2="374" y2="18"/><text x="32" y="21" text-anchor="end" font-size="9" fill="#334155">100</text></g><line x1="42" y1="18" x2="42" y2="118" stroke="#64748b" stroke-width="1"/><line x1="42" y1="118" x2="374" y2="118" stroke="#64748b" stroke-width="1"/><polyline fill="none" stroke="#0d55c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="62,40 138,33 214,28 290,25 366,23"/><circle cx="62" cy="40" r="4" fill="#0d55c8"/><text x="62" y="32" text-anchor="middle" font-size="10" fill="#111827">78</text><circle cx="138" cy="33" r="4" fill="#0d55c8"/><text x="138" y="25" text-anchor="middle" font-size="10" fill="#111827">85</text><circle cx="214" cy="28" r="4" fill="#0d55c8"/><text x="214" y="20" text-anchor="middle" font-size="10" fill="#111827">90</text><circle cx="290" cy="25" r="4" fill="#0d55c8"/><text x="290" y="17" text-anchor="middle" font-size="10" fill="#111827">93</text><circle cx="366" cy="23" r="4" fill="#0d55c8"/><text x="366" y="15" text-anchor="middle" font-size="10" fill="#111827">95</text><text x="62" y="137" text-anchor="middle" font-size="10" fill="#111827">1주차</text><text x="138" y="137" text-anchor="middle" font-size="10" fill="#111827">2주차</text><text x="214" y="137" text-anchor="middle" font-size="10" fill="#111827">3주차</text><text x="290" y="137" text-anchor="middle" font-size="10" fill="#111827">4주차</text><text x="366" y="137" text-anchor="middle" font-size="10" fill="#111827">5주차</text></svg></div></div>
-    <div><div class="wmr-box-title">레벨 진행 현황</div><div class="wmr-level"><div class="wmr-donut" data-wmr-donut style="--wmr-progress:66%"><div class="wmr-donut-text"><span data-wmr-donut-level>Basic 5</span><b data-wmr-progress>66%</b></div></div><table class="wmr-mini-table"><tbody data-wmr-level-table><tr><td>전체 세트 수</td><td>12 세트</td></tr><tr><td>완료 세트 수</td><td>8 세트</td></tr><tr><td>진행 중 세트 수</td><td>1 세트</td></tr><tr><td>남은 세트 수</td><td>3 세트</td></tr><tr><td>레벨 진행률</td><td>66%</td></tr></tbody></table></div></div>
+    <div><div class="wmr-box-title">레벨 진행 현황</div><div class="wmr-level"><div class="wmr-donut" data-wmr-donut style="--wmr-progress:66%"><div class="wmr-donut-text"><span data-wmr-donut-level>Basic 5</span><b data-wmr-progress>66%</b></div></div><table class="wmr-mini-table"><tbody data-wmr-level-table><tr><td>레벨완료조건</td><td>2 회</td></tr><tr><td>레벨완료횟수</td><td>1 회차</td></tr><tr><td>전체 세트 수</td><td>12 세트</td></tr><tr><td>완료 세트 수</td><td>8 세트</td></tr><tr><td>남은 세트 수</td><td>4 세트</td></tr></tbody></table></div></div>
   </section>
   <div class="wmr-section-title" style="justify-content:flex-start">주차별 학습 현황 <small style="font-size:11px;color:#334155">(최대 5주차 누적)</small></div>
   <table class="wmr-week-summary" data-wmr-section="5" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="weekly-summary">
@@ -3460,7 +3460,9 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         const week=index+1;
         const trend=scores.find(item=>Number(item&&item.week)===week)||{};
         const weeklyItem=weekly.find(item=>Number(item&&item.week)===week)||{};
-        const hasData=Number(weeklyItem.completedSets||0)>0;
+        const hasData=trend.completedSets!==undefined
+          ? Number(trend.completedSets||0)>0
+          : Number(weeklyItem.completedSets||0)>0;
         const rawScore=Number(trend.averageScore);
         if(!hasData||!Number.isFinite(rawScore)) return null;
         const score=Math.max(0,Math.min(100,rawScore));
@@ -3497,9 +3499,10 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     function renderMonthlyReportLevelProgress(sheet,levelProgress){
       const data=levelProgress||{};
       const percentage=Math.max(0,Math.min(100,Number(data.percentage||0)));
+      const levelCompletionCondition=Math.max(1,Number(data.levelCompletionCondition||1));
+      const levelCompletionCount=Math.max(1,Number(data.levelCompletionCount||data.currentRound||1));
       const totalSets=Math.max(0,Number(data.totalSets||0));
       const completedSets=Math.max(0,Number(data.completedSets||0));
-      const inProgressSets=Math.max(0,Number(data.inProgressSets||0));
       const remainingSets=Math.max(0,Number(data.remainingSets||0));
       const donut=sheet.querySelector('[data-wmr-donut]');
       if(donut){
@@ -3515,11 +3518,11 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       if(!tableBody) return;
       tableBody.innerHTML='';
       [
+        ['레벨완료조건',levelCompletionCondition+' 회'],
+        ['레벨완료횟수',levelCompletionCount+' 회차'],
         ['전체 세트 수',totalSets+' 세트'],
         ['완료 세트 수',completedSets+' 세트'],
-        ['진행 중 세트 수',inProgressSets+' 세트'],
-        ['남은 세트 수',remainingSets+' 세트'],
-        ['레벨 진행률',percentage+'%']
+        ['남은 세트 수',remainingSets+' 세트']
       ].forEach(values=>{
         const row=document.createElement('tr');
         values.forEach(value=>appendMonthlyReportCell(row,value));
@@ -3622,7 +3625,8 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         expected.forEach((value,columnIndex)=>compare('detail.'+(rowIndex+1)+'.'+columnIndex,cells[columnIndex]?cells[columnIndex].textContent:'',value));
       }
 
-      const expectedScores=weekly.filter(item=>Number(item&&item.completedSets||0)>0).map(item=>({week:Number(item.week),score:Math.max(0,Math.min(100,Number(item.averageScore||0)))}));
+      const scoreTrend=Array.isArray(data.scoreTrend)?data.scoreTrend:[];
+      const expectedScores=scoreTrend.filter(item=>Number(item&&item.completedSets||0)>0).map(item=>({week:Number(item.week),score:Math.max(0,Math.min(100,Number(item.averageScore||0)))}));
       const chart=sheet.querySelector('[data-wmr-score-chart]');
       compare('chart.scores',chart?chart.getAttribute('data-wmr-score-values'):'',JSON.stringify(expectedScores));
       const level=data.levelProgress||{};
@@ -3630,11 +3634,11 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       compare('level.progress',text('[data-wmr-progress]'),Math.max(0,Math.min(100,Number(level.percentage||0)))+'%');
       const levelRows=Array.from(sheet.querySelectorAll('[data-wmr-level-table] tr'));
       const levelExpected=[
+        ['레벨완료조건',Math.max(1,Number(level.levelCompletionCondition||1))+' 회'],
+        ['레벨완료횟수',Math.max(1,Number(level.levelCompletionCount||level.currentRound||1))+' 회차'],
         ['전체 세트 수',Math.max(0,Number(level.totalSets||0))+' 세트'],
         ['완료 세트 수',Math.max(0,Number(level.completedSets||0))+' 세트'],
-        ['진행 중 세트 수',Math.max(0,Number(level.inProgressSets||0))+' 세트'],
-        ['남은 세트 수',Math.max(0,Number(level.remainingSets||0))+' 세트'],
-        ['레벨 진행률',Math.max(0,Math.min(100,Number(level.percentage||0)))+'%']
+        ['남은 세트 수',Math.max(0,Number(level.remainingSets||0))+' 세트']
       ];
       levelExpected.forEach((values,rowIndex)=>{
         const cells=levelRows[rowIndex]?Array.from(levelRows[rowIndex].children):[];
@@ -4229,13 +4233,21 @@ function extractRecordRowsFromResponse(data){
       return String(value || fallback || '').trim();
     }
 
+    function reportCalendarWeekOfMonth(date){
+      if(!(date instanceof Date)||Number.isNaN(date.getTime())) return 1;
+      const firstDay=new Date(date.getFullYear(),date.getMonth(),1);
+      const mondayOffset=(firstDay.getDay()+6)%7;
+      const calendarWeek=Math.floor((mondayOffset+date.getDate()-1)/7)+1;
+      return Math.max(1,Math.min(5,calendarWeek));
+    }
+
     function reportDetailWeek(row){
+      const date = parseDateValue(reportDetailDate(row));
+      if(date) return reportCalendarWeekOfMonth(date);
       const weekRaw = String(reportDetailFirst(row, ['리포트주차','Report_Week','주차','Week']) || '').trim();
       const match = weekRaw.match(/(\d+)\s*주/);
       if(match) return Number(match[1]);
-      const date = parseDateValue(reportDetailDate(row));
-      if(!date) return 1;
-      return Math.floor((date.getDate()-1)/7)+1;
+      return 1;
     }
 
     function reportDetailMonthKey(row){
@@ -4463,9 +4475,13 @@ function extractRecordRowsFromResponse(data){
     }
 
     function formatReportWeekRange(year, month, week){
-      const startDay = (week-1)*7 + 1;
       const lastDay = new Date(year, month, 0).getDate();
-      const endDay = Math.min(startDay+6, lastDay);
+      const firstDay = new Date(year, month-1, 1);
+      const mondayOffset=(firstDay.getDay()+6)%7;
+      const startDay=week===1?1:1+(7-mondayOffset)+(week-2)*7;
+      const endDay=week===1
+        ? Math.min(lastDay,7-mondayOffset)
+        : (week===5?lastDay:Math.min(startDay+6,lastDay));
       return month+'/'+startDay+' ~ '+month+'/'+endDay;
     }
 
@@ -4545,6 +4561,8 @@ function extractRecordRowsFromResponse(data){
       const teacherComment=reportDetailFirst(clickedRow,['Teacher’s Comment','Teachers Comment','Teacher_Comment','Comment']);
       const encourage=reportDetailFirst(clickedRow,['격려메시지','Encourage_Message']);
       const logoUrl=reportDetailFirst(clickedRow,['로고URL','Logo_URL']);
+      const levelCompletionCondition=numberFromText(reportDetailFirst(clickedRow,['레벨완료조건']))||1;
+      const levelCompletionCount=numberFromText(reportDetailFirst(clickedRow,['순차완주회차','완료회차','레벨완료횟수']))||1;
 
       const parser=document.createElement('div');
       parser.innerHTML=templateHtml;
@@ -4608,11 +4626,11 @@ function extractRecordRowsFromResponse(data){
       setText('[data-wmr-progress]',progress+'%');
       const levelTable=sheet.querySelector('[data-wmr-level-table]');
       if(levelTable) levelTable.innerHTML=
+        '<tr><td>레벨완료조건</td><td>'+levelCompletionCondition+' 회</td></tr>'+
+        '<tr><td>레벨완료횟수</td><td>'+levelCompletionCount+' 회차</td></tr>'+
         '<tr><td>전체 세트 수</td><td>'+totalSets+' 세트</td></tr>'+
         '<tr><td>완료 세트 수</td><td>'+cumulativeRows.length+' 세트</td></tr>'+
-        '<tr><td>진행 중 세트 수</td><td>0 세트</td></tr>'+
-        '<tr><td>남은 세트 수</td><td>'+Math.max(0,totalSets-cumulativeRows.length)+' 세트</td></tr>'+
-        '<tr><td>레벨 진행률</td><td>'+progress+'%</td></tr>';
+        '<tr><td>남은 세트 수</td><td>'+Math.max(0,totalSets-cumulativeRows.length)+' 세트</td></tr>';
 
       const weekBody=sheet.querySelector('[data-wmr-week-body]');
       if(weekBody){
@@ -4627,7 +4645,13 @@ function extractRecordRowsFromResponse(data){
 
       const detailBody=sheet.querySelector('[data-wmr-detail-body]');
       if(detailBody){
-        const detailRows=cumulativeRows.slice(0,10);
+        const detailRows=cumulativeRows.slice().sort((a,b)=>{
+          const weekDiff=reportDetailWeek(b)-reportDetailWeek(a);
+          if(weekDiff) return weekDiff;
+          const ad=parseDateValue(reportDetailDate(a));
+          const bd=parseDateValue(reportDetailDate(b));
+          return (bd?bd.getTime():0)-(ad?ad.getTime():0);
+        }).slice(0,10);
         detailBody.innerHTML=Array.from({length:10},(_,idx)=>{
           const row=detailRows[idx];
           if(!row) return '<tr><td>'+(idx+1)+'</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
