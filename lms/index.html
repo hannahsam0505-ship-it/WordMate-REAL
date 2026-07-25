@@ -3245,7 +3245,13 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
           WM_STUDENT_MANAGE_ROWS=(typeof mergeRowsByStudentId === 'function') ? mergeRowsByStudentId(WM_STUDENT_MANAGE_ROWS || [], fastStudents) : fastStudents;
         }
 
-        const reportHtml=buildMonthlyCumulativeReportHtml(reportId, template.innerHTML);
+        let reportHtml=buildMonthlyCumulativeReportHtml(reportId, template.innerHTML);
+        const monthlyReportResponse=await fetchMonthlyReportSingleData(clickedReportRow);
+        if(monthlyReportResponse && monthlyReportResponse.success && monthlyReportResponse.data){
+          reportHtml=bindMonthlyReportSingleValues(reportHtml, monthlyReportResponse.data);
+        }else{
+          console.warn('월간 성적표 단일 값 API 응답 확인:', monthlyReportResponse);
+        }
         detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 월 누적 성적표입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>'+reportHtml+'<div class="wm-report-detail-bottom-action"><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>';
       }catch(err){
         console.error('성적표 상세 DB 매핑 실패:', err);
@@ -3274,6 +3280,88 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       console.log('성적표보기 reportDetail 응답:', data);
       return data || {};
     }
+
+    /* WM_REPORT_SINGLE_VALUE_BIND_V1
+     * 4단계 범위: 헤더·학생정보·월 누적 KPI·코멘트·로고만 연결합니다.
+     * 주차표·상세표·꺾은선·원형 그래프는 다음 단계에서 별도로 연결합니다.
+     */
+    async function fetchMonthlyReportSingleData(clickedReportRow){
+      if(!clickedReportRow) return {success:false,message:'성적표 기준 행이 없습니다.'};
+      try{
+        const studentId=reportDetailStudentId(clickedReportRow);
+        const yearMonth=reportDetailMonthKey(clickedReportRow);
+        const week=reportDetailWeek(clickedReportRow);
+        const params=new URLSearchParams();
+        params.set('mode','monthlyReportData');
+        params.set('action','monthlyReportData');
+        params.set('studentId',studentId);
+        params.set('yearMonth',yearMonth);
+        params.set('reportWeek',yearMonth+'-'+week+'주차');
+        const actorId=(typeof wmGetSettingActorTeacherId==='function') ? wmGetSettingActorTeacherId() : '';
+        if(actorId) params.set('actorTeacherId',actorId);
+        params.set('ts',Date.now());
+        const response=await fetch(WM_APPS_SCRIPT_URL+'?'+params.toString(),{method:'GET',cache:'no-store'});
+        const text=await response.text();
+        if(!response.ok) return {success:false,message:'monthlyReportData HTTP '+response.status};
+        try{
+          return JSON.parse(text)||{};
+        }catch(parseError){
+          console.warn('monthlyReportData JSON 파싱 실패:',text.slice(0,180));
+          return {success:false,message:'monthlyReportData JSON 파싱 실패'};
+        }
+      }catch(fetchError){
+        console.warn('monthlyReportData 호출 실패:',fetchError);
+        return {success:false,message:String(fetchError&&fetchError.message?fetchError.message:fetchError)};
+      }
+    }
+
+    function bindMonthlyReportSingleValues(templateHtml,reportData){
+      const parser=document.createElement('div');
+      parser.innerHTML=templateHtml;
+      const sheet=parser.querySelector('.wmr-sheet');
+      if(!sheet) return templateHtml;
+
+      const period=reportData.period||{};
+      const student=reportData.student||{};
+      const monthly=reportData.monthly||{};
+      const comments=reportData.comments||{};
+      const setText=(selector,value)=>{
+        const el=sheet.querySelector(selector);
+        if(el) el.textContent=value===undefined||value===null?'':String(value);
+      };
+
+      setText('[data-wmr-year]',period.year?period.year+'년':'');
+      setText('[data-wmr-month]',period.month?period.month+'월':'');
+      setText('[data-wmr-week]',period.week?period.week+'주차':'');
+      setText('[data-wmr-school]',student.school||'');
+      setText('[data-wmr-grade]',student.grade||'');
+      setText('[data-wmr-name]',student.studentName||'');
+      setText('[data-wmr-student-id]',student.studentId||'');
+      setText('[data-wmr-class]',student.className||'');
+      setText('[data-wmr-level]',student.learningLevel||'');
+      setText('[data-wmr-completed]',monthly.completedSets||0);
+      setText('[data-wmr-words]',monthly.wordCount||0);
+      setText('[data-wmr-average]',monthly.averageScore||0);
+      setText('[data-wmr-days]',monthly.attendanceDays||0);
+
+      const totalTime=monthly.totalTime||{};
+      const timeEl=sheet.querySelector('[data-wmr-time]');
+      if(timeEl){
+        const hours=Math.max(0,Number(totalTime.hours||0));
+        const minutes=Math.max(0,Number(totalTime.minutesRemainder||0));
+        timeEl.innerHTML=(hours?'<span class="wmr-kpi-time-number">'+hours+'</span><span class="wmr-kpi-time-unit">시간</span>':'')
+          +'<span class="wmr-kpi-time-number">'+minutes+'</span><span class="wmr-kpi-time-unit">분</span>';
+      }
+
+      setText('[data-wmr-teacher-comment]',String(comments.teacherComment||'').slice(0,110));
+      setText('[data-wmr-message]',String(comments.encouragementMessage||'').slice(0,110));
+      const logoImg=sheet.querySelector('[data-wmr-logo]');
+      if(logoImg && String(comments.logoUrl||'').trim()) logoImg.src=String(comments.logoUrl).trim();
+
+      sheet.setAttribute('data-wmr-single-values-bound','true');
+      return parser.innerHTML;
+    }
+
     function closeReportDetail(){
       ['wmProfileReportDetail','wmReportManageDetail'].forEach(id=>{
         const detailBox=document.getElementById(id);
