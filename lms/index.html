@@ -4866,7 +4866,7 @@ function extractRecordRowsFromResponse(data){
 
       setManageLoading('reports', false);
       tbody.innerHTML = rows.map((row, index)=>{
-        const reportId = String(row['리포트ID'] || '').trim();
+        const reportId = String(getReportIdForDisplay(row, index, rows) || row['리포트ID'] || '').trim();
         return '<tr data-report-id="'+escapeHtml(reportId)+'">'+WM_REPORT_HEADERS.map(header=>{
           if(header === '일련번호'){
             return '<td>'+(index + 1)+'</td>';
@@ -4875,7 +4875,7 @@ function extractRecordRowsFromResponse(data){
             return '<td><button type="button" class="wm-action-btn sub" disabled aria-disabled="true">리포트주차</button></td>';
           }
           if(header === '성적표보기'){
-            return '<td><button type="button" class="wm-action-btn sub" disabled aria-disabled="true">성적표보기</button></td>';
+            return '<td><button type="button" class="wm-action-btn sub" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button></td>';
           }
           if(header === 'Teacher’s Comment' || header === '격려메시지'){
             return '<td></td>';
