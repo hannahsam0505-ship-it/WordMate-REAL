@@ -7537,6 +7537,77 @@ async function wmLogLevelCompleteConditionLockStatus(){
 window.WM_VERIFY_LEVEL_COMPLETE_CONDITION_LOCK = wmLogLevelCompleteConditionLockStatus;
 wmLogLevelCompleteConditionLockStatus();
 
+/* WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1 / 확대 디자인 Registry + F12 검증 */
+const WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1 = Object.freeze({
+  version:'WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1.0',
+  date:'2026-07-26',
+  rules:Object.freeze([
+    Object.freeze({
+      selector:'#panel-reports .wm-report-preview-side',
+      properties:Object.freeze({marginTop:'-58px',marginBottom:'-58px'})
+    }),
+    Object.freeze({
+      selector:'.wm-report-preview-frame',
+      properties:Object.freeze({flexBasis:'526px',height:'526px',overflowY:'auto'})
+    }),
+    Object.freeze({
+      selector:'.wm-report-preview-canvas',
+      properties:Object.freeze({height:'163.35mm',minHeight:'163.35mm',transform:'scale(.55)'})
+    })
+  ])
+});
+
+Object.defineProperty(window,'WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1',{
+  value:WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+
+function wmVerifyReportPreviewExpandedDesignLock(){
+  const registry=window.WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1;
+  const registryDescriptor=Object.getOwnPropertyDescriptor(window,'WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1');
+  const normalize=value=>String(value||'').toLowerCase().replace(/\s+/g,'').replace(/0\./g,'.');
+  const findRule=(rules,selector)=>{
+    for(let i=0;i<rules.length;i+=1){
+      const rule=rules[i];
+      if(rule.selectorText===selector) return rule;
+      if(rule.cssRules){
+        const nested=findRule(rule.cssRules,selector);
+        if(nested) return nested;
+      }
+    }
+    return null;
+  };
+  const failed=[];
+  (registry.rules||[]).forEach(item=>{
+    let matchedRule=null;
+    for(let i=0;i<document.styleSheets.length&&!matchedRule;i+=1){
+      try{ matchedRule=findRule(document.styleSheets[i].cssRules||[],item.selector); }catch(error){}
+    }
+    if(!matchedRule){
+      failed.push(item.selector+' 규칙 없음');
+      return;
+    }
+    Object.keys(item.properties).forEach(propertyName=>{
+      const actual=matchedRule.style[propertyName];
+      const expected=item.properties[propertyName];
+      if(normalize(actual)!==normalize(expected)){
+        failed.push(item.selector+' '+propertyName+'='+String(actual||'없음'));
+      }
+    });
+  });
+  const registryFrozen=Object.isFrozen(registry)&&Object.isFrozen(registry.rules)&&
+    registry.rules.every(item=>Object.isFrozen(item)&&Object.isFrozen(item.properties))&&
+    !!registryDescriptor&&registryDescriptor.writable===false&&registryDescriptor.configurable===false;
+  return Object.freeze({
+    verified:registryFrozen&&failed.length===0,
+    registryFrozen:registryFrozen,
+    cssVerified:failed.length===0,
+    failed:Object.freeze(failed)
+  });
+}
+
 /* ==========================================================
    🔒 LMS ACTUAL FUNCTION LOCK - ALL MODULES / 수정 금지
    Map 실제 함수 LOCK 성공본과 동일한 함수명 직접 보호 방식입니다.
@@ -7544,7 +7615,7 @@ wmLogLevelCompleteConditionLockStatus();
 (function wmApplyLmsActualFunctionLock_(){
   'use strict';
 
-  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V4.0';
+  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V5.0';
   var WM_LMS_ACTUAL_LOCK_DATE = '2026-07-26';
   var WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
     authentication: Object.freeze([
@@ -7578,6 +7649,9 @@ wmLogLevelCompleteConditionLockStatus();
       'setReportActualPreview','renderReportDesignPreview','openReportDesignPreview',
       'closeReportDesignPreview','wmReportPreviewBackdropClose'
     ]),
+    reportPreviewDesign: Object.freeze([
+      'wmVerifyReportPreviewExpandedDesignLock'
+    ]),
     pagination: Object.freeze([
       'wmEnsureManagePager','wmUpdateManagePager','moveManagePage'
     ])
@@ -7586,6 +7660,7 @@ wmLogLevelCompleteConditionLockStatus();
     authentication:'인증·권한', dashboard:'대시보드',
     settingCenter:'설정센터', studentDB:'학생관리_DB',
     studyRecordDB:'학습기록_DB', reportDB:'성적표생성_DB',
+    reportPreviewDesign:'성적표 미리보기 확대 디자인',
     pagination:'페이지 기능'
   });
 
@@ -7610,6 +7685,7 @@ wmLogLevelCompleteConditionLockStatus();
   var functionResults = {};
   var moduleResults = {};
   var allCompletedModulesLocked = true;
+  var reportPreviewDesignStatus = null;
   Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
     var names = WM_LMS_ACTUAL_LOCK_GROUPS[groupKey];
     var lockedCount = 0;
@@ -7619,6 +7695,18 @@ wmLogLevelCompleteConditionLockStatus();
       if(result.locked) lockedCount += 1;
       else allCompletedModulesLocked = false;
     });
+    if(groupKey==='reportPreviewDesign'&&lockedCount===names.length){
+      reportPreviewDesignStatus=window.wmVerifyReportPreviewExpandedDesignLock();
+      if(!reportPreviewDesignStatus.verified){
+        lockedCount=0;
+        allCompletedModulesLocked=false;
+        functionResults.wmVerifyReportPreviewExpandedDesignLock={
+          name:'wmVerifyReportPreviewExpandedDesignLock',
+          locked:false,
+          reason:(reportPreviewDesignStatus.failed||[]).join(', ')||'디자인 Registry 검증 실패'
+        };
+      }
+    }
     moduleResults[groupKey] = Object.freeze({
       label:WM_LMS_ACTUAL_LOCK_LABELS[groupKey] || groupKey,
       locked:lockedCount === names.length, lockedCount:lockedCount, totalCount:names.length
@@ -7649,6 +7737,14 @@ wmLogLevelCompleteConditionLockStatus();
   console.log('LOCK VERSION : ' + WM_LMS_ACTUAL_LOCK_VERSION);
   console.log('LOCK DATE    : ' + WM_LMS_ACTUAL_LOCK_DATE);
   console.table(moduleConsole);
+  if(reportPreviewDesignStatus){
+    console.log(reportPreviewDesignStatus.registryFrozen
+      ? '✅ REPORT PREVIEW DESIGN REGISTRY FROZEN'
+      : '❌ REPORT PREVIEW DESIGN REGISTRY CHECK REQUIRED');
+    console.log(reportPreviewDesignStatus.cssVerified
+      ? '✅ REPORT PREVIEW EXPANDED CSS VERIFIED'
+      : '❌ REPORT PREVIEW EXPANDED CSS CHECK REQUIRED');
+  }
   if(!allCompletedModulesLocked){
     var failedConsole = {};
     Object.keys(frozenFunctionResults).forEach(function(functionName){
@@ -7660,7 +7756,7 @@ wmLogLevelCompleteConditionLockStatus();
   console.log(allCompletedModulesLocked
     ? '🔒 LMS ACTUAL FUNCTION ALL LOCK VERIFIED'
     : '⚠️ LMS ACTUAL LOCK CHECK REQUIRED');
-  console.log('FULL LMS ACTUAL LOCK PROGRESS : 7 / 7 MODULES');
+  console.log('FULL LMS ACTUAL LOCK PROGRESS : 8 / 8 MODULES');
   console.groupEnd();
 })();
 
