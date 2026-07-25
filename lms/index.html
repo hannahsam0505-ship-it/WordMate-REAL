@@ -3205,8 +3205,12 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       if(!reportHtml) return;
       const studentName=clickedReportRow?reportDetailStudentName(clickedReportRow):'';
       const yearMonth=clickedReportRow?reportDetailMonthKey(clickedReportRow):'';
+      const validationMatch=String(reportHtml).match(/data-wmr-actual-data-verified="(true|false)"/i);
+      const validationLabel=validationMatch
+        ? (validationMatch[1].toLowerCase()==='true'?'검증완료':'검증확인필요')
+        : '';
       WM_REPORT_ACTIVE_PREVIEW_HTML=reportHtml;
-      WM_REPORT_ACTIVE_PREVIEW_TITLE=[studentName,yearMonth,reportId].filter(Boolean).join(' · ')||'실제 성적표';
+      WM_REPORT_ACTIVE_PREVIEW_TITLE=[studentName,yearMonth,reportId,validationLabel].filter(Boolean).join(' · ')||'실제 성적표';
       const previewTitle=document.querySelector('.wm-report-preview-title');
       if(previewTitle) previewTitle.textContent='성적표 미리보기 · '+WM_REPORT_ACTIVE_PREVIEW_TITLE;
       renderReportDesignPreview();
@@ -3347,9 +3351,14 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       renderMonthlyReportDetailTable(sheet,reportData.detailRows||[]);
       renderMonthlyReportScoreChart(sheet,reportData.scoreTrend||[],reportData.weekly||[]);
       renderMonthlyReportLevelProgress(sheet,reportData.levelProgress||{});
+      const validation=validateMonthlyReportActualData(sheet,reportData);
       sheet.setAttribute('data-wmr-single-values-bound','true');
       sheet.setAttribute('data-wmr-tables-bound','true');
       sheet.setAttribute('data-wmr-graphs-bound','true');
+      sheet.setAttribute('data-wmr-actual-data-verified',validation.passed?'true':'false');
+      sheet.setAttribute('data-wmr-validation-summary',validation.matched+'/'+validation.total);
+      if(!validation.passed) console.error('성적표 실제 데이터 대조 불일치:',validation.failures);
+      else console.log('성적표 실제 데이터 대조 완료:',validation.matched+'/'+validation.total);
       return parser.innerHTML;
     }
 
@@ -3482,6 +3491,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         +'<line x1="'+plotLeft+'" y1="'+plotTop+'" x2="'+plotLeft+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
         +'<line x1="'+plotLeft+'" y1="'+plotBottom+'" x2="'+plotRight+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
         +line+pointHtml+labels+'</svg>';
+      chart.setAttribute('data-wmr-score-values',JSON.stringify(points.map(point=>({week:point.week,score:point.score}))));
     }
 
     function renderMonthlyReportLevelProgress(sheet,levelProgress){
@@ -3492,7 +3502,10 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       const inProgressSets=Math.max(0,Number(data.inProgressSets||0));
       const remainingSets=Math.max(0,Number(data.remainingSets||0));
       const donut=sheet.querySelector('[data-wmr-donut]');
-      if(donut) donut.style.setProperty('--wmr-progress',percentage+'%');
+      if(donut){
+        donut.style.setProperty('--wmr-progress',percentage+'%');
+        donut.setAttribute('data-wmr-verified-progress',String(percentage));
+      }
       const levelEl=sheet.querySelector('[data-wmr-donut-level]');
       if(levelEl) levelEl.textContent=String(data.level||'');
       const progressEl=sheet.querySelector('[data-wmr-progress]');
@@ -3512,6 +3525,122 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         values.forEach(value=>appendMonthlyReportCell(row,value));
         tableBody.appendChild(row);
       });
+    }
+
+    /* WM_REPORT_ACTUAL_DATA_VALIDATION_V1
+     * DB API 응답값과 렌더링된 성적표 값을 항목별로 대조합니다.
+     */
+    function normalizeMonthlyReportValidationValue(value){
+      return String(value===undefined||value===null?'':value).replace(/\s+/g,'').trim();
+    }
+
+    function validateMonthlyReportActualData(sheet,reportData){
+      const data=reportData||{};
+      const period=data.period||{};
+      const student=data.student||{};
+      const monthly=data.monthly||{};
+      const comments=data.comments||{};
+      const failures=[];
+      let total=0;
+      let matched=0;
+      const compare=(key,actual,expected)=>{
+        total++;
+        const actualText=normalizeMonthlyReportValidationValue(actual);
+        const expectedText=normalizeMonthlyReportValidationValue(expected);
+        if(actualText===expectedText){
+          matched++;
+        }else{
+          failures.push({key,actual:actualText,expected:expectedText});
+        }
+      };
+      const text=(selector)=>{
+        const el=sheet.querySelector(selector);
+        return el?el.textContent:'';
+      };
+
+      compare('period.year',text('[data-wmr-year]'),period.year?period.year+'년':'');
+      compare('period.month',text('[data-wmr-month]'),period.month?period.month+'월':'');
+      compare('period.week',text('[data-wmr-week]'),period.week?period.week+'주차':'');
+      compare('student.school',text('[data-wmr-school]'),student.school||'');
+      compare('student.grade',text('[data-wmr-grade]'),student.grade||'');
+      compare('student.name',text('[data-wmr-name]'),student.studentName||'');
+      compare('student.id',text('[data-wmr-student-id]'),student.studentId||'');
+      compare('student.class',text('[data-wmr-class]'),student.className||'');
+      compare('student.level',text('[data-wmr-level]'),student.learningLevel||'');
+      compare('monthly.completed',text('[data-wmr-completed]'),Number(monthly.completedSets||0));
+      compare('monthly.words',text('[data-wmr-words]'),Number(monthly.wordCount||0));
+      compare('monthly.average',text('[data-wmr-average]'),Number(monthly.averageScore||0));
+      compare('monthly.days',text('[data-wmr-days]'),Number(monthly.attendanceDays||0));
+      const totalTime=monthly.totalTime||{};
+      compare('monthly.time',text('[data-wmr-time]'),(Number(totalTime.hours||0)?Number(totalTime.hours)+'시간':'')+Number(totalTime.minutesRemainder||0)+'분');
+      compare('comments.teacher',text('[data-wmr-teacher-comment]'),String(comments.teacherComment||'').slice(0,110));
+      compare('comments.message',text('[data-wmr-message]'),String(comments.encouragementMessage||'').slice(0,110));
+      if(String(comments.logoUrl||'').trim()){
+        const logo=sheet.querySelector('[data-wmr-logo]');
+        compare('comments.logo',logo?logo.getAttribute('src'):'',String(comments.logoUrl).trim());
+      }
+
+      const weekly=Array.isArray(data.weekly)?data.weekly:[];
+      const weeklyRows=Array.from(sheet.querySelectorAll('[data-wmr-week-body] tr'));
+      for(let weekIndex=0;weekIndex<5;weekIndex++){
+        const weekNo=weekIndex+1;
+        const item=weekly.find(row=>Number(row&&row.week)===weekNo)||{};
+        const hasData=Number(item.completedSets||0)>0;
+        const expected=[
+          item.label||weekNo+'주차',
+          hasData?(item.period||'-'):'-',
+          hasData?item.completedSets:'-',
+          hasData?item.wordCount:'-',
+          hasData?item.averageScore:'-',
+          hasData?(item.totalTime||'-'):'-',
+          hasData?item.attendanceDays:'-'
+        ];
+        const cells=weeklyRows[weekIndex]?Array.from(weeklyRows[weekIndex].children):[];
+        expected.forEach((value,columnIndex)=>compare('weekly.'+weekNo+'.'+columnIndex,cells[columnIndex]?cells[columnIndex].textContent:'',value));
+      }
+      const activeWeeks=weekly.filter(item=>Number(item&&item.completedSets||0)>0);
+      const firstWeek=activeWeeks[0]||null;
+      const lastWeek=activeWeeks.length?activeWeeks[activeWeeks.length-1]:null;
+      const totalPeriod=firstWeek&&lastWeek
+        ? ((firstWeek.startDate||'')===(lastWeek.endDate||'')?(firstWeek.startDate||'-'):(firstWeek.startDate||'-')+' ~ '+(lastWeek.endDate||'-'))
+        : '-';
+      const totalExpected=['합계',totalPeriod,Number(monthly.completedSets||0),Number(monthly.wordCount||0),Number(monthly.averageScore||0),(monthly.totalTime&&monthly.totalTime.text)||'0초',Number(monthly.attendanceDays||0)];
+      const totalCells=weeklyRows[5]?Array.from(weeklyRows[5].children):[];
+      totalExpected.forEach((value,index)=>compare('weekly.total.'+index,totalCells[index]?totalCells[index].textContent:'',value));
+
+      const detailSource=Array.isArray(data.detailRows)?data.detailRows.slice(0,10):[];
+      const detailRows=Array.from(sheet.querySelectorAll('[data-wmr-detail-body] tr'));
+      for(let rowIndex=0;rowIndex<10;rowIndex++){
+        const item=detailSource[rowIndex]||{};
+        const expected=[
+          rowIndex+1,item.reportWeek||'-',item.learningDate||'-',item.learningLevel||'-',
+          item.setId||'-',item.setLearningTime||'-',
+          item.wordCount===0?0:(item.wordCount||'-'),item.score===0?0:(item.score||'-'),
+          item.testTime||'-',item.device||'-'
+        ];
+        const cells=detailRows[rowIndex]?Array.from(detailRows[rowIndex].children):[];
+        expected.forEach((value,columnIndex)=>compare('detail.'+(rowIndex+1)+'.'+columnIndex,cells[columnIndex]?cells[columnIndex].textContent:'',value));
+      }
+
+      const expectedScores=weekly.filter(item=>Number(item&&item.completedSets||0)>0).map(item=>({week:Number(item.week),score:Math.max(0,Math.min(100,Number(item.averageScore||0)))}));
+      const chart=sheet.querySelector('[data-wmr-score-chart]');
+      compare('chart.scores',chart?chart.getAttribute('data-wmr-score-values'):'',JSON.stringify(expectedScores));
+      const level=data.levelProgress||{};
+      compare('level.name',text('[data-wmr-donut-level]'),level.level||'');
+      compare('level.progress',text('[data-wmr-progress]'),Math.max(0,Math.min(100,Number(level.percentage||0)))+'%');
+      const levelRows=Array.from(sheet.querySelectorAll('[data-wmr-level-table] tr'));
+      const levelExpected=[
+        ['전체 세트 수',Math.max(0,Number(level.totalSets||0))+' 세트'],
+        ['완료 세트 수',Math.max(0,Number(level.completedSets||0))+' 세트'],
+        ['진행 중 세트 수',Math.max(0,Number(level.inProgressSets||0))+' 세트'],
+        ['남은 세트 수',Math.max(0,Number(level.remainingSets||0))+' 세트'],
+        ['레벨 진행률',Math.max(0,Math.min(100,Number(level.percentage||0)))+'%']
+      ];
+      levelExpected.forEach((values,rowIndex)=>{
+        const cells=levelRows[rowIndex]?Array.from(levelRows[rowIndex].children):[];
+        values.forEach((value,columnIndex)=>compare('level.table.'+rowIndex+'.'+columnIndex,cells[columnIndex]?cells[columnIndex].textContent:'',value));
+      });
+      return {passed:failures.length===0,total,matched,failures};
     }
 
     function closeReportDetail(){
