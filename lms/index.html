@@ -3358,8 +3358,93 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       const logoImg=sheet.querySelector('[data-wmr-logo]');
       if(logoImg && String(comments.logoUrl||'').trim()) logoImg.src=String(comments.logoUrl).trim();
 
+      renderMonthlyReportWeeklyTable(sheet,reportData.weekly||[],monthly);
+      renderMonthlyReportDetailTable(sheet,reportData.detailRows||[]);
       sheet.setAttribute('data-wmr-single-values-bound','true');
+      sheet.setAttribute('data-wmr-tables-bound','true');
       return parser.innerHTML;
+    }
+
+    /* WM_REPORT_WEEK_DETAIL_RENDER_V1
+     * 5단계 범위: 1~5주차+합계행과 상세 10행만 렌더링합니다.
+     */
+    function appendMonthlyReportCell(row,value){
+      const cell=document.createElement('td');
+      cell.textContent=value===undefined||value===null?'':String(value);
+      row.appendChild(cell);
+    }
+
+    function renderMonthlyReportWeeklyTable(sheet,weeklyRows,monthly){
+      const body=sheet.querySelector('[data-wmr-week-body]');
+      if(!body) return;
+      const source=Array.isArray(weeklyRows)?weeklyRows:[];
+      const weeks=Array.from({length:5},(_,index)=>{
+        const weekNumber=index+1;
+        return source.find(item=>Number(item&&item.week)===weekNumber)||{
+          week:weekNumber,label:weekNumber+'주차',period:'-',completedSets:0,
+          wordCount:0,averageScore:0,totalTime:'-',attendanceDays:0
+        };
+      });
+      body.innerHTML='';
+      weeks.forEach((item,index)=>{
+        const hasData=Number(item.completedSets||0)>0;
+        const row=document.createElement('tr');
+        [
+          item.label||(index+1)+'주차',
+          hasData?(item.period||'-'):'-',
+          hasData?item.completedSets:'-',
+          hasData?item.wordCount:'-',
+          hasData?item.averageScore:'-',
+          hasData?(item.totalTime||'-'):'-',
+          hasData?item.attendanceDays:'-'
+        ].forEach(value=>appendMonthlyReportCell(row,value));
+        body.appendChild(row);
+      });
+
+      const activeWeeks=weeks.filter(item=>Number(item.completedSets||0)>0);
+      const firstWeek=activeWeeks.length?activeWeeks[0]:null;
+      const lastWeek=activeWeeks.length?activeWeeks[activeWeeks.length-1]:null;
+      const totalPeriod=firstWeek&&lastWeek
+        ? ((firstWeek.startDate||'')===(lastWeek.endDate||'')
+          ? (firstWeek.startDate||'-')
+          : (firstWeek.startDate||'-')+' ~ '+(lastWeek.endDate||'-'))
+        : '-';
+      const totalTime=monthly&&monthly.totalTime?monthly.totalTime:{};
+      const totalRow=document.createElement('tr');
+      [
+        '합계',
+        totalPeriod,
+        Number(monthly&&monthly.completedSets||0),
+        Number(monthly&&monthly.wordCount||0),
+        Number(monthly&&monthly.averageScore||0),
+        totalTime.text||'0초',
+        Number(monthly&&monthly.attendanceDays||0)
+      ].forEach(value=>appendMonthlyReportCell(totalRow,value));
+      body.appendChild(totalRow);
+    }
+
+    function renderMonthlyReportDetailTable(sheet,detailRows){
+      const body=sheet.querySelector('[data-wmr-detail-body]');
+      if(!body) return;
+      const source=Array.isArray(detailRows)?detailRows.slice(0,10):[];
+      body.innerHTML='';
+      Array.from({length:10},(_,index)=>{
+        const item=source[index]||{};
+        const row=document.createElement('tr');
+        [
+          index+1,
+          item.reportWeek||'-',
+          item.learningDate||'-',
+          item.learningLevel||'-',
+          item.setId||'-',
+          item.setLearningTime||'-',
+          item.wordCount===0?0:(item.wordCount||'-'),
+          item.score===0?0:(item.score||'-'),
+          item.testTime||'-',
+          item.device||'-'
+        ].forEach(value=>appendMonthlyReportCell(row,value));
+        body.appendChild(row);
+      });
     }
 
     function closeReportDetail(){
