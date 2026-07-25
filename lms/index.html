@@ -3360,8 +3360,11 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
 
       renderMonthlyReportWeeklyTable(sheet,reportData.weekly||[],monthly);
       renderMonthlyReportDetailTable(sheet,reportData.detailRows||[]);
+      renderMonthlyReportScoreChart(sheet,reportData.scoreTrend||[],reportData.weekly||[]);
+      renderMonthlyReportLevelProgress(sheet,reportData.levelProgress||{});
       sheet.setAttribute('data-wmr-single-values-bound','true');
       sheet.setAttribute('data-wmr-tables-bound','true');
+      sheet.setAttribute('data-wmr-graphs-bound','true');
       return parser.innerHTML;
     }
 
@@ -3444,6 +3447,85 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
           item.device||'-'
         ].forEach(value=>appendMonthlyReportCell(row,value));
         body.appendChild(row);
+      });
+    }
+
+    /* WM_REPORT_GRAPH_DATA_BIND_V1
+     * 6단계 범위: 주차별 평균점수 꺾은선과 레벨진행 원형 그래프만 연결합니다.
+     */
+    function renderMonthlyReportScoreChart(sheet,scoreTrend,weeklyRows){
+      const chart=sheet.querySelector('[data-wmr-score-chart]');
+      if(!chart) return;
+      const scores=Array.isArray(scoreTrend)?scoreTrend:[];
+      const weekly=Array.isArray(weeklyRows)?weeklyRows:[];
+      const plotLeft=42;
+      const plotRight=374;
+      const plotTop=18;
+      const plotBottom=118;
+      const points=Array.from({length:5},(_,index)=>{
+        const week=index+1;
+        const trend=scores.find(item=>Number(item&&item.week)===week)||{};
+        const weeklyItem=weekly.find(item=>Number(item&&item.week)===week)||{};
+        const hasData=Number(weeklyItem.completedSets||0)>0;
+        const rawScore=Number(trend.averageScore);
+        if(!hasData||!Number.isFinite(rawScore)) return null;
+        const score=Math.max(0,Math.min(100,rawScore));
+        return {
+          week,
+          score,
+          x:62+index*76,
+          y:plotBottom-(score*(plotBottom-plotTop)/100)
+        };
+      }).filter(Boolean);
+      const grid=[0,20,40,60,80,100].map(value=>{
+        const y=plotBottom-(value*(plotBottom-plotTop)/100);
+        return '<line x1="'+plotLeft+'" y1="'+y+'" x2="'+plotRight+'" y2="'+y+'"/>'
+          +'<text x="32" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#334155">'+value+'</text>';
+      }).join('');
+      const line=points.length
+        ? '<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="'+points.map(point=>point.x+','+point.y).join(' ')+'"/>'
+        : '';
+      const pointHtml=points.map(point=>
+        '<circle cx="'+point.x+'" cy="'+point.y+'" r="4" fill="#0d55c8"/>'
+        +'<text x="'+point.x+'" y="'+Math.max(10,point.y-8)+'" text-anchor="middle" font-size="10" fill="#111827">'+point.score+'</text>'
+      ).join('');
+      const labels=Array.from({length:5},(_,index)=>
+        '<text x="'+(62+index*76)+'" y="137" text-anchor="middle" font-size="10" fill="#111827">'+(index+1)+'주차</text>'
+      ).join('');
+      chart.innerHTML='<svg viewBox="0 0 390 145" aria-label="주차별 평균점수 추이">'
+        +'<g stroke="#d9e4f3" stroke-width="1">'+grid+'</g>'
+        +'<line x1="'+plotLeft+'" y1="'+plotTop+'" x2="'+plotLeft+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
+        +'<line x1="'+plotLeft+'" y1="'+plotBottom+'" x2="'+plotRight+'" y2="'+plotBottom+'" stroke="#64748b" stroke-width="1"/>'
+        +line+pointHtml+labels+'</svg>';
+    }
+
+    function renderMonthlyReportLevelProgress(sheet,levelProgress){
+      const data=levelProgress||{};
+      const percentage=Math.max(0,Math.min(100,Number(data.percentage||0)));
+      const totalSets=Math.max(0,Number(data.totalSets||0));
+      const completedSets=Math.max(0,Number(data.completedSets||0));
+      const inProgressSets=Math.max(0,Number(data.inProgressSets||0));
+      const remainingSets=Math.max(0,Number(data.remainingSets||0));
+      const donut=sheet.querySelector('[data-wmr-donut]');
+      if(donut) donut.style.setProperty('--wmr-progress',percentage+'%');
+      const levelEl=sheet.querySelector('[data-wmr-donut-level]');
+      if(levelEl) levelEl.textContent=String(data.level||'');
+      const progressEl=sheet.querySelector('[data-wmr-progress]');
+      if(progressEl) progressEl.textContent=percentage+'%';
+
+      const tableBody=sheet.querySelector('[data-wmr-level-table]');
+      if(!tableBody) return;
+      tableBody.innerHTML='';
+      [
+        ['전체 세트 수',totalSets+' 세트'],
+        ['완료 세트 수',completedSets+' 세트'],
+        ['진행 중 세트 수',inProgressSets+' 세트'],
+        ['남은 세트 수',remainingSets+' 세트'],
+        ['레벨 진행률',percentage+'%']
+      ].forEach(values=>{
+        const row=document.createElement('tr');
+        values.forEach(value=>appendMonthlyReportCell(row,value));
+        tableBody.appendChild(row);
       });
     }
 
