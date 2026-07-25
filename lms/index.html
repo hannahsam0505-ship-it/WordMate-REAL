@@ -365,7 +365,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-report-preview-actions { display:flex; gap:7px; flex-wrap:wrap; }
     .wm-report-preview-btn { border:1px solid #b9cbea; background:#fff; color:#173b75; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:900; cursor:pointer; }
     .wm-report-preview-btn:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:#f8fbff; }
-    .wm-report-preview-frame { position:relative; flex:0 0 410px; height:410px; min-height:0; overflow:hidden; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; }
+    .wm-report-preview-frame { position:relative; flex:0 0 410px; height:410px; min-height:0; overflow-x:hidden; overflow-y:auto; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; }
     .wm-report-preview-canvas { width:210mm; min-width:210mm; transform:scale(.43); transform-origin:top center; pointer-events:none; }
     .wm-report-preview-modal { position:fixed; inset:0; z-index:120000; display:none; align-items:flex-start; justify-content:center; padding:22px; background:rgba(15,23,42,.72); overflow:auto; }
     .wm-report-preview-modal.active { display:flex; }
