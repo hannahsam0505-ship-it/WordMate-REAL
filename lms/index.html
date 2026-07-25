@@ -4651,7 +4651,13 @@ function extractRecordRowsFromResponse(data){
           const ad=parseDateValue(reportDetailDate(a));
           const bd=parseDateValue(reportDetailDate(b));
           return (bd?bd.getTime():0)-(ad?ad.getTime():0);
-        }).slice(0,10);
+        }).slice(0,10).sort((a,b)=>{
+          const weekDiff=reportDetailWeek(a)-reportDetailWeek(b);
+          if(weekDiff) return weekDiff;
+          const ad=parseDateValue(reportDetailDate(a));
+          const bd=parseDateValue(reportDetailDate(b));
+          return (bd?bd.getTime():0)-(ad?ad.getTime():0);
+        });
         detailBody.innerHTML=Array.from({length:10},(_,idx)=>{
           const row=detailRows[idx];
           if(!row) return '<tr><td>'+(idx+1)+'</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>';
