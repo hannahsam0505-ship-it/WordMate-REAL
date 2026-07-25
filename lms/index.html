@@ -3232,15 +3232,17 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     function openStudentMap(studentName){ alert(studentName+' 학생 개인학습기록 / 학습맵 자동 호출 예정입니다.'); }
     async function openReportDetail(reportId){
       closeReportStudentRecords();
-      const reportsPanel=document.getElementById('panel-reports');
-      const isReportsPanelActive=!!(reportsPanel && reportsPanel.classList.contains('active'));
-      const detailBox=isReportsPanelActive
-        ? document.getElementById('wmReportManageDetail')
-        : document.getElementById('wmProfileReportDetail');
+      closeReportDetail();
       const template=document.getElementById('wmReportTemplate');
-      if(!detailBox || !template){ alert(reportId+' 성적표 화면을 찾을 수 없습니다.'); return; }
-      detailBox.style.display='block';
-      detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 성적표 DB 조회 중입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>성적표 상세 조회 중입니다.</span></div>';
+      const modal=document.getElementById('wmReportDesignPreviewModal');
+      const modalBody=document.getElementById('wmReportDesignPreviewModalBody');
+      const modalTitle=document.querySelector('.wm-report-preview-modal-title');
+      if(!template || !modal || !modalBody){ alert(reportId+' 성적표 모달을 찾을 수 없습니다.'); return; }
+
+      if(modalTitle) modalTitle.textContent=reportId+' · 실제 성적표 조회 중';
+      modalBody.innerHTML='<div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>성적표를 불러오는 중입니다.</span></div>';
+      modal.classList.add('active');
+      document.body.classList.add('wm-report-preview-open');
       try{
         if((!WM_REPORT_MANAGE_ROWS || !WM_REPORT_MANAGE_ROWS.length) && typeof loadReports === 'function'){
           await loadReports();
@@ -3256,16 +3258,11 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
           console.warn('월간 성적표 단일 값 API 응답 확인:', monthlyReportResponse);
         }
         setReportActualPreview(reportHtml,reportId,clickedReportRow);
-        detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 월 누적 성적표입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>'+reportHtml+'<div class="wm-report-detail-bottom-action"><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>';
+        openReportDesignPreview();
       }catch(err){
         console.error('성적표 상세 DB 매핑 실패:', err);
-        detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 성적표 화면입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>'+template.innerHTML+'<div class="wm-note">성적표 DB 매핑 중 오류가 발생해 기존 포맷으로 표시했습니다: '+escapeHtml(err && err.message ? err.message : err)+'</div><div class="wm-report-detail-bottom-action"><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>';
-      }
-      if(isReportsPanelActive){
-        const previewSide=document.querySelector('.wm-report-preview-side');
-        if(previewSide) previewSide.scrollIntoView({behavior:'smooth',block:'start'});
-      }else{
-        detailBox.scrollIntoView({behavior:'smooth',block:'start'});
+        if(modalTitle) modalTitle.textContent=reportId+' · 성적표 조회 오류';
+        modalBody.innerHTML='<div class="wm-note">성적표 DB 매핑 중 오류가 발생했습니다: '+escapeHtml(err&&err.message?err.message:err)+'</div>';
       }
     }
 
