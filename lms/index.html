@@ -1499,7 +1499,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         <button type="button" class="wm-action-btn" onclick="loadReports()">성적표조회</button>
       </div>
       
-      <div class="wm-table-wrap"><table><thead><tr><th>일련번호</th><th>리포트주차</th><th>학생ID</th><th>학교</th><th>학년</th><th>학생이름</th><th>학습레벨</th><th>Set_ID</th><th>단어수</th><th>학습날짜</th><th>점수</th><th>총소요시간</th><th>성적표보기</th><th>Teacher’s Comment</th><th>격려메시지</th><th>비고</th></tr></thead><tbody id="reportManageTbody"><tr><td colspan="16">4-1.성적표생성_DB 조회 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap"><table><thead><tr><th>일련번호</th><th>리포트주차</th><th>학생ID</th><th>학교</th><th>학년</th><th>학생이름</th><th>학습레벨</th><th>Set_ID</th><th>단어수</th><th>학습날짜</th><th>점수</th><th>총소요시간</th><th>성적표보기</th><th>비고</th></tr></thead><tbody id="reportManageTbody"><tr><td colspan="14">4-1.성적표생성_DB 조회 대기 중입니다.</td></tr></tbody></table></div>
       <div id="wmReportStudentRecordDetail" class="wm-factory-box" style="display:none;"></div>
       <div id="wmReportManageDetail" class="wm-factory-box" style="display:none;"></div>
     </section>
@@ -4199,7 +4199,7 @@ function extractRecordRowsFromResponse(data){
     }
 
 
-    const WM_REPORT_HEADERS = ['일련번호','리포트주차','학생ID','학교','학년','학생이름','학습레벨','Set_ID','단어수','학습날짜','점수','총소요시간','성적표보기','Teacher’s Comment','격려메시지','비고'];
+    const WM_REPORT_HEADERS = ['일련번호','리포트주차','학생ID','학교','학년','학생이름','학습레벨','Set_ID','단어수','학습날짜','점수','총소요시간','성적표보기','비고'];
 
 
     /* ===== REPORT DETAIL DB MAPPING / MONTHLY CUMULATIVE FORMULA =====
@@ -4983,7 +4983,7 @@ function extractRecordRowsFromResponse(data){
     async function loadReports(){
       const tbody = document.getElementById('reportManageTbody');
       setManageLoading('reports', true);
-      if(tbody) tbody.innerHTML = '<tr><td colspan="16"><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>완료 세트 조회 중입니다.</span></div></td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="14"><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>완료 세트 조회 중입니다.</span></div></td></tr>';
 
       try{
         let rows = [];
@@ -5008,7 +5008,7 @@ function extractRecordRowsFromResponse(data){
         return WM_REPORT_MANAGE_ROWS;
       }catch(err){
         console.error('성적표 완료세트 조회 실패', err);
-        if(tbody) tbody.innerHTML = '<tr><td colspan="16">완료 세트 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+        if(tbody) tbody.innerHTML = '<tr><td colspan="14">완료 세트 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
         setManageLoading('reports', false);
         return [];
       }
@@ -5020,7 +5020,7 @@ function extractRecordRowsFromResponse(data){
 
       const rows = getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []);
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="16">표시할 완료 세트가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14">표시할 완료 세트가 없습니다.</td></tr>';
         setManageLoading('reports', false);
         return;
       }
