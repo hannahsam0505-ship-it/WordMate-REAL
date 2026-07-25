@@ -274,6 +274,8 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #studentTableWrap thead th:nth-child(2), #studentTableWrap thead th:nth-child(3), #studentTableWrap thead th:nth-child(6), #studentTableWrap thead th:nth-child(7), #studentTableWrap thead th:nth-child(8), #studentTableWrap thead th:nth-child(10) { z-index:40; background:#f9fafb; }
     #currentProgressTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #currentProgressTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
+    #reportTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
+    #reportTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
     .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
     .wm-current-progress-pager button { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:900; cursor:pointer; }
     .wm-current-progress-pager button:disabled { opacity:.45; cursor:not-allowed; }
@@ -1499,7 +1501,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         <button type="button" class="wm-action-btn" onclick="loadReports()">성적표조회</button>
       </div>
       
-      <div class="wm-table-wrap"><table><thead><tr><th>일련번호</th><th>리포트주차</th><th>학생ID</th><th>학교</th><th>학년</th><th>학생이름</th><th>학습레벨</th><th>Set_ID</th><th>단어수</th><th>학습날짜</th><th>점수</th><th>총소요시간</th><th>성적표보기</th><th>비고</th></tr></thead><tbody id="reportManageTbody"><tr><td colspan="14">4-1.성적표생성_DB 조회 대기 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-record-scroll-top" id="reportTopScroll"><div class="wm-record-scroll-inner" id="reportTopScrollInner"></div></div><div class="wm-table-wrap" id="reportTableWrap"><table id="reportManageTable"><thead><tr><th>일련번호</th><th>리포트주차</th><th>학생ID</th><th>학교</th><th>학년</th><th>학생이름</th><th>학습레벨</th><th>Set_ID</th><th>단어수</th><th>학습날짜</th><th>점수</th><th>총소요시간</th><th>성적표보기</th><th>비고</th></tr></thead><tbody id="reportManageTbody"><tr><td colspan="14">4-1.성적표생성_DB 조회 대기 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="reportManagePager" style="display:none;"><button type="button" id="reportManagePrevBtn" onclick="moveReportManagePage(-1)">이전</button><span class="wm-current-progress-page-info" id="reportManagePageInfo">1 / 1</span><button type="button" id="reportManageNextBtn" onclick="moveReportManagePage(1)">다음</button></div>
       <div id="wmReportStudentRecordDetail" class="wm-factory-box" style="display:none;"></div>
       <div id="wmReportManageDetail" class="wm-factory-box" style="display:none;"></div>
     </section>
@@ -3122,6 +3124,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         return;
       }
       if(scope==='reports'){
+        WM_REPORT_MANAGE_PAGE = 1;
         if(WM_REPORT_MANAGE_ROWS && WM_REPORT_MANAGE_ROWS.length){
           renderReportManageRows();
         }else{
@@ -3157,6 +3160,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         return;
       }
       if(scope==='reports'){
+        WM_REPORT_MANAGE_PAGE = 1;
         if(WM_REPORT_MANAGE_ROWS && WM_REPORT_MANAGE_ROWS.length) renderReportManageRows();
         else loadReports();
         return;
@@ -3711,8 +3715,10 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     let WM_CURRENT_PROGRESS_ROWS = [];
     let WM_STUDENT_MANAGE_PAGE = 1;
     let WM_RECORD_MANAGE_PAGE = 1;
+    let WM_REPORT_MANAGE_PAGE = 1;
     let WM_CURRENT_PROGRESS_PAGE = 1;
     const WM_MANAGE_PAGE_SIZE = 25;
+    const WM_REPORT_PAGE_SIZE = 15;
     const WM_CURRENT_PROGRESS_PAGE_SIZE = 25;
     let WM_DEPLOY_MANAGE_ROWS = [];
     let WM_DASHBOARD_STATE = null;
@@ -5002,6 +5008,7 @@ function extractRecordRowsFromResponse(data){
         }
 
         WM_REPORT_MANAGE_ROWS = wmNormalizeCompletedSetRows(rows);
+        WM_REPORT_MANAGE_PAGE = 1;
         renderReportManageRows();
         setManageLoading('reports', false);
         console.log('성적표 완료세트 표시 성공:', WM_REPORT_MANAGE_ROWS.length, WM_REPORT_MANAGE_ROWS);
@@ -5019,18 +5026,26 @@ function extractRecordRowsFromResponse(data){
       if(!tbody) return;
 
       const rows = getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []);
+      const totalRows = rows.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / WM_REPORT_PAGE_SIZE));
+      if(WM_REPORT_MANAGE_PAGE > totalPages) WM_REPORT_MANAGE_PAGE = totalPages;
+      if(WM_REPORT_MANAGE_PAGE < 1) WM_REPORT_MANAGE_PAGE = 1;
       if(!rows.length){
         tbody.innerHTML = '<tr><td colspan="14">표시할 완료 세트가 없습니다.</td></tr>';
+        updateReportManagePager(0, 1, 1);
         setManageLoading('reports', false);
         return;
       }
 
+      const start = (WM_REPORT_MANAGE_PAGE - 1) * WM_REPORT_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + WM_REPORT_PAGE_SIZE);
       setManageLoading('reports', false);
-      tbody.innerHTML = rows.map((row, index)=>{
-        const reportId = String(getReportIdForDisplay(row, index, rows) || row['리포트ID'] || '').trim();
+      tbody.innerHTML = pageRows.map((row, index)=>{
+        const rowIndex = start + index;
+        const reportId = String(getReportIdForDisplay(row, rowIndex, rows) || row['리포트ID'] || '').trim();
         return '<tr data-report-id="'+escapeHtml(reportId)+'">'+WM_REPORT_HEADERS.map(header=>{
           if(header === '일련번호'){
-            return '<td>'+(index + 1)+'</td>';
+            return '<td>'+(rowIndex + 1)+'</td>';
           }
           if(header === '리포트주차'){
             return '<td><button type="button" class="wm-action-btn sub" disabled aria-disabled="true">리포트주차</button></td>';
@@ -5044,6 +5059,40 @@ function extractRecordRowsFromResponse(data){
           return '<td>'+escapeHtml(displayCellValue(row[header], header))+'</td>';
         }).join('')+'</tr>';
       }).join('');
+      updateReportManagePager(totalRows, totalPages, WM_REPORT_MANAGE_PAGE);
+      syncReportTableScroll();
+    }
+
+    function updateReportManagePager(totalRows, totalPages, page){
+      const pager = document.getElementById('reportManagePager');
+      const prevBtn = document.getElementById('reportManagePrevBtn');
+      const nextBtn = document.getElementById('reportManageNextBtn');
+      const info = document.getElementById('reportManagePageInfo');
+      if(!pager) return;
+      pager.style.display = 'flex';
+      if(info) info.textContent = page + ' / ' + totalPages + ' · 총 ' + totalRows + '건';
+      if(prevBtn) prevBtn.disabled = page <= 1;
+      if(nextBtn) nextBtn.disabled = page >= totalPages;
+    }
+
+    function moveReportManagePage(delta){
+      const rows = getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []);
+      const totalPages = Math.max(1, Math.ceil(rows.length / WM_REPORT_PAGE_SIZE));
+      WM_REPORT_MANAGE_PAGE = Math.min(totalPages, Math.max(1, WM_REPORT_MANAGE_PAGE + Number(delta || 0)));
+      renderReportManageRows();
+    }
+
+    function syncReportTableScroll(){
+      const wrap = document.getElementById('reportTableWrap');
+      const top = document.getElementById('reportTopScroll');
+      const inner = document.getElementById('reportTopScrollInner');
+      const table = document.getElementById('reportManageTable');
+      if(!wrap || !top || !inner || !table) return;
+      inner.style.width = table.scrollWidth + 'px';
+      if(top.dataset.synced === '1') return;
+      top.dataset.synced = '1';
+      top.addEventListener('scroll', ()=>{ wrap.scrollLeft = top.scrollLeft; });
+      wrap.addEventListener('scroll', ()=>{ top.scrollLeft = wrap.scrollLeft; });
     }
 
 /* ===== SETTING CENTER TEACHER/CLASS MANAGEMENT V1 ===== */
