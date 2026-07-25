@@ -356,8 +356,18 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     /* WM_REPORT_DESIGN_PREVIEW_V1 */
     #panel-reports .wm-report-workspace { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(350px,.72fr); gap:16px; align-items:start; margin:0 0 18px; }
     #panel-reports .wm-report-search-side { min-width:0; height:auto; align-self:start; }
-    #panel-reports .wm-report-search-side .wm-filter-box { height:auto; margin:0; }
+    #panel-reports .wm-report-search-side .wm-filter-box { height:auto; margin:0; border:1px solid #9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
+    #panel-reports .wm-report-search-side .wm-manage-filter-head { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); }
+    #panel-reports .wm-report-search-side .wm-filter-title { color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #panel-reports .wm-report-search-side .wm-report-date-field { color:#eaf2ff; }
+    #panel-reports .wm-report-search-side .wm-report-date-field input { border-color:#b9cbea; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-reports .wm-report-search-side .wm-report-date-btn { border-color:#b9cbea; color:#173b75; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-reports .wm-report-search-side .wm-report-date-btn:hover { border-color:#fff; color:#073b8f; background:#eaf2ff; }
     #panel-reports .wm-report-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    #panel-reports .wm-report-filter-grid label { color:#173b75; }
+    #panel-reports .wm-report-filter-grid input { border-color:#b9cbea; background:#fff; }
+    #panel-reports .wm-report-filter-grid input:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-reports .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
     #panel-reports .wm-report-date-row { flex-wrap:wrap; }
     #panel-reports .wm-report-preview-side { min-width:0; height:auto; align-self:start; border:1px solid #d9e4f3; border-radius:16px; background:linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%); padding:12px; display:flex; flex-direction:column; }
     .wm-report-preview-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; }
@@ -366,7 +376,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-report-preview-btn { border:1px solid #b9cbea; background:#fff; color:#173b75; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:900; cursor:pointer; }
     .wm-report-preview-btn:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:#f8fbff; }
     .wm-report-preview-frame { position:relative; flex:0 0 410px; height:410px; min-height:0; overflow-x:hidden; overflow-y:auto; border:1px solid #cbd9ed; border-radius:12px; background:#dfe8f5; display:flex; justify-content:center; align-items:flex-start; padding:8px; }
-    .wm-report-preview-canvas { width:210mm; min-width:210mm; transform:scale(.43); transform-origin:top center; pointer-events:none; }
+    .wm-report-preview-canvas { width:210mm; min-width:210mm; height:127.71mm; min-height:127.71mm; transform:scale(.43); transform-origin:top center; pointer-events:none; }
     .wm-report-preview-modal { position:fixed; inset:0; z-index:120000; display:none; align-items:flex-start; justify-content:center; padding:22px; background:rgba(15,23,42,.72); overflow:auto; }
     .wm-report-preview-modal.active { display:flex; }
     .wm-report-preview-modal-card { width:min(1120px,96vw); background:#fff; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); overflow:hidden; }
@@ -378,12 +388,12 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     @media (max-width:1150px) {
       #panel-reports .wm-report-workspace { grid-template-columns:1fr; }
       .wm-report-preview-frame { min-height:520px; }
-      .wm-report-preview-canvas { transform:scale(.52); }
+      .wm-report-preview-canvas { height:154.44mm; min-height:154.44mm; transform:scale(.52); }
     }
     @media (max-width:720px) {
       #panel-reports .wm-report-filter-grid { grid-template-columns:1fr; }
       .wm-report-preview-frame { min-height:430px; }
-      .wm-report-preview-canvas { transform:scale(.40); }
+      .wm-report-preview-canvas { height:118.8mm; min-height:118.8mm; transform:scale(.40); }
       .wm-report-preview-modal { padding:8px; }
       .wm-report-preview-modal-body { padding:8px; overflow:auto; justify-content:flex-start; }
     }
