@@ -3165,19 +3165,26 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     }
 
     /* WM_REPORT_DESIGN_PREVIEW_V1 */
+    let WM_REPORT_ACTIVE_PREVIEW_HTML='';
+    let WM_REPORT_ACTIVE_PREVIEW_TITLE='성적표샘플보기';
+
     function wmReportDesignSampleHtml(){
       const template=document.getElementById('wmReportTemplate');
       return template ? template.innerHTML : '<div class="wm-note">성적표 디자인 템플릿을 찾을 수 없습니다.</div>';
     }
 
+    function wmReportCurrentPreviewHtml(){
+      return WM_REPORT_ACTIVE_PREVIEW_HTML||wmReportDesignSampleHtml();
+    }
+
     function renderReportDesignPreview(){
       const canvas=document.getElementById('wmReportDesignPreviewCanvas');
       if(!canvas) return;
-      canvas.innerHTML=wmReportDesignSampleHtml();
+      canvas.innerHTML=wmReportCurrentPreviewHtml();
       const sheet=canvas.querySelector('.wmr-sheet');
       if(sheet){
         sheet.style.margin='0 auto';
-        sheet.setAttribute('aria-label','영어잡는 Word Mate 성적표 디자인 샘플');
+        sheet.setAttribute('aria-label',WM_REPORT_ACTIVE_PREVIEW_HTML?'영어잡는 Word Mate 실제 성적표 미리보기':'영어잡는 Word Mate 성적표 디자인 샘플');
       }
     }
 
@@ -3185,9 +3192,24 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       const modal=document.getElementById('wmReportDesignPreviewModal');
       const body=document.getElementById('wmReportDesignPreviewModalBody');
       if(!modal || !body) return;
-      body.innerHTML=wmReportDesignSampleHtml();
+      body.innerHTML=wmReportCurrentPreviewHtml();
+      const title=document.querySelector('.wm-report-preview-modal-title');
+      if(title) title.textContent=WM_REPORT_ACTIVE_PREVIEW_HTML
+        ? WM_REPORT_ACTIVE_PREVIEW_TITLE+' · 실제 데이터'
+        : '영어잡는 Word Mate Monthly Report · 디자인 샘플';
       modal.classList.add('active');
       document.body.classList.add('wm-report-preview-open');
+    }
+
+    function setReportActualPreview(reportHtml,reportId,clickedReportRow){
+      if(!reportHtml) return;
+      const studentName=clickedReportRow?reportDetailStudentName(clickedReportRow):'';
+      const yearMonth=clickedReportRow?reportDetailMonthKey(clickedReportRow):'';
+      WM_REPORT_ACTIVE_PREVIEW_HTML=reportHtml;
+      WM_REPORT_ACTIVE_PREVIEW_TITLE=[studentName,yearMonth,reportId].filter(Boolean).join(' · ')||'실제 성적표';
+      const previewTitle=document.querySelector('.wm-report-preview-title');
+      if(previewTitle) previewTitle.textContent='성적표 미리보기 · '+WM_REPORT_ACTIVE_PREVIEW_TITLE;
+      renderReportDesignPreview();
     }
 
     function closeReportDesignPreview(){
@@ -3252,12 +3274,18 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         }else{
           console.warn('월간 성적표 단일 값 API 응답 확인:', monthlyReportResponse);
         }
+        setReportActualPreview(reportHtml,reportId,clickedReportRow);
         detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 월 누적 성적표입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>'+reportHtml+'<div class="wm-report-detail-bottom-action"><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>';
       }catch(err){
         console.error('성적표 상세 DB 매핑 실패:', err);
         detailBox.innerHTML='<div class="wm-profile-section-title" style="justify-content:space-between; align-items:center;"><div class="wm-profile-section-title" style="margin:0;"><h3>성적표 상세</h3><span>'+escapeHtml(reportId)+' 기준 성적표 화면입니다.</span></div><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>'+template.innerHTML+'<div class="wm-note">성적표 DB 매핑 중 오류가 발생해 기존 포맷으로 표시했습니다: '+escapeHtml(err && err.message ? err.message : err)+'</div><div class="wm-report-detail-bottom-action"><button type="button" class="wm-action-btn sub" onclick="closeReportDetail()">닫기</button></div>';
       }
-      detailBox.scrollIntoView({behavior:'smooth',block:'start'});
+      if(isReportsPanelActive){
+        const previewSide=document.querySelector('.wm-report-preview-side');
+        if(previewSide) previewSide.scrollIntoView({behavior:'smooth',block:'start'});
+      }else{
+        detailBox.scrollIntoView({behavior:'smooth',block:'start'});
+      }
     }
 
     async function fetchReportDetailFastData(reportId, studentId, studentName){
