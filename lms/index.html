@@ -247,6 +247,46 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-dashboard-quick-btn { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:10px; padding:9px 8px; font-size:13px; font-weight:900; cursor:pointer; white-space:nowrap; flex:0 0 58px; text-align:center; }
     .wm-dashboard-quick-btn:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:var(--wm-blue-soft); }
     .wm-dashboard-date-note { display:inline-flex; align-items:center; justify-content:center; border:1px solid #fde68a; background:#fffbeb; color:#92400e; border-radius:10px; padding:9px 8px; font-size:13px; font-weight:900; white-space:nowrap; flex:0 0 72px; }
+    /* WM_DASHBOARD_FILTER_BLUE_DESIGN_V1 */
+    #panel-dashboard > .wm-filter-box { border:1px solid #9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
+    #panel-dashboard > .wm-filter-box .wm-manage-filter-head { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); }
+    #panel-dashboard > .wm-filter-box .wm-filter-title { color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #panel-dashboard .wm-dashboard-date-field { color:#eaf2ff; }
+    #panel-dashboard .wm-dashboard-date-field input { border-color:#b9cbea; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-dashboard .wm-dashboard-quick-btn { border-color:#b9cbea; color:#173b75; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-dashboard .wm-dashboard-quick-btn:hover { border-color:#fff; color:#073b8f; background:#eaf2ff; }
+    #panel-dashboard > .wm-filter-box .wm-filter-grid label { color:#173b75; }
+    #panel-dashboard > .wm-filter-box .wm-filter-grid input { border-color:#b9cbea; background:#fff; }
+    #panel-dashboard > .wm-filter-box .wm-filter-grid input:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-dashboard > .wm-filter-box .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
+    /* WM_STUDENT_FILTER_BLUE_DESIGN_V1 */
+    #panel-students > .wm-filter-box { border:1px solid #9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
+    #panel-students > .wm-filter-box .wm-manage-filter-head { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); }
+    #panel-students > .wm-filter-box .wm-filter-title { color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #panel-students .wm-manage-date-field { color:#eaf2ff; }
+    #panel-students .wm-manage-date-field input { border-color:#b9cbea; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-students .wm-date-quick-btn { border-color:#b9cbea; color:#173b75; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-students .wm-date-quick-btn:hover { border-color:#fff; color:#073b8f; background:#eaf2ff; }
+    #panel-students > .wm-filter-box .wm-filter-grid label { color:#173b75; }
+    #panel-students > .wm-filter-box .wm-filter-grid input,
+    #panel-students > .wm-filter-box .wm-filter-grid select { border-color:#b9cbea; background:#fff; }
+    #panel-students > .wm-filter-box .wm-filter-grid input:focus,
+    #panel-students > .wm-filter-box .wm-filter-grid select:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-students > .wm-filter-box .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
+    /* WM_RECORD_FILTER_BLUE_DESIGN_V1 */
+    #panel-records > .wm-filter-box { border:1px solid #9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
+    #panel-records > .wm-filter-box .wm-manage-filter-head { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); }
+    #panel-records > .wm-filter-box .wm-filter-title { color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #panel-records .wm-manage-date-field { color:#eaf2ff; }
+    #panel-records .wm-manage-date-field input { border-color:#b9cbea; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-records .wm-date-quick-btn { border-color:#b9cbea; color:#173b75; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #panel-records .wm-date-quick-btn:hover { border-color:#fff; color:#073b8f; background:#eaf2ff; }
+    #panel-records > .wm-filter-box .wm-filter-grid label { color:#173b75; }
+    #panel-records > .wm-filter-box .wm-filter-grid input,
+    #panel-records > .wm-filter-box .wm-filter-grid select { border-color:#b9cbea; background:#fff; }
+    #panel-records > .wm-filter-box .wm-filter-grid input:focus,
+    #panel-records > .wm-filter-box .wm-filter-grid select:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-records > .wm-filter-box .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
     .wm-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
     .wm-filter-grid label { font-size:12px; font-weight:900; color:var(--wm-gray); }
     .wm-filter-grid input,.wm-filter-grid select { width:100%; margin-top:5px; border:1px solid var(--wm-line); border-radius:10px; padding:10px; font-size:13px; background:#fff; }
@@ -465,6 +505,37 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     .wm-class-search-actions { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:10px; }
     .wm-class-quick-date { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:9px; padding:8px 10px; font-size:12px; font-weight:900; cursor:pointer; }
     .wm-class-quick-date:hover { border-color:var(--wm-blue); color:var(--wm-blue); background:var(--wm-blue-soft); }
+    /* WM_SETTING_CENTER_BLUE_DESIGN_V1 */
+    #wmSettingTeacherRegisterBox,
+    #wmSettingClassRegisterBox,
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"],
+    #wmSettingClassDbColumnPreview { border-color:#9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
+    #wmSettingTeacherRegisterBox > h3,
+    #wmSettingClassRegisterBox > h3 { margin:-16px -16px 14px; padding:12px 16px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #wmSettingTeacherRegisterBox .wm-filter-grid label,
+    #wmSettingTeacherRegisterBox .wm-setting-teacher-id-box,
+    #wmSettingClassRegisterBox .wm-filter-grid label { color:#173b75; }
+    #wmSettingTeacherRegisterBox .wm-filter-grid input,
+    #wmSettingTeacherRegisterBox .wm-filter-grid select,
+    #wmSettingClassRegisterBox .wm-filter-grid input,
+    #wmSettingClassRegisterBox .wm-filter-grid select { border-color:#93b9ef; background:#fff; }
+    #wmSettingTeacherRegisterBox .wm-filter-grid input:focus,
+    #wmSettingTeacherRegisterBox .wm-filter-grid select:focus,
+    #wmSettingClassRegisterBox .wm-filter-grid input:focus,
+    #wmSettingClassRegisterBox .wm-filter-grid select:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"] > .wm-filter-title { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); color:#fff; font-size:16px; letter-spacing:-.2px; }
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"] .wm-filter-grid label,
+    #wmSettingClassDbColumnPreview .wm-class-search-grid label { color:#173b75; }
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"] .wm-filter-grid input,
+    #wmSettingClassDbColumnPreview .wm-class-search-grid input { border-color:#b9cbea; background:#fff; }
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"] .wm-filter-grid input:focus,
+    #wmSettingClassDbColumnPreview .wm-class-search-grid input:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
+    #panel-classes > .wm-filter-box[data-filter-scope="classes"] .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
+    #wmSettingClassDbColumnPreview > .wm-profile-section-title h3 { color:#073b8f; }
+    #wmSettingClassDbColumnPreview .wm-class-search-box { border:1px solid #9fbce8 !important; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%) !important; overflow:hidden; }
+    #wmSettingClassDbColumnPreview .wm-class-search-box > div:first-child { margin:-12px -12px 12px !important; padding:11px 12px; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); color:#fff !important; }
+    #wmSettingClassDbColumnPreview .wm-class-quick-date { border-color:#b9cbea; color:#173b75; box-shadow:0 1px 0 rgba(255,255,255,.16); }
+    #wmSettingClassDbColumnPreview .wm-class-quick-date:hover { border-color:#0d55c8; color:#073b8f; background:#fff; }
     .wm-class-date-today { color:#dc2626 !important; font-weight:950; }
     .wm-class-date-yesterday { color:#2563eb !important; font-weight:950; }
     .wm-save-wait-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:100000; background:rgba(15,23,42,.28); backdrop-filter:blur(1px); }
