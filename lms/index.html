@@ -7750,13 +7750,18 @@ Object.defineProperty(window,'WM_DASHBOARD_TABLE_DESIGN_LOCK_V1',{
 function wmVerifyDashboardTableDesignLock(){
   const registry=window.WM_DASHBOARD_TABLE_DESIGN_LOCK_V1;
   const descriptor=Object.getOwnPropertyDescriptor(window,'WM_DASHBOARD_TABLE_DESIGN_LOCK_V1');
-  const normalize=value=>String(value||'').toLowerCase().replace(/\s+/g,'')
-    .replace(/#fff(?:fff)?/g,'rgb(255,255,255)')
-    .replace(/#eef4ff/g,'rgb(238,244,255)');
+  const normalizeSelector=value=>String(value||'').toLowerCase().replace(/\s+/g,'')
+    .replace(/:nth-child\(2n\+1\)/g,':nth-child(odd)')
+    .replace(/:nth-child\(2n\)/g,':nth-child(even)');
+  const normalizeProperty=(propertyName,value)=>{
+    const probe=document.createElement('div');
+    try{ probe.style[propertyName]=String(value||''); }catch(error){}
+    return String(probe.style[propertyName]||value||'').toLowerCase().replace(/\s+/g,'');
+  };
   const findRule=(rules,selector)=>{
     for(let i=0;i<rules.length;i+=1){
       const rule=rules[i];
-      if(rule.selectorText===selector) return rule;
+      if(normalizeSelector(rule.selectorText)===normalizeSelector(selector)) return rule;
       if(rule.cssRules){
         const nested=findRule(rule.cssRules,selector);
         if(nested) return nested;
@@ -7775,8 +7780,10 @@ function wmVerifyDashboardTableDesignLock(){
       return;
     }
     Object.keys(item.properties).forEach(propertyName=>{
-      const actual=matchedRule.style[propertyName];
-      if(normalize(actual)!==normalize(item.properties[propertyName])){
+      const actual=matchedRule.style[propertyName]||matchedRule.style.getPropertyValue(
+        propertyName.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())
+      );
+      if(normalizeProperty(propertyName,actual)!==normalizeProperty(propertyName,item.properties[propertyName])){
         failed.push(item.selector+' '+propertyName+'='+String(actual||'없음'));
       }
     });
