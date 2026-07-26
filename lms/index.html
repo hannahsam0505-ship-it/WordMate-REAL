@@ -7939,7 +7939,7 @@ function wmVerifyFiveScreenDesignRegistry(){
 (function wmApplyLmsActualFunctionLock_(){
   'use strict';
 
-  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V7.0';
+  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V8.0';
   var WM_LMS_ACTUAL_LOCK_DATE = '2026-07-26';
   var WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
     authentication: Object.freeze([
@@ -7969,6 +7969,10 @@ function wmVerifyFiveScreenDesignRegistry(){
       'getRecordManageFilteredRows','filterLearningRecordRows','extractRecordRowsFromResponse',
       'fetchRecordRowsByUrl','loadRecords','renderRecordManageRows','syncRecordTableScroll'
     ]),
+    currentProgressDB: Object.freeze([
+      'getCurrentProgressFilteredRows','loadCurrentProgressRows','renderCurrentProgressRows',
+      'moveCurrentProgressPage','syncCurrentProgressTableScroll'
+    ]),
     reportDB: Object.freeze([
       'wmFetchLearningRecordRows','wmSelectFinalCompletedSetRows','wmNormalizeCompletedSetRows',
       'getReportManageFilteredRows','loadReports','renderReportManageRows',
@@ -7992,7 +7996,8 @@ function wmVerifyFiveScreenDesignRegistry(){
     dashboardTableDesign:'대시보드 일련번호·블루 교차행',
     fiveScreenDesign:'5개 화면 디자인 Registry',
     settingCenter:'설정센터', studentDB:'학생관리_DB',
-    studyRecordDB:'학습기록_DB', reportDB:'성적표생성_DB',
+    studyRecordDB:'학습기록_DB', currentProgressDB:'현재진행_DB',
+    reportDB:'성적표생성_DB',
     reportPreviewDesign:'성적표 미리보기 확대 디자인',
     pagination:'페이지 기능'
   });
