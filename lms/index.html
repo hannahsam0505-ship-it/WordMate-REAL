@@ -87,6 +87,7 @@
 ============================================================ */
 const WM_LOCKS = {
   Dashboard_V1_LOCK:true,
+  Dashboard_Table_V2_LOCK:true, /* 대시보드 하단 일련번호·블루 교차행·실제 렌더 함수 LOCK */
   StudentDB_V1_LOCK:true,
   StudyRecordDB_V1_LOCK:true,
   CurrentProgressDB_V1_LOCK:true,
@@ -161,6 +162,7 @@ function wmLogCriticalLockStatus(){
   wmLockStatusMessage('StudentDB_Pagination_V1_LOCK','학생관리 하단 25줄 페이지');
   wmLockStatusMessage('StudyRecordDB_Pagination_V1_LOCK','학습기록 하단 25줄 페이지');
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 전체 UI/컬럼/페이지 구조');
+  wmLockStatusMessage('Dashboard_Table_V2_LOCK','대시보드 하단 일련번호·블루 교차행');
 }
 
 
@@ -259,6 +261,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #panel-dashboard > .wm-filter-box .wm-filter-grid input { border-color:#b9cbea; background:#fff; }
     #panel-dashboard > .wm-filter-box .wm-filter-grid input:focus { outline:2px solid rgba(13,85,200,.18); border-color:#0d55c8; }
     #panel-dashboard > .wm-filter-box .wm-filter-actions { margin:13px 0 0; padding-top:12px; border-top:1px solid #cbd9ed; }
+    #dashboardSummaryTable tbody tr:nth-child(odd) { background-color:#fff; }
+    #dashboardSummaryTable tbody tr:nth-child(even) { background-color:#eef4ff; }
+    #dashboardSummaryTable tbody td { background-color:inherit; }
+    #dashboardSummaryTable th:first-child,
+    #dashboardSummaryTable td:first-child { width:72px; min-width:72px; max-width:72px; text-align:center; }
     /* WM_STUDENT_FILTER_BLUE_DESIGN_V1 */
     #panel-students > .wm-filter-box { border:1px solid #9fbce8; background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%); box-shadow:0 8px 22px rgba(7,59,143,.08); }
     #panel-students > .wm-filter-box .wm-manage-filter-head { margin:-14px -14px 13px; padding:12px 14px; border-radius:15px 15px 0 0; background:linear-gradient(135deg,#073b8f 0%,#0d55c8 100%); }
@@ -690,7 +697,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         <div class="wm-stat-card" onclick="renderDashboardDetail('sendLog')"><div class="wm-stat-label">발송기록</div><div class="wm-stat-num" id="dashboardSendLogCount">0건</div><div class="wm-stat-sub">검색기간 기준</div></div>
         <div class="wm-stat-card" onclick="renderDashboardDetail('counsel')"><div class="wm-stat-label">상담기록</div><div class="wm-stat-num" id="dashboardCounselCount">0건</div><div class="wm-stat-sub">검색기간 기준</div></div>
       </div>
-      <div class="wm-table-wrap" id="dashboardSummaryWrap" style="display:none;"><table id="dashboardSummaryTable"><thead><tr><th>구분</th><th>학생ID</th><th>학생명</th><th>반</th><th>교사</th><th>리더</th><th>학교</th><th>날짜</th><th>상태</th></tr></thead><tbody id="dashboardSummaryTbody"><tr><td colspan="9">상단 카드를 클릭하면 상세 목록이 표시됩니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap" id="dashboardSummaryWrap" style="display:none;"><table id="dashboardSummaryTable"><thead><tr><th>일련번호</th><th>구분</th><th>학생ID</th><th>학생명</th><th>반</th><th>교사</th><th>리더</th><th>학교</th><th>날짜</th><th>상태</th></tr></thead><tbody id="dashboardSummaryTbody"><tr><td colspan="10">상단 카드를 클릭하면 상세 목록이 표시됩니다.</td></tr></tbody></table></div>
     </section>
     <section class="wm-panel" id="panel-students">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">학생관리 센터</h2><p class="wm-panel-desc">연결 예정 DB: 학생관리_DB / 요청 컬럼 기준으로 반영했습니다. 최종결제는 향후 아임웹 카드자동결제 연동 예정입니다.</p></div>
@@ -3037,14 +3044,25 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     }
 
     function setDashboardTable(headers, rowsHtml, emptyMessage){
+      wmLockStatusMessage('Dashboard_Table_V2_LOCK','대시보드 하단 일련번호·블루 교차행 렌더링');
       const wrap = document.getElementById('dashboardSummaryWrap');
       const table = document.getElementById('dashboardSummaryTable');
       const tbody = document.getElementById('dashboardSummaryTbody');
       if(wrap) wrap.style.display = '';
       if(!table || !tbody) return;
       const thead = table.querySelector('thead');
-      if(thead) thead.innerHTML = '<tr>'+headers.map(h=>'<th>'+escapeHtml(h)+'</th>').join('')+'</tr>';
-      tbody.innerHTML = rowsHtml || '<tr><td colspan="'+headers.length+'">'+escapeHtml(emptyMessage || '표시할 데이터가 없습니다.')+'</td></tr>';
+      if(thead) thead.innerHTML = '<tr><th>일련번호</th>'+headers.map(h=>'<th>'+escapeHtml(h)+'</th>').join('')+'</tr>';
+      if(!rowsHtml){
+        tbody.innerHTML = '<tr><td colspan="'+(headers.length+1)+'">'+escapeHtml(emptyMessage || '표시할 데이터가 없습니다.')+'</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rowsHtml;
+      Array.from(tbody.querySelectorAll('tr')).forEach((row,index)=>{
+        const sequenceCell=document.createElement('td');
+        sequenceCell.className='wm-dashboard-seq-col';
+        sequenceCell.textContent=String(index+1);
+        row.insertBefore(sequenceCell,row.firstChild);
+      });
     }
 
     function renderRowsForHeaders(rows, headers, aliasMap){
@@ -7709,6 +7727,75 @@ function wmVerifyReportPreviewExpandedDesignLock(){
   });
 }
 
+/* WM_DASHBOARD_TABLE_DESIGN_LOCK_V1 / 일련번호·블루 교차행 Registry + F12 검증 */
+const WM_DASHBOARD_TABLE_DESIGN_LOCK_V1=Object.freeze({
+  version:'WM_DASHBOARD_TABLE_DESIGN_LOCK_V1.0',
+  date:'2026-07-26',
+  lockName:'Dashboard_Table_V2_LOCK',
+  firstHeader:'일련번호',
+  rules:Object.freeze([
+    Object.freeze({selector:'#dashboardSummaryTable tbody tr:nth-child(odd)',properties:Object.freeze({backgroundColor:'#fff'})}),
+    Object.freeze({selector:'#dashboardSummaryTable tbody tr:nth-child(even)',properties:Object.freeze({backgroundColor:'#eef4ff'})}),
+    Object.freeze({selector:'#dashboardSummaryTable tbody td',properties:Object.freeze({backgroundColor:'inherit'})})
+  ])
+});
+
+Object.defineProperty(window,'WM_DASHBOARD_TABLE_DESIGN_LOCK_V1',{
+  value:WM_DASHBOARD_TABLE_DESIGN_LOCK_V1,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+
+function wmVerifyDashboardTableDesignLock(){
+  const registry=window.WM_DASHBOARD_TABLE_DESIGN_LOCK_V1;
+  const descriptor=Object.getOwnPropertyDescriptor(window,'WM_DASHBOARD_TABLE_DESIGN_LOCK_V1');
+  const normalize=value=>String(value||'').toLowerCase().replace(/\s+/g,'')
+    .replace(/#fff(?:fff)?/g,'rgb(255,255,255)')
+    .replace(/#eef4ff/g,'rgb(238,244,255)');
+  const findRule=(rules,selector)=>{
+    for(let i=0;i<rules.length;i+=1){
+      const rule=rules[i];
+      if(rule.selectorText===selector) return rule;
+      if(rule.cssRules){
+        const nested=findRule(rule.cssRules,selector);
+        if(nested) return nested;
+      }
+    }
+    return null;
+  };
+  const failed=[];
+  (registry.rules||[]).forEach(item=>{
+    let matchedRule=null;
+    for(let i=0;i<document.styleSheets.length&&!matchedRule;i+=1){
+      try{ matchedRule=findRule(document.styleSheets[i].cssRules||[],item.selector); }catch(error){}
+    }
+    if(!matchedRule){
+      failed.push(item.selector+' 규칙 없음');
+      return;
+    }
+    Object.keys(item.properties).forEach(propertyName=>{
+      const actual=matchedRule.style[propertyName];
+      if(normalize(actual)!==normalize(item.properties[propertyName])){
+        failed.push(item.selector+' '+propertyName+'='+String(actual||'없음'));
+      }
+    });
+  });
+  const firstHeader=document.querySelector('#dashboardSummaryTable thead th:first-child');
+  if(!firstHeader||String(firstHeader.textContent||'').trim()!==registry.firstHeader){
+    failed.push('대시보드 첫 번째 헤더 일련번호 확인 필요');
+  }
+  const registryFrozen=Object.isFrozen(registry)&&Object.isFrozen(registry.rules)&&
+    registry.rules.every(item=>Object.isFrozen(item)&&Object.isFrozen(item.properties))&&
+    !!descriptor&&descriptor.writable===false&&descriptor.configurable===false;
+  return Object.freeze({
+    verified:registryFrozen&&failed.length===0,
+    registryFrozen:registryFrozen,
+    cssVerified:failed.length===0,
+    failed:Object.freeze(failed)
+  });
+}
+
 /* ==========================================================
    🔒 LMS ACTUAL FUNCTION LOCK - ALL MODULES / 수정 금지
    Map 실제 함수 LOCK 성공본과 동일한 함수명 직접 보호 방식입니다.
@@ -7716,14 +7803,18 @@ function wmVerifyReportPreviewExpandedDesignLock(){
 (function wmApplyLmsActualFunctionLock_(){
   'use strict';
 
-  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V5.0';
+  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V6.0';
   var WM_LMS_ACTUAL_LOCK_DATE = '2026-07-26';
   var WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
     authentication: Object.freeze([
       'wmFetchLmsLogin','wmSubmitLmsLogin','wmHandleLmsLoginResult'
     ]),
     dashboard: Object.freeze([
-      'renderDashboard','renderDashboardDetail','wmScheduleDashboardFirstLoad'
+      'renderDashboard','renderDashboardDetail','wmScheduleDashboardFirstLoad',
+      'setDashboardTable','renderRowsForHeaders','renderDashboardDefaultRows'
+    ]),
+    dashboardTableDesign: Object.freeze([
+      'wmVerifyDashboardTableDesignLock'
     ]),
     settingCenter: Object.freeze([
       'loadSettingCenterDB','renderSettingCenterRows','wmApplySettingCenterRoleUI',
@@ -7759,6 +7850,7 @@ function wmVerifyReportPreviewExpandedDesignLock(){
   });
   var WM_LMS_ACTUAL_LOCK_LABELS = Object.freeze({
     authentication:'인증·권한', dashboard:'대시보드',
+    dashboardTableDesign:'대시보드 일련번호·블루 교차행',
     settingCenter:'설정센터', studentDB:'학생관리_DB',
     studyRecordDB:'학습기록_DB', reportDB:'성적표생성_DB',
     reportPreviewDesign:'성적표 미리보기 확대 디자인',
@@ -7787,6 +7879,7 @@ function wmVerifyReportPreviewExpandedDesignLock(){
   var moduleResults = {};
   var allCompletedModulesLocked = true;
   var reportPreviewDesignStatus = null;
+  var dashboardTableDesignStatus = null;
   Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
     var names = WM_LMS_ACTUAL_LOCK_GROUPS[groupKey];
     var lockedCount = 0;
@@ -7805,6 +7898,18 @@ function wmVerifyReportPreviewExpandedDesignLock(){
           name:'wmVerifyReportPreviewExpandedDesignLock',
           locked:false,
           reason:(reportPreviewDesignStatus.failed||[]).join(', ')||'디자인 Registry 검증 실패'
+        };
+      }
+    }
+    if(groupKey==='dashboardTableDesign'&&lockedCount===names.length){
+      dashboardTableDesignStatus=window.wmVerifyDashboardTableDesignLock();
+      if(!dashboardTableDesignStatus.verified){
+        lockedCount=0;
+        allCompletedModulesLocked=false;
+        functionResults.wmVerifyDashboardTableDesignLock={
+          name:'wmVerifyDashboardTableDesignLock',
+          locked:false,
+          reason:(dashboardTableDesignStatus.failed||[]).join(', ')||'대시보드 디자인 Registry 검증 실패'
         };
       }
     }
@@ -7846,6 +7951,14 @@ function wmVerifyReportPreviewExpandedDesignLock(){
       ? '✅ REPORT PREVIEW EXPANDED CSS VERIFIED'
       : '❌ REPORT PREVIEW EXPANDED CSS CHECK REQUIRED');
   }
+  if(dashboardTableDesignStatus){
+    console.log(dashboardTableDesignStatus.registryFrozen
+      ? '✅ DASHBOARD TABLE DESIGN REGISTRY FROZEN'
+      : '❌ DASHBOARD TABLE DESIGN REGISTRY CHECK REQUIRED');
+    console.log(dashboardTableDesignStatus.cssVerified
+      ? '✅ DASHBOARD SERIAL / BLUE ZEBRA CSS VERIFIED'
+      : '❌ DASHBOARD SERIAL / BLUE ZEBRA CSS CHECK REQUIRED');
+  }
   if(!allCompletedModulesLocked){
     var failedConsole = {};
     Object.keys(frozenFunctionResults).forEach(function(functionName){
@@ -7857,7 +7970,9 @@ function wmVerifyReportPreviewExpandedDesignLock(){
   console.log(allCompletedModulesLocked
     ? '🔒 LMS ACTUAL FUNCTION ALL LOCK VERIFIED'
     : '⚠️ LMS ACTUAL LOCK CHECK REQUIRED');
-  console.log('FULL LMS ACTUAL LOCK PROGRESS : 8 / 8 MODULES');
+  var totalModuleCount=Object.keys(frozenModuleResults).length;
+  var lockedModuleCount=Object.keys(frozenModuleResults).filter(function(key){return frozenModuleResults[key].locked;}).length;
+  console.log('FULL LMS ACTUAL LOCK PROGRESS : '+lockedModuleCount+' / '+totalModuleCount+' MODULES');
   console.groupEnd();
 })();
 
