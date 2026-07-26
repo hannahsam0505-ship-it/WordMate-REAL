@@ -90,6 +90,7 @@ const WM_LOCKS = {
   Dashboard_Table_V2_LOCK:true, /* 대시보드 하단 일련번호·블루 교차행·실제 렌더 함수 LOCK */
   StudentDB_V1_LOCK:true,
   StudyRecordDB_V1_LOCK:true,
+  ReportDB_V2_LOCK:true, /* 성적표조회 조회·렌더·페이지·스크롤·상세보기 부분 LOCK */
   CurrentProgressDB_V1_LOCK:true,
   CurrentProgressDB_V2_LOCK:true, /* 30컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
   LMS_Login_V1_LOCK:true, /* 교사 로그인 게이트·로그인/로그아웃·인증흐름 LOCK */
@@ -123,6 +124,11 @@ function wmLockNameForScope(scope, action){
     'students:search':'Student_Search_V1_LOCK',
     'records:feature':'StudyRecordDB_V1_LOCK',
     'records:search':'StudyRecordDB_V1_LOCK',
+    'reports:feature':'ReportDB_V2_LOCK',
+    'reports:search':'ReportDB_V2_LOCK',
+    'reports:page':'ReportDB_V2_LOCK',
+    'reports:render':'ReportDB_V2_LOCK',
+    'reports:detail':'ReportDB_V2_LOCK',
     'currentProgress:feature':'CurrentProgressDB_V2_LOCK',
     'currentProgress:search':'CurrentProgressDB_V2_LOCK',
     'currentProgress:page':'CurrentProgressDB_V2_LOCK',
@@ -162,6 +168,7 @@ function wmLogCriticalLockStatus(){
   wmLockStatusMessage('SettingCenter_TeacherId_LOCK','설정센터 교사ID 직접입력·자동생성·중복확인');
   wmLockStatusMessage('StudentDB_Pagination_V1_LOCK','학생관리 하단 25줄 페이지');
   wmLockStatusMessage('StudyRecordDB_Pagination_V1_LOCK','학습기록 하단 25줄 페이지');
+  wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 조회·렌더·페이지·스크롤·상세보기');
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 전체 UI/컬럼/페이지 구조');
   wmLockStatusMessage('Dashboard_Table_V2_LOCK','대시보드 하단 일련번호·블루 교차행');
   wmLockStatusMessage('FiveScreen_Design_Registry_V1_LOCK','5개 화면 블루·일련번호·교차행 디자인 Registry');
@@ -3381,6 +3388,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     });
     function openStudentMap(studentName){ alert(studentName+' 학생 개인학습기록 / 학습맵 자동 호출 예정입니다.'); }
     async function openReportDetail(reportId){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 상세 성적표 열기');
       closeReportStudentRecords();
       closeReportDetail();
       const template=document.getElementById('wmReportTemplate');
@@ -5117,6 +5125,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     async function loadReports(){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 완료 세트 조회');
       const tbody = document.getElementById('reportManageTbody');
       setManageLoading('reports', true);
       if(tbody) tbody.innerHTML = '<tr><td colspan="14"><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>완료 세트 조회 중입니다.</span></div></td></tr>';
@@ -5152,6 +5161,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function renderReportManageRows(){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 일련번호·목록 렌더링');
       const tbody = document.getElementById('reportManageTbody');
       if(!tbody) return;
 
@@ -5194,6 +5204,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function updateReportManagePager(totalRows, totalPages, page){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 15줄 페이지 상태');
       const pager = document.getElementById('reportManagePager');
       const prevBtn = document.getElementById('reportManagePrevBtn');
       const nextBtn = document.getElementById('reportManageNextBtn');
@@ -5206,6 +5217,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function moveReportManagePage(delta){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 이전·다음 페이지 이동');
       const rows = getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []);
       const totalPages = Math.max(1, Math.ceil(rows.length / WM_REPORT_PAGE_SIZE));
       WM_REPORT_MANAGE_PAGE = Math.min(totalPages, Math.max(1, WM_REPORT_MANAGE_PAGE + Number(delta || 0)));
@@ -5213,6 +5225,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function syncReportTableScroll(){
+      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 상·하단 가로스크롤 동기화');
       const wrap = document.getElementById('reportTableWrap');
       const top = document.getElementById('reportTopScroll');
       const inner = document.getElementById('reportTopScrollInner');
@@ -7939,7 +7952,7 @@ function wmVerifyFiveScreenDesignRegistry(){
 (function wmApplyLmsActualFunctionLock_(){
   'use strict';
 
-  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V8.0';
+  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V9.0';
   var WM_LMS_ACTUAL_LOCK_DATE = '2026-07-26';
   var WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
     authentication: Object.freeze([
