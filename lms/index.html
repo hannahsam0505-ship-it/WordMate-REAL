@@ -334,6 +334,9 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #currentProgressManageTable td:first-child { width:72px; min-width:72px; max-width:72px; text-align:center; }
     #reportTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #reportTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
+    #reportManageTable tbody tr:nth-child(odd) { background:#fff; }
+    #reportManageTable tbody tr:nth-child(even) { background:#eef4ff; }
+    #reportManageTable tbody td { background-color:inherit; }
     .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
     .wm-current-progress-pager button { border:1px solid var(--wm-line); background:#fff; color:var(--wm-dark); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:900; cursor:pointer; }
     .wm-current-progress-pager button:disabled { opacity:.45; cursor:not-allowed; }
