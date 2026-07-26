@@ -327,6 +327,11 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #studentTableWrap thead th:nth-child(2), #studentTableWrap thead th:nth-child(3), #studentTableWrap thead th:nth-child(6), #studentTableWrap thead th:nth-child(7), #studentTableWrap thead th:nth-child(8), #studentTableWrap thead th:nth-child(10) { z-index:40; background:#f9fafb; }
     #currentProgressTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #currentProgressTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
+    #currentProgressManageTable tbody tr:nth-child(odd) { background:#fff; }
+    #currentProgressManageTable tbody tr:nth-child(even) { background:#eef4ff; }
+    #currentProgressManageTable tbody td { background-color:inherit; }
+    #currentProgressManageTable th:first-child,
+    #currentProgressManageTable td:first-child { width:72px; min-width:72px; max-width:72px; text-align:center; }
     #reportTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #reportTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
     .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
@@ -1825,7 +1830,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="30">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
+      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>일련번호</th><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="31">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
     </section>
     <section class="wm-panel" id="panel-deployManage">
       <div class="wm-panel-title-row"><h2 class="wm-panel-title">배포관리 센터</h2><p class="wm-panel-desc">연결 DB: 9.배포관리_DB / TEST·REAL 배포 변경 이력을 그대로 표시합니다.</p></div>
@@ -7058,7 +7063,7 @@ async function loadCurrentProgressRows(){
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 조회/표시 구조');
   const tbody = document.getElementById('currentProgressTbody');
   setManageLoading('currentProgress', true);
-  if(tbody) tbody.innerHTML = '<tr><td colspan="30">8.현재진행_DB 조회 중입니다.</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="31">8.현재진행_DB 조회 중입니다.</td></tr>';
 
   try{
     let rows = [];
@@ -7080,7 +7085,7 @@ async function loadCurrentProgressRows(){
     setManageLoading('currentProgress', false);
     return WM_CURRENT_PROGRESS_ROWS;
   }catch(err){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="30">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="31">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
     setManageLoading('currentProgress', false);
     return [];
   }
@@ -7119,11 +7124,13 @@ function renderCurrentProgressRows(){
   if(WM_CURRENT_PROGRESS_PAGE < 1) WM_CURRENT_PROGRESS_PAGE = 1;
 
   if(!totalRows){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="30">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="31">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
   }else{
     const start = (WM_CURRENT_PROGRESS_PAGE - 1) * WM_CURRENT_PROGRESS_PAGE_SIZE;
     const pageRows = rows.slice(start, start + WM_CURRENT_PROGRESS_PAGE_SIZE);
-    wmRenderGenericDbRows('currentProgressTbody', pageRows, WM_CURRENT_PROGRESS_HEADERS, 30);
+    if(tbody){
+      tbody.innerHTML = pageRows.map((row, index)=>'<tr><td>'+(start + index + 1)+'</td>'+WM_CURRENT_PROGRESS_HEADERS.map(col=>'<td>'+escapeHtml(displayCellValue(row[col] || ''))+'</td>').join('')+'</tr>').join('');
+    }
   }
 
   if(pager) pager.style.display = 'flex';
