@@ -499,6 +499,13 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #wmSettingClassDbTableWrap thead th { position:sticky; top:0; z-index:20; background:#f9fafb; }
     #wmSettingClassDbColumnTable { min-width:1320px; }
     #wmSettingClassDbColumnTable th:first-child, #wmSettingClassDbColumnTable td:first-child { min-width:58px; width:58px; text-align:center; }
+    #settingCenterTable th:first-child, #settingCenterTable td:first-child { min-width:70px; width:70px; text-align:center; }
+    #settingCenterTable tbody tr:nth-child(odd),
+    #wmSettingClassDbColumnTable tbody tr:nth-child(odd) { background:#fff; }
+    #settingCenterTable tbody tr:nth-child(even),
+    #wmSettingClassDbColumnTable tbody tr:nth-child(even) { background:#eef4ff; }
+    #settingCenterTable tbody td,
+    #wmSettingClassDbColumnTable tbody td { background-color:inherit; }
     .wm-class-status-select { min-width:104px; border:1px solid var(--wm-line); border-radius:9px; padding:7px 8px; background:#fff; font-weight:800; }
     .wm-class-status-save { margin-left:5px; }
     .wm-class-db-pager { display:flex; align-items:center; justify-content:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
@@ -1726,7 +1733,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('classes')">검색</button><button class="wm-action-btn sub" onclick="resetFilter('classes')">초기화</button><button class="wm-action-btn sub" onclick="WM_SETTING_CENTER_LOCK_V1.load()">새로고침</button></div>
       </div>
 
-      <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="13">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
+      <div class="wm-table-wrap" data-setting-db-view="teacher"><table id="settingCenterTable"><thead><tr><th>일련번호</th><th>교사명</th><th>교사ID</th><th>비밀번호</th><th>교사등급</th><th>담당리더</th><th>담당반목록</th><th>총담당반</th><th>총학생수</th><th>월학생수</th><th>월발송기록</th><th>상태</th><th>수정일</th><th>메모</th></tr></thead><tbody id="settingCenterTbody"><tr><td colspan="14">7-1.교사관리_DB 조회 준비 중입니다.</td></tr></tbody></table></div>
       <div id="settingClassStudentDetail" class="wm-class-detail-box wm-setting-db-hidden" data-setting-db-view="class"></div>
 
       <!-- WM_CLASS_DB_COLUMN_HEADER_PREVIEW_V1: 7-2.반관리_DB 하단 실제 컬럼명 우선 표시 -->
@@ -5714,7 +5721,7 @@ function renderSettingClassDbRows(rows, headers){
 async function loadSettingCenterDB(){
   wmLockStatusMessage('SettingCenter_Search_LOCK','설정센터 조회·검색');
   const tbody = document.getElementById('settingCenterTbody');
-  if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 중입니다.</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="14">7-1.교사관리_DB 조회 중입니다.</td></tr>';
   const classTableBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
   if(classTableBody && !wmSettingClassRows.length) classTableBody.innerHTML = '<tr><td colspan="12">7-2.반관리_DB 조회 중입니다.</td></tr>';
   try{
@@ -5731,7 +5738,7 @@ async function loadSettingCenterDB(){
       wmFillStudentRegisterClassOptions(document.getElementById('wmStudentRegisterClass').value);
     }
   }catch(err){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="13">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="14">7-1.교사관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
     const failedBody = document.querySelector('#wmSettingClassDbColumnTable tbody');
     if(failedBody) failedBody.innerHTML = '<tr><td colspan="12">7-2.반관리_DB 조회 실패: '+escapeHtml(err.message || err)+'</td></tr>';
   }
@@ -5742,12 +5749,12 @@ function renderSettingCenterRows(rows){
   const tbody = document.getElementById('settingCenterTbody');
   if(!tbody) return;
   if(!rows || !rows.length){
-    tbody.innerHTML = '<tr><td colspan="13">등록된 교사/반 데이터가 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14">등록된 교사/반 데이터가 없습니다.</td></tr>';
     return;
   }
   const canChangeStatus = wmSettingCenterActorRole === 'SUPER_ADMIN' || wmSettingCenterActorRole === 'SPECIAL_ADMIN';
   const headers = ['교사명','교사ID','비밀번호','교사등급','담당리더','담당반목록','총담당반','총학생수','월학생수','월발송기록','상태','수정일','메모'];
-  tbody.innerHTML = rows.map(row=>'<tr>'+headers.map(h=>{
+  tbody.innerHTML = rows.map((row,index)=>'<tr><td>'+(index+1)+'</td>'+headers.map(h=>{
     const value = row[h] || '';
     if(h === '담당반목록'){
       const classes = splitSettingClasses(value);
