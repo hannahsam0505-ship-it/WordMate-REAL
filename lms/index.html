@@ -107,7 +107,8 @@ const WM_LOCKS = {
   SettingCenter_Save_LOCK:true, /* 설정센터 저장 LOCK */
   StudentDB_Pagination_V1_LOCK:true, /* 학생관리 하단 25줄·이전/다음 LOCK */
   StudyRecordDB_Pagination_V1_LOCK:true, /* 학습기록 하단 25줄·이전/다음 LOCK */
-  FiveScreen_Design_Registry_V1_LOCK:true /* 대시보드·학생관리·학습기록·성적표조회·현재진행 디자인 Registry LOCK */
+  FiveScreen_Design_Registry_V1_LOCK:true, /* 대시보드·학생관리·학습기록·성적표조회·현재진행 디자인 Registry LOCK */
+  SettingCenter_Design_Registry_V1_LOCK:true /* 설정센터 교사·반 블루·일련번호·교차행 디자인 Registry LOCK */
 };
 
 function wmConfirmLock(lockName){
@@ -172,6 +173,7 @@ function wmLogCriticalLockStatus(){
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 전체 UI/컬럼/페이지 구조');
   wmLockStatusMessage('Dashboard_Table_V2_LOCK','대시보드 하단 일련번호·블루 교차행');
   wmLockStatusMessage('FiveScreen_Design_Registry_V1_LOCK','5개 화면 블루·일련번호·교차행 디자인 Registry');
+  wmLockStatusMessage('SettingCenter_Design_Registry_V1_LOCK','설정센터 교사·반 최근 디자인 Registry');
 }
 
 
@@ -7945,6 +7947,136 @@ function wmVerifyFiveScreenDesignRegistry(){
   });
 }
 
+/* WM_SETTING_CENTER_DESIGN_REGISTRY_V1 / 교사·반 최근 블루·일련번호·교차행 F12 검증 */
+const WM_SETTING_CENTER_DESIGN_REGISTRY_V1=Object.freeze({
+  version:'WM_SETTING_CENTER_DESIGN_REGISTRY_V1.0',
+  date:'2026-07-26',
+  lockName:'SettingCenter_Design_Registry_V1_LOCK',
+  sections:Object.freeze([
+    Object.freeze({
+      key:'teacherRegister',label:'교사등록 블루',
+      rules:Object.freeze([
+        Object.freeze({selector:'#wmSettingTeacherRegisterBox',properties:Object.freeze({borderColor:'#9fbce8'})}),
+        Object.freeze({selector:'#wmSettingTeacherRegisterBox > h3',properties:Object.freeze({color:'#fff'})})
+      ])
+    }),
+    Object.freeze({
+      key:'teacherSearch',label:'교사관리 검색 블루',
+      rules:Object.freeze([
+        Object.freeze({selector:'#panel-classes > .wm-filter-box[data-filter-scope="classes"]',properties:Object.freeze({borderColor:'#9fbce8'})}),
+        Object.freeze({selector:'#panel-classes > .wm-filter-box[data-filter-scope="classes"] > .wm-filter-title',properties:Object.freeze({color:'#fff'})})
+      ])
+    }),
+    Object.freeze({
+      key:'classRegister',label:'반등록 블루',
+      rules:Object.freeze([
+        Object.freeze({selector:'#wmSettingClassRegisterBox',properties:Object.freeze({borderColor:'#9fbce8'})}),
+        Object.freeze({selector:'#wmSettingClassRegisterBox > h3',properties:Object.freeze({color:'#fff'})})
+      ])
+    }),
+    Object.freeze({
+      key:'classSearch',label:'반관리 검색 블루',
+      rules:Object.freeze([
+        Object.freeze({selector:'#wmSettingClassDbColumnPreview',properties:Object.freeze({borderColor:'#9fbce8'})}),
+        Object.freeze({selector:'#wmSettingClassDbColumnPreview .wm-class-search-box > div:first-child',properties:Object.freeze({color:'#fff'})})
+      ])
+    }),
+    Object.freeze({
+      key:'teacherTable',label:'교사관리 일련번호·교차행',
+      tableSelector:'#settingCenterTable',firstHeader:'일련번호',
+      rules:Object.freeze([
+        Object.freeze({selector:'#settingCenterTable tbody tr:nth-child(odd)',properties:Object.freeze({backgroundColor:'#fff'})}),
+        Object.freeze({selector:'#settingCenterTable tbody tr:nth-child(even)',properties:Object.freeze({backgroundColor:'#eef4ff'})})
+      ])
+    }),
+    Object.freeze({
+      key:'classTable',label:'반관리 번호·교차행',
+      tableSelector:'#wmSettingClassDbColumnTable',firstHeader:'번호',
+      rules:Object.freeze([
+        Object.freeze({selector:'#wmSettingClassDbColumnTable tbody tr:nth-child(odd)',properties:Object.freeze({backgroundColor:'#fff'})}),
+        Object.freeze({selector:'#wmSettingClassDbColumnTable tbody tr:nth-child(even)',properties:Object.freeze({backgroundColor:'#eef4ff'})})
+      ])
+    })
+  ])
+});
+
+Object.defineProperty(window,'WM_SETTING_CENTER_DESIGN_REGISTRY_V1',{
+  value:WM_SETTING_CENTER_DESIGN_REGISTRY_V1,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+
+function wmVerifySettingCenterDesignRegistry(){
+  const registry=window.WM_SETTING_CENTER_DESIGN_REGISTRY_V1;
+  const descriptor=Object.getOwnPropertyDescriptor(window,'WM_SETTING_CENTER_DESIGN_REGISTRY_V1');
+  const normalizeSelector=value=>String(value||'').toLowerCase().replace(/\s+/g,'')
+    .replace(/:nth-child\(2n\+1\)/g,':nth-child(odd)')
+    .replace(/:nth-child\(2n\)/g,':nth-child(even)');
+  const normalizeProperty=(propertyName,value)=>{
+    const probe=document.createElement('div');
+    try{ probe.style[propertyName]=String(value||''); }catch(error){}
+    return String(probe.style[propertyName]||value||'').toLowerCase().replace(/\s+/g,'');
+  };
+  const selectorMatches=(selectorText,target)=>String(selectorText||'').split(',')
+    .some(selector=>normalizeSelector(selector)===normalizeSelector(target));
+  const findRule=(rules,selector)=>{
+    for(let i=0;i<rules.length;i+=1){
+      const rule=rules[i];
+      if(selectorMatches(rule.selectorText,selector)) return rule;
+      if(rule.cssRules){
+        const nested=findRule(rule.cssRules,selector);
+        if(nested) return nested;
+      }
+    }
+    return null;
+  };
+  const sectionResults={};
+  const failed=[];
+  registry.sections.forEach(section=>{
+    const sectionFailed=[];
+    section.rules.forEach(item=>{
+      let matchedRule=null;
+      for(let i=0;i<document.styleSheets.length&&!matchedRule;i+=1){
+        try{ matchedRule=findRule(document.styleSheets[i].cssRules||[],item.selector); }catch(error){}
+      }
+      if(!matchedRule){
+        sectionFailed.push(item.selector+' 규칙 없음');
+        return;
+      }
+      Object.keys(item.properties).forEach(propertyName=>{
+        const cssPropertyName=propertyName.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase());
+        const actual=matchedRule.style[propertyName]||matchedRule.style.getPropertyValue(cssPropertyName);
+        if(normalizeProperty(propertyName,actual)!==normalizeProperty(propertyName,item.properties[propertyName])){
+          sectionFailed.push(item.selector+' '+propertyName+'='+String(actual||'없음'));
+        }
+      });
+    });
+    if(section.tableSelector){
+      const firstHeader=document.querySelector(section.tableSelector+' thead th:first-child');
+      if(!firstHeader||String(firstHeader.textContent||'').trim()!==section.firstHeader){
+        sectionFailed.push(section.label+' 첫 번째 헤더 확인 필요');
+      }
+    }
+    sectionResults[section.key]=Object.freeze({
+      label:section.label,
+      verified:sectionFailed.length===0,
+      failed:Object.freeze(sectionFailed)
+    });
+    sectionFailed.forEach(message=>failed.push(section.label+': '+message));
+  });
+  const registryFrozen=Object.isFrozen(registry)&&Object.isFrozen(registry.sections)&&
+    registry.sections.every(section=>Object.isFrozen(section)&&Object.isFrozen(section.rules)&&
+      section.rules.every(item=>Object.isFrozen(item)&&Object.isFrozen(item.properties)))&&
+    !!descriptor&&descriptor.writable===false&&descriptor.configurable===false;
+  return Object.freeze({
+    verified:registryFrozen&&failed.length===0,
+    registryFrozen:registryFrozen,
+    sectionResults:Object.freeze(sectionResults),
+    failed:Object.freeze(failed)
+  });
+}
+
 /* ==========================================================
    🔒 LMS ACTUAL FUNCTION LOCK - ALL MODULES / 수정 금지
    Map 실제 함수 LOCK 성공본과 동일한 함수명 직접 보호 방식입니다.
@@ -7952,7 +8084,7 @@ function wmVerifyFiveScreenDesignRegistry(){
 (function wmApplyLmsActualFunctionLock_(){
   'use strict';
 
-  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V9.0';
+  var WM_LMS_ACTUAL_LOCK_VERSION = 'LMS_ACTUAL_LOCK_ALL_MODULES_V10.0';
   var WM_LMS_ACTUAL_LOCK_DATE = '2026-07-26';
   var WM_LMS_ACTUAL_LOCK_GROUPS = Object.freeze({
     authentication: Object.freeze([
@@ -7967,6 +8099,9 @@ function wmVerifyFiveScreenDesignRegistry(){
     ]),
     fiveScreenDesign: Object.freeze([
       'wmVerifyFiveScreenDesignRegistry'
+    ]),
+    settingCenterDesign: Object.freeze([
+      'wmVerifySettingCenterDesignRegistry'
     ]),
     settingCenter: Object.freeze([
       'loadSettingCenterDB','renderSettingCenterRows','wmApplySettingCenterRoleUI',
@@ -8008,6 +8143,7 @@ function wmVerifyFiveScreenDesignRegistry(){
     authentication:'인증·권한', dashboard:'대시보드',
     dashboardTableDesign:'대시보드 일련번호·블루 교차행',
     fiveScreenDesign:'5개 화면 디자인 Registry',
+    settingCenterDesign:'설정센터 최근 디자인 Registry',
     settingCenter:'설정센터', studentDB:'학생관리_DB',
     studyRecordDB:'학습기록_DB', currentProgressDB:'현재진행_DB',
     reportDB:'성적표생성_DB',
@@ -8039,6 +8175,7 @@ function wmVerifyFiveScreenDesignRegistry(){
   var reportPreviewDesignStatus = null;
   var dashboardTableDesignStatus = null;
   var fiveScreenDesignStatus = null;
+  var settingCenterDesignStatus = null;
   Object.keys(WM_LMS_ACTUAL_LOCK_GROUPS).forEach(function(groupKey){
     var names = WM_LMS_ACTUAL_LOCK_GROUPS[groupKey];
     var lockedCount = 0;
@@ -8081,6 +8218,18 @@ function wmVerifyFiveScreenDesignRegistry(){
           name:'wmVerifyFiveScreenDesignRegistry',
           locked:false,
           reason:(fiveScreenDesignStatus.failed||[]).join(', ')||'5개 화면 디자인 Registry 검증 실패'
+        };
+      }
+    }
+    if(groupKey==='settingCenterDesign'&&lockedCount===names.length){
+      settingCenterDesignStatus=window.wmVerifySettingCenterDesignRegistry();
+      if(!settingCenterDesignStatus.verified){
+        lockedCount=0;
+        allCompletedModulesLocked=false;
+        functionResults.wmVerifySettingCenterDesignRegistry={
+          name:'wmVerifySettingCenterDesignRegistry',
+          locked:false,
+          reason:(settingCenterDesignStatus.failed||[]).join(', ')||'설정센터 디자인 Registry 검증 실패'
         };
       }
     }
@@ -8142,6 +8291,19 @@ function wmVerifyFiveScreenDesignRegistry(){
         : '❌ '+((item.failed||[]).join(', ')||'CHECK REQUIRED');
     });
     console.table(fiveScreenConsole);
+  }
+  if(settingCenterDesignStatus){
+    console.log(settingCenterDesignStatus.registryFrozen
+      ? '✅ SETTING CENTER DESIGN REGISTRY FROZEN'
+      : '❌ SETTING CENTER DESIGN REGISTRY CHECK REQUIRED');
+    var settingCenterDesignConsole={};
+    Object.keys(settingCenterDesignStatus.sectionResults||{}).forEach(function(key){
+      var item=settingCenterDesignStatus.sectionResults[key];
+      settingCenterDesignConsole[item.label]=item.verified
+        ? '✅ DESIGN VERIFIED'
+        : '❌ '+((item.failed||[]).join(', ')||'CHECK REQUIRED');
+    });
+    console.table(settingCenterDesignConsole);
   }
   if(!allCompletedModulesLocked){
     var failedConsole = {};
