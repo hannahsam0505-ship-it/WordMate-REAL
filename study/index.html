@@ -2821,7 +2821,7 @@ async function saveLearningRecord(status="completed"){
         finished = true;
         cleanup();
         reject(new Error("save JSONP timeout"));
-      }, 12000);
+      }, 60000);
     });
 
     if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
@@ -2840,6 +2840,18 @@ async function saveLearningRecord(status="completed"){
   }catch(error){
     return {ok:false, error:String(error), payload};
   }
+}
+
+async function wmEnsureFinalSave_(){
+  let result = finalSavePromise ? await finalSavePromise : null;
+  if(wmIsSaveSuccess(result)) return result;
+
+  /* WM_REAL_FINAL_SAVE_RETRY_V1_20260727
+     최초 응답 타임아웃으로 실패 고정된 Promise를 폐기하고,
+     현재 학습기록ID를 그대로 사용해 중복 없이 완료 저장을 다시 확인합니다. */
+  finalSavePromise = WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+  result = await finalSavePromise;
+  return result;
 }
 
 function returnToLmsIfReady(){
@@ -3722,9 +3734,10 @@ async function goFinalExit(){
     saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
   }
 
-  const saveResult = finalSavePromise ? await finalSavePromise : await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+  const saveResult = await wmEnsureFinalSave_();
   if(!wmIsSaveSuccess(saveResult)){
-    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
+    if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
     return;
   }
 
@@ -3750,9 +3763,10 @@ async function goNextLearning(){
     saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
   }
 
-  const saveResult = finalSavePromise ? await finalSavePromise : await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+  const saveResult = await wmEnsureFinalSave_();
   if(!wmIsSaveSuccess(saveResult)){
-    if(saveStatus) saveStatus.textContent="학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+    const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
+    if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
     return;
   }
 
