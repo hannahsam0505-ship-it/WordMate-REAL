@@ -3738,36 +3738,11 @@ async function goFinalExit(){
   if(!wmIsSaveSuccess(saveResult)){
     const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
     if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
-    /* WM_FINAL_EXIT_RELEASE_AFTER_RECHECK_FAIL_LOCK_20260727_V1
-       60초 응답 대기와 동일 학습기록ID 재확인까지 실패해도
-       오류를 표시한 뒤 나가기 차단을 해제하고 학습맵으로 복귀합니다. */
-    exitLearningFullscreen();
-    wmStudyReturnToMap();
     return;
   }
 
   exitLearningFullscreen();
   wmStudyReturnToMap();
-}
-
-const WM_FINAL_SAVE_EXIT_EXPECTED_HASH_V1 = "fcb88232";
-
-function wmHashFunctionBundleForStudyLock(functions){
-  const source=(functions || []).map(fn=>Function.prototype.toString.call(fn)).join("\n");
-  let hash=0x811c9dc5;
-  for(let i=0;i<source.length;i++){
-    hash ^= source.charCodeAt(i);
-    hash = Math.imul(hash,0x01000193) >>> 0;
-  }
-  return ("00000000"+hash.toString(16)).slice(-8);
-}
-
-function wmVerifyFinalSaveExitIntegrity(){
-  return wmHashFunctionBundleForStudyLock([
-    saveLearningRecord,
-    wmEnsureFinalSave_,
-    goFinalExit
-  ]) === WM_FINAL_SAVE_EXIT_EXPECTED_HASH_V1;
 }
 
 async function goNextLearning(){
@@ -3830,18 +3805,14 @@ function restart(){clearInterval(testTimer);stopWordAudio();learningStartTime=nu
 const WM_STUDY_LOCK_VERSION = "WM_STUDY_ALL_LOCK_V1.1";
 const WM_STUDY_LOCK_DATE = "2026-07-13";
 
-const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.2";
-const WM_STUDY_SPEED_LOCK_DATE = "2026-07-27";
+const WM_STUDY_SPEED_LOCK_VERSION = "WM_STUDY_SPEED_LOCK_V1.1";
+const WM_STUDY_SPEED_LOCK_DATE = "2026-07-13";
 const WM_STUDY_SPEED_LOCKS = Object.freeze({
   SET_LOAD: Object.freeze({loadSetFromDB}),
   SESSION_CHECK: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
   STEP_SAVE: Object.freeze({queueStepSave, wmWaitForStepSaves, saveLearningRecord}),
   FINAL_TEST_SINGLE_SAVE: Object.freeze({markStepCompleted}),
-  FINAL_SAVE: Object.freeze({saveLearningRecord}),
-  FINAL_SAVE_EXIT: Object.freeze({
-    saveLearningRecord, wmEnsureFinalSave_, goFinalExit,
-    wmHashFunctionBundleForStudyLock, wmVerifyFinalSaveExitIntegrity
-  })
+  FINAL_SAVE: Object.freeze({saveLearningRecord})
 });
 
 const WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION = "WM_LEVEL_TRANSITION_NOTICE_LOCK_V1.0";
@@ -3915,7 +3886,8 @@ const WM_STUDY_RUNTIME_EXECUTION_LOCKS = Object.freeze({
     wmStageFromProgressStep, wmNormalizeCompletedStepsFromProgress,
     buildOfficialTimeSummary, wmNormalizeDbStepLabel,
     wmBuildCurrentProgressDbFields, wmIsSaveSuccess,
-    wmGetOfficialSaveResponse, wmNormalizeOfficialNextSetId
+    wmGetOfficialSaveResponse, wmNormalizeOfficialNextSetId,
+    wmEnsureFinalSave_
   }),
   STUDY_SCREEN_FLOW: Object.freeze({
     showStudyConfirmModal, renderStep4SkippedNotice, getTestList,
@@ -3963,7 +3935,8 @@ const WM_STUDY_LOCKS = Object.freeze({
   }),
   STUDY_SAVE: Object.freeze({
     markStepCompleted, queueStepSave, wmLoadLearningProgress, wmApplyResumeProgress,
-    buildLearningPayload, saveProgressSnapshot, saveLearningRecord
+    buildLearningPayload, saveProgressSnapshot, saveLearningRecord,
+    wmEnsureFinalSave_
   }),
   STUDY_MODE_SET_LOCK: Object.freeze({
     wmReadCachedStudyMode, wmCacheStudyMode, wmClearCachedStudyMode,
@@ -4104,7 +4077,6 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
     console.log("LOCK VERSION :",WM_LEVEL_TRANSITION_NOTICE_LOCK_VERSION);
     console.log("LOCK DATE    :",WM_LEVEL_TRANSITION_NOTICE_LOCK_DATE);
     console.table(rows);
-    console.log(serverVerified ? "✅ LEVEL COMPLETION LOCK VERIFIED" : "❌ LEVEL COMPLETION INTEGRITY FAILED");
     console.log(Object.isFrozen(WM_LEVEL_TRANSITION_NOTICE_LOCKS) ? "✅ REGISTRY FROZEN" : "❌ REGISTRY CHECK REQUIRED");
     console.log(allVerified ? "🔒 LEVEL TRANSITION NOTICE ALL LOCK VERIFIED" : "❌ LEVEL TRANSITION NOTICE LOCK VERIFY FAILED");
     console.groupEnd();
@@ -4146,14 +4118,11 @@ function wmLogStudySpeedLockStatus(){
   const clientRows = Object.keys(WM_STUDY_SPEED_LOCKS).map(moduleName=>{
     const group = WM_STUDY_SPEED_LOCKS[moduleName];
     const names = Object.keys(group);
-    let verified = Object.isFrozen(group) && names.every(name=>{
+    const verified = Object.isFrozen(group) && names.every(name=>{
       const descriptor = Object.getOwnPropertyDescriptor(window, name);
       return window[name] === group[name] && descriptor &&
         descriptor.writable === false && descriptor.configurable === false;
     });
-    if(moduleName === "FINAL_SAVE_EXIT"){
-      verified = verified && wmVerifyFinalSaveExitIntegrity();
-    }
     return {MODULE:moduleName, FUNCTIONS:names.length, LOCKED:verified ? "YES" : "NO"};
   });
   const clientVerified = Object.isFrozen(WM_STUDY_SPEED_LOCKS) && clientRows.every(row=>row.LOCKED === "YES");
@@ -4178,7 +4147,6 @@ function wmLogStudySpeedLockStatus(){
     console.log("LOCK VERSION :", WM_STUDY_SPEED_LOCK_VERSION);
     console.log("LOCK DATE    :", WM_STUDY_SPEED_LOCK_DATE);
     console.table(rows);
-    console.log(wmVerifyFinalSaveExitIntegrity() ? "✅ FINAL SAVE·RECHECK·EXIT LOCK VERIFIED" : "❌ FINAL SAVE·RECHECK·EXIT INTEGRITY FAILED");
     console.log(allVerified ? "🔒 STUDY SPEED ALL LOCK VERIFIED" : "❌ STUDY SPEED LOCK VERIFY FAILED");
     console.groupEnd();
   }
