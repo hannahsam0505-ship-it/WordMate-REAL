@@ -4046,6 +4046,73 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   setTimeout(function(){finish(null);},12000);
 }
 
+/* WM ROUND RECORD RECOVERY DETAILED LOCK STATUS 20260727 */
+function wmLogRoundRecordRecoveryLockStatus_(){
+  const lockDate = "2026-07-27";
+  const clientTargets = [
+    {name:"wmEnsureFinalSave_", expected:WM_STUDY_LOCKS.STUDY_SAVE.wmEnsureFinalSave_},
+    {name:"goFinalExit", expected:WM_STUDY_LOCKS.STUDY_EXIT.goFinalExit},
+    {name:"goNextLearning", expected:WM_STUDY_LOCKS.STUDY_EXIT.goNextLearning}
+  ];
+  const clientRows = clientTargets.map(target=>{
+    const descriptor = Object.getOwnPropertyDescriptor(window, target.name);
+    const exists = typeof window[target.name] === "function";
+    const exactReference = window[target.name] === target.expected;
+    const writableBlocked = !!descriptor && descriptor.writable === false;
+    const configurableBlocked = !!descriptor && descriptor.configurable === false;
+    return {
+      적용일:lockDate,
+      위치:"STUDY",
+      함수:target.name,
+      함수존재:exists ? "YES" : "NO",
+      원본참조일치:exactReference ? "YES" : "NO",
+      교체차단_writable_false:writableBlocked ? "YES" : "NO",
+      삭제차단_configurable_false:configurableBlocked ? "YES" : "NO",
+      최종상태:exists && exactReference && writableBlocked && configurableBlocked ? "LOCKED" : "CHECK REQUIRED"
+    };
+  });
+  const callbackName = "wmRoundRecordRecoveryLockCallback_" + Date.now();
+  const script = document.createElement("script");
+  let finished = false;
+
+  function finish(serverResult){
+    if(finished) return;
+    finished = true;
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const functions = serverResult && serverResult.functions ? serverResult.functions : {};
+    const serverRows = Object.keys(functions).map(name=>{
+      const status = functions[name] || {};
+      return {
+        적용일:String(serverResult && serverResult.lockDate || lockDate),
+        위치:"CODE.GS",
+        함수:name,
+        함수존재:status.registered === true ? "YES" : "NO",
+        원본참조일치:status.exactReference === true ? "YES" : "NO",
+        교체차단_writable_false:"SERVER REGISTRY",
+        삭제차단_configurable_false:status.registryFrozen === true ? "YES" : "NO",
+        최종상태:status.registered === true && status.exactReference === true && status.registryFrozen === true ? "LOCKED" : "CHECK REQUIRED"
+      };
+    });
+    const allRows = clientRows.concat(serverRows);
+    const verified = allRows.length === 7 && allRows.every(row=>row.최종상태 === "LOCKED");
+
+    console.group("🔒 WORD MATE ROUND RECORD RECOVERY LOCK STATUS");
+    console.log("TODAY LOCK DATE :", lockDate);
+    console.log("이번 작업: 저장응답 재확인·나가기 차단 해제 + 회차별 신규기록·현재진행DB 복구");
+    console.table(allRows);
+    console.log(verified ? "🔒 ROUND RECORD RECOVERY LOCK VERIFIED — 7/7" : "❌ ROUND RECORD RECOVERY LOCK CHECK REQUIRED");
+    console.groupEnd();
+  }
+
+  window[callbackName] = finish;
+  script.onerror = function(){finish(null);};
+  script.src = API_URL + "?action=roundRecordRecoveryLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
+  document.head.appendChild(script);
+  setTimeout(function(){finish(null);},12000);
+}
+
 window.wmLogLevelTransitionNoticeLockStatus = function(){
   const clientRows = Object.keys(WM_LEVEL_TRANSITION_NOTICE_LOCKS).map(moduleName=>{
     const group=WM_LEVEL_TRANSITION_NOTICE_LOCKS[moduleName];
@@ -4222,5 +4289,6 @@ wmLogStudyRuntimeExecutionLockStatus();
 wmLogStudySpeedLockStatus();
 wmLogCodeGsAllLockStatusOnStudy_();
 window.wmLogLevelTransitionNoticeLockStatus();
+wmLogRoundRecordRecoveryLockStatus_();
 renderStart();
 </script>
