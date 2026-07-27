@@ -3738,6 +3738,11 @@ async function goFinalExit(){
   if(!wmIsSaveSuccess(saveResult)){
     const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
     if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
+    /* WM_FINAL_EXIT_RELEASE_AFTER_RECHECK_FAIL_LOCK_20260727_V1
+       60초 응답 대기와 동일 학습기록ID 재확인까지 실패해도
+       오류를 표시한 뒤 나가기 차단을 해제하고 학습맵으로 복귀합니다. */
+    exitLearningFullscreen();
+    wmStudyReturnToMap();
     return;
   }
 
