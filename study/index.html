@@ -31,7 +31,7 @@ WM_ENV 값에 따라 Study.html이 호출할 Apps Script URL과 아임웹 주소
 
 const WM_ENV_CONFIG = {
   TEST: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
     MAP_URL: 'https://word-mate-test.vercel.app/map',
     STUDY_URL: 'https://word-mate-test.vercel.app/study',
@@ -40,8 +40,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL: 'https://word-mate-real.vercel.app/map',
-    STUDY_URL: 'https://word-mate-real.vercel.app/study',
+    MAP_URL: 'https://study.hsam05.com/map',
+    STUDY_URL: 'https://study.hsam05.com/study',
     LMS_URL: 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -97,34 +97,163 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 })();
 </script>
 
-<!-- TEST_BOOTH_BANNER_DELETE_START -->
-<div id="wm-test-booth-banner">🧪 TEST 부스</div>
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 -->
+<div id="wm-test-booth-banner" role="status" aria-label="TEST 부스">🧪 TEST 부스</div>
 <style>
+  :root{--wm-test-booth-height:64px;}
   #wm-test-booth-banner{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
     width:100%;
+    height:var(--wm-test-booth-height);
     box-sizing:border-box;
+    align-items:center;
+    justify-content:center;
     background:#dc2626;
     color:#fff;
     text-align:center;
     font-size:28px;
     font-weight:900;
-    line-height:1.25;
-    padding:14px 10px;
+    line-height:1;
+    padding:0 10px;
     letter-spacing:-0.02em;
     font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
-    position:relative;
-    z-index:999999;
+    z-index:2147483000;
+  }
+  body.wm-test-booth-active{
+    margin-top:var(--wm-test-booth-height) !important;
+  }
+  body.wm-test-booth-active .wm-exit-btn{
+    top:calc(var(--wm-test-booth-height) + 14px) !important;
+  }
+  body.wm-test-booth-active .wm-exit-modal{
+    top:var(--wm-test-booth-height) !important;
+  }
+  @media (max-width:640px){
+    :root{--wm-test-booth-height:54px;}
+    #wm-test-booth-banner{font-size:22px;}
   }
 </style>
 <script>
 (function(){
-  const banner = document.getElementById('wm-test-booth-banner');
-  if(banner && WM_ENV !== 'TEST'){
-    banner.style.display = 'none';
+  'use strict';
+
+  var LOCK_VERSION = 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK_V1.0';
+  var LOCK_DATE = '2026-07-28';
+  var PAGE = "STUDY";
+
+  function wmApplyTestBoothFloatingBanner(){
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var banner = document.getElementById('wm-test-booth-banner');
+    if(!banner) return false;
+    banner.style.display = isTest ? 'flex' : 'none';
+    if(document.body){
+      document.body.classList.toggle('wm-test-booth-active', isTest);
+    }
+    return isTest ? banner.style.display === 'flex' : banner.style.display === 'none';
   }
+
+  function wmGetTestBoothFloatingBannerLockStatus(){
+    var banner = document.getElementById('wm-test-booth-banner');
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'wmApplyTestBoothFloatingBanner') || {};
+    var registry = window.WM_TEST_BOOTH_FLOATING_BANNER_LOCK;
+    var style = banner && window.getComputedStyle ? window.getComputedStyle(banner) : null;
+    var status = {
+      page: PAGE,
+      environmentTest: isTest,
+      bannerElement: !!banner,
+      bannerText: !!banner && String(banner.textContent || '').trim() === '🧪 TEST 부스',
+      floatingFixed: !!style && style.position === 'fixed',
+      topFixed: !!style && style.top === '0px',
+      fullWidth: !!style && style.left === '0px' && style.right === '0px',
+      visibleInTest: !isTest || (!!style && style.display === 'flex'),
+      bodyOffset: !isTest || !!(document.body && document.body.classList.contains('wm-test-booth-active')),
+      actualFunction: descriptor.value === wmApplyTestBoothFloatingBanner,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.apply === wmApplyTestBoothFloatingBanner
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return ['page','verified'].indexOf(key) !== -1 || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFloatingBannerLockStatus(){
+    var s = wmGetTestBoothFloatingBannerLockStatus();
+    var rows = {
+      'TEST 환경': s.environmentTest,
+      '배너 요소': s.bannerElement,
+      '배너 문구': s.bannerText,
+      '상단 고정(position:fixed)': s.floatingFixed,
+      'top:0': s.topFixed,
+      '좌우 전체폭': s.fullWidth,
+      'TEST 표시': s.visibleInTest,
+      '본문 상단 보정': s.bodyOffset,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    };
+    console.group('🔒 WORD MATE TEST BOOTH FLOATING BANNER LOCK STATUS — ' + PAGE);
+    console.log('LOCK VERSION : ' + LOCK_VERSION);
+    console.log('LOCK DATE    : ' + LOCK_DATE);
+    console.table(rows);
+    console.log(s.verified ? '🔒 TEST BOOTH FLOATING BANNER ALL LOCK VERIFIED' : '❌ TEST BOOTH FLOATING BANNER LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'wmApplyTestBoothFloatingBanner', {
+    value: wmApplyTestBoothFloatingBanner,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFloatingBannerLockStatus', {
+    value: wmGetTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFloatingBannerLockStatus', {
+    value: wmPrintTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK', {
+    value: Object.freeze({
+      version: LOCK_VERSION,
+      date: LOCK_DATE,
+      page: PAGE,
+      apply: wmApplyTestBoothFloatingBanner,
+      status: wmGetTestBoothFloatingBannerLockStatus,
+      log: wmPrintTestBoothFloatingBannerLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  function boot(){
+    window.wmApplyTestBoothFloatingBanner();
+    setTimeout(window.wmLogTestBoothFloatingBannerLockStatus, 0);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load', function(){
+    window.wmApplyTestBoothFloatingBanner();
+    window.wmLogTestBoothFloatingBannerLockStatus();
+  }, {once:true});
 })();
 </script>
-<!-- TEST_BOOTH_BANNER_DELETE_END -->
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 END -->
 
 
 
@@ -1390,7 +1519,192 @@ const WM_WORD_AUDIO_OVERRIDE_URLS = Object.freeze({
   "WM13-3-3|penal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159109/WM13-3-3_penal_v2_isliyr.mp3",
   "WM13-3-7|breed":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159111/WM13-3-7_breed_v2_xqgap1.mp3",
   "WM13-4-8|progenitor":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159119/WM13-4-8_progenitor_v2_g0fvnr.mp3",
-  "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3"
+  "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3",
+  "WM3-1-3|step":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488000/WM3-1-3_step_v2_sefab7.mp3",
+  "WM3-2-5|xylophone":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488539/wm3-2-5_xylophone_v2_ns1s37.mp3",
+  "WM3-2-7|sheet":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488545/wm3-2-7_sheet_v2_qbo2k3.mp3",
+  "WM4-1-4|curtain":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488545/wm4-1-4curtain_v2_pauauf.mp3",
+  "WM5-2-8|next":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488543/wm5-2-8_next_v2_gcbyp8.mp3",
+  "WM6-1-6|aunt":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488542/wm6-1-6_aunt_v2_yaml9n.mp3",
+  "WM6-1-7|read":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488539/wm6-1-7_read_v2_p7pdeq.mp3",
+  "WM6-1-8|heart":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488538/wm6-1-8_heart_v2_ahddvx.mp3",
+  "WM7-1-10|surf":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488590/wm7-1-10_surf_v2_fk1c5j.mp3",
+  "WM7-2-9|suggest":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488589/wm7-2-9_suggest_v2_yb0zco.mp3",
+  "WM7-3-3|should":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488588/wm7-3-3_should_v2_qaplss.mp3",
+  "WM7-3-6|introduction":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488587/wm7-3-6_introduction_v2_yafd3a.mp3",
+  "WM8-4-6|extinct":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488587/wm8-4-6_extinct_v2_hg0zmv.mp3",
+  "WM8-4-7|lives":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488586/wm8-4-7_lives_v2_kguull.mp3",
+  "WM9-1-1|characteristic":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488585/wm9-1-1_characteristic_v2_mj3tmb.mp3",
+  "WM9-1-1|conscience":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488584/wm9-1-1_conscience_v2_tbi4eu.mp3",
+  "WM9-1-1|cucumber":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488583/wm9-1-1_cucumber_v2_k8sliq.mp3",
+  "WM9-1-1|stubborn":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488582/wm9-1-1_stubborn_v2_knzisl.mp3",
+  "WM9-1-2|consideration":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488581/wm9-1-2_consideration_v2_chne4k.mp3",
+  "WM9-1-10|immediate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488581/wm9-1-10_immediate_v2_fsforv.mp3",
+  "WM9-2-2|humanity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488580/wm9-2-2_humanity_v2_pixizw.mp3",
+  "WM9-3-2|witty":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488578/wm9-3-2_witty_v2_aibkqk.mp3",
+  "WM9-3-4|surely":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488577/wm9-3-4_surely_v2_gzggdk.mp3",
+  "WM10-1-5|typically":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489257/wm10-1-5_typically_v2_qmj8jn.mp3",
+  "WM10-1-5|graduate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489268/wm10-1-5_graduate_v2_q8zspd.mp3",
+  "WM10-1-5|forefather":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489275/wm10-1-5_forefather_v2_yvehw4.mp3",
+  "WM10-1-5|profession":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489267/wm10-1-5_profession_v2_bbr0ro.mp3",
+  "WM10-1-5|tolerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489258/wm10-1-5_tolerate_v2_jwxjb6.mp3",
+  "WM10-3-9|outlet":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489248/wm10-3-9_outlet_v2_scdvwc.mp3",
+  "WM11-1-6|resistance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489240/wm11-1-6_resistance_v2_ivfzwl.mp3",
+  "WM11-2-1|universally":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489239/wm11-2-1_universally_v2_fnx1xu.mp3",
+  "WM11-2-4|unacceptable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489232/wm11-2-4_unacceptable_v2_ovrhpe.mp3",
+  "WM11-2-5|indifferent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489231/wm11-2-5_indifferent_v2_nwvjxk.mp3",
+  "WM11-2-8|comprehensive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489223/wm11-2-8_comprehensive_v2_ekcgve.mp3",
+  "WM11-2-8|point of view":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489222/wm11-2-8_point_of_view_v2_x5lyni.mp3",
+  "WM11-3-1|oilfield":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489212/wm11-3-1_oilfield_v2_pm8cgc.mp3",
+  "WM11-3-1|accelerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489216/wm11-3-1_accelerate_v2_sllpte.mp3",
+  "WM11-3-2|deliberate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489204/wm11-3-2_deliberate_v2_bo6zcv.mp3",
+  "WM11-3-3|compensate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489203/wm11-3-3_compensate_v2_zk4ino.mp3",
+  "WM11-3-5|coverage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489193/wm11-3-5_coverage_v2_ss1s5h.mp3",
+  "WM11-3-8|industrious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489192/wm11-3-8_industrious_v2_musbu2.mp3",
+  "WM11-3-9|second-hand":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489186/wm11-3-9_second-hand_v2_ul01ew.mp3",
+  "WM11-4-1|accumulate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489182/wm11-4-1_accumulate_v2_pnfbzs.mp3",
+  "WM11-4-2|discomfort":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489174/wm11-4-2_discomfort_v2_qwjbjk.mp3",
+  "WM11-4-3|compromise":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489173/wm11-4-3_compromise_v2_uglpqr.mp3",
+  "WM11-4-4|contagious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489167/wm11-4-4_contagious_v2_gehnxg.mp3",
+  "WM11-4-6|persuasive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489158/wm11-4-6_persuasive_v2_n7ngim.mp3",
+  "WM11-4-6|diameter":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489166/wm11-4-6_diameter_v2_hesxic.mp3",
+  "WM11-4-6|participate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489159/wm11-4-6_participate_v2_iunykc.mp3",
+  "WM11-4-7|emergence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489144/wm11-4-7_emergence_v2_ov8yke.mp3",
+  "WM11-4-7|electrical":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489151/wm11-4-7_electrical_v2_s0ogfv.mp3",
+  "WM11-4-7|straightforward":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489137/wm11-4-7_straightforward_v2_nakglc.mp3",
+  "WM11-4-7|endurance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489143/wm11-4-7_endurance_v2_qrpffv.mp3",
+  "WM11-4-7|constitution":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489152/wm11-4-7_constitution_v2_pr8qx0.mp3",
+  "WM11-4-8|operation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489122/wm11-4-8_operation_v2_oh1p7s.mp3",
+  "WM11-4-8|nevertheless":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489128/wm11-4-8_nevertheless_v2_q5ai4c.mp3",
+  "WM11-4-8|enlighten":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489129/wm11-4-8_enlighten_v2_yv25dw.mp3",
+  "WM11-4-8|propensity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489121/wm11-4-8_propensity_v2_momqdm.mp3",
+  "WM11-4-8|antipathy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489136/wm11-4-8_antipathy_v2_plvl7b.mp3",
+  "WM11-4-9|externalize":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489113/wm11-4-9_externalize_v2_zvt5im.mp3",
+  "WM11-4-9|unexplained":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489106/wm11-4-9_unexplained_v2_ppb4ol.mp3",
+  "WM11-4-9|dense":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489114/wm11-4-9_dense_v2_ojxea0.mp3",
+  "WM11-4-10|threaten":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489105/wm11-4-10_threaten_v2_akui2s.mp3",
+  "WM12-1-1|simulate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489098/wm12-1-1_simulate_v2_hlus5v.mp3",
+  "WM12-1-3|institute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489090/wm12-1-3_institute_v2_tqmbg2.mp3",
+  "WM12-1-3|initiative":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489097/wm12-1-3_initiative_v2_rzefdy.mp3",
+  "WM12-1-3|settlement":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489089/wm12-1-3_settlement_v2_ntehau.mp3",
+  "WM12-1-4|evaluation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489083/wm12-1-4_evaluation_v2_z29rqb.mp3",
+  "WM12-1-4|transparent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489082/wm12-1-4_transparent_v2_mwbdz2.mp3",
+  "WM12-1-6|partiality":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489067/wm12-1-6_partiality_v2_jqxsvl.mp3",
+  "WM12-1-6|dissimilar":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489076/wm12-1-6_dissimilar_v2_iqjcia.mp3",
+  "WM12-1-6|misestimate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489071/wm12-1-6_misestimate_v2_gp8meg.mp3",
+  "WM12-1-6|humiliate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489075/wm12-1-6_humiliate_v2_fd5gh0.mp3",
+  "WM12-1-7|subscriber":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489060/wm12-1-7_subscriber_v2_e18ifz.mp3",
+  "WM12-1-7|commentator":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489061/wm12-1-7_commentator_v2_zxamfh.mp3",
+  "WM12-1-8|lighthearted":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489054/wm12-1-8_lighthearted_v2_hcpd9i.mp3",
+  "WM12-1-9|constructive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489053/wm12-1-9_constructive_v2_ordo2m.mp3",
+  "WM12-1-10|illuminate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489045/wm12-1-10_illuminate_v2_sj98nz.mp3",
+  "WM12-1-10|admittance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489046/wm12-1-10_admittance_v2_jcyru9.mp3",
+  "WM12-2-1|adhesive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489038/wm12-2-1_adhesive_v2_ndcjyw.mp3",
+  "WM12-2-1|segregation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489029/wm12-2-1_segregation_v2_vj2xph.mp3",
+  "WM12-2-1|exquisite":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489030/wm12-2-1_exquisite_v2_oli7uc.mp3",
+  "WM12-2-1|definition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489037/wm12-2-1_definition_v2_kkdfdj.mp3",
+  "WM12-2-2|exquisitely":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489022/wm12-2-2_exquisitely_v2_pefay3.mp3",
+  "WM12-2-2|mortgage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489014/wm12-2-2_mortgage_v2_xakutz.mp3",
+  "WM12-2-2|moderation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489021/wm12-2-2_moderation_v2_fhcgv2.mp3",
+  "WM12-2-3|dissuade":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489006/wm12-2-3_dissuade_v2_e4mykq.mp3",
+  "WM12-2-3|acknowledgment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489013/wm12-2-3_acknowledgment_v2_iersbv.mp3",
+  "WM12-2-3|particle":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489005/wm12-2-3_particle_v2_tahsyw.mp3",
+  "WM12-2-3|suppress":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488988/wm12-2-3_suppress_v2_nret5p.mp3",
+  "WM12-2-3|provincial":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488998/wm12-2-3_provincial_v2_zxovnm.mp3",
+  "WM12-2-3|stimulation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488997/wm12-2-3_stimulation_v2_fd0v6w.mp3",
+  "WM12-2-4|consistency":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488987/wm12-2-4_consistency_v2_bh5qee.mp3",
+  "WM12-2-5|annal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488981/wm12-2-5_annal_V2_nmvxab.mp3",
+  "WM12-2-5|nobility":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488976/wm12-2-5_nobility_v2_d6oubb.mp3",
+  "WM12-2-6|consensus":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488971/wm12-2-6_consensus_v2_ec3zar.mp3",
+  "WM12-2-6|privately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488966/wm12-2-6_privately_v2_q2lrzt.mp3",
+  "WM12-2-6|suspicious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488957/wm12-2-6_suspicious_v2_c9e84v.mp3",
+  "WM12-2-7|conviction":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488948/wm12-2-7_conviction_v2_a0y2ts.mp3",
+  "WM12-2-7|expedition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488947/wm12-2-7_expedition_v2_h3oxlc.mp3",
+  "WM12-2-7|temptation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488935/wm12-2-7_temptation_v2_h7vndu.mp3",
+  "WM12-2-7|commission":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488956/wm12-2-7_commission_v2_nolwqj.mp3",
+  "WM12-2-7|infringement":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488936/wm12-2-7_infringement_v2_frqtfe.mp3",
+  "WM12-2-8|diplomatic":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488926/wm12-2-8_diplomatic_v2_cbuklc.mp3",
+  "WM12-2-8|extroverted":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488917/wm12-2-8_extroverted_v2_skcvut.mp3",
+  "WM12-2-8|distortion":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488926/wm12-2-8_distortion_v2_s9z6u8.mp3",
+  "WM12-2-8|melancholy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488915/wm12-2-8_melancholy_v2_peflmm.mp3",
+  "WM12-2-9|discernment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488909/wm12-2-9_discernment_v2_al1qe4.mp3",
+  "WM12-2-9|permanence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488897/wm12-2-9_permanence_v2_fqxdyw.mp3",
+  "WM12-2-9|nourishment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488906/wm12-2-9_nourishment_v2_hj3mtw.mp3",
+  "WM12-2-10|disgusting":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488896/wm12-2-10_disgusting_v2_nbrrj3.mp3",
+  "WM12-2-10|practicable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488888/wm12-2-10_practicable_v2_gsqysz.mp3",
+  "WM12-3-1|attachment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488887/wm12-3-1_attachment_v2_xo0xh3.mp3",
+  "WM12-3-1|patronage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488878/wm12-3-1_patronage_v2_w30eeb.mp3",
+  "WM12-3-1|auspicious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488880/wm12-3-1_auspicious_v2_ti6wr6.mp3",
+  "WM12-3-2|temperately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488877/wm12-3-2_temperately_v2_xn4kxh.mp3",
+  "WM12-3-3|proficiency":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488871/wm12-3-3_proficiency_v2_icqoad.mp3",
+  "WM12-3-5|complementary":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488870/wm12-3-5_complementary_v2_icikhq.mp3",
+  "WM12-3-5|narrative":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488864/wm12-3-5_narrative_v2_wdjb9c.mp3",
+  "WM12-3-7|conjunctive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488863/wm12-3-7_conjunctive_v2_kaujjd.mp3",
+  "WM12-4-3|structured":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488857/wm12-4-3_structured_v2_k37iis.mp3",
+  "WM12-4-4|scholarship":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488850/wm12-4-4_scholarship_v2_itylh5.mp3",
+  "WM12-4-4|prominent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488856/wm12-4-4_prominent_v2_aeak79.mp3",
+  "WM12-4-5|provocation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488849/wm12-4-5_provocation_v2_mras6c.mp3",
+  "WM12-4-6|baldness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488842/wm12-4-6_baldness_v2_wwdbne.mp3",
+  "WM12-4-6|subsequent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488841/wm12-4-6_subsequent_v2_zoahbv.mp3",
+  "WM12-4-6|substitute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488833/wm12-4-6_substitute_v2_rdvs9n.mp3",
+  "WM12-4-7|competence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488832/wm12-4-7_competence_v2_cq7svd.mp3",
+  "WM12-4-7|proficient":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488831/wm12-4-7_proficient_v2_nzjsv0.mp3",
+  "WM12-4-8|humbleness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488824/wm12-4-8_humbleness_v2_vqxicx.mp3",
+  "WM12-4-9|steadily":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488823/wm12-4-9_steadily_v2_t5fwwx.mp3",
+  "WM12-4-9|stunning":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488822/wm12-4-9_stunning_v2_j3y65q.mp3",
+  "WM12-4-10|weirdness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488816/wm12-4-10_weirdness_v2_csxtzl.mp3",
+  "WM12-5-1|destructive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488809/wm12-5-1_destructive_v2_uzjzxt.mp3",
+  "WM12-5-1|constitute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488815/wm12-5-1_constitute_v2_k4kuyl.mp3",
+  "WM12-5-1|observance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488801/wm12-5-1_observance_v2_hrxkdu.mp3",
+  "WM12-5-1|honorable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488808/wm12-5-1_honorable_v2_pzzp0a.mp3",
+  "WM12-5-3|phenomenal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488800/wm12-5-3_phenomenal_v2_bsczfv.mp3",
+  "WM12-5-4|victorious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488786/wm12-5-4_victorious_v2_srnset.mp3",
+  "WM12-5-4|frightening":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488796/wm12-5-4_frightening_v2_al5phl.mp3",
+  "WM12-5-4|seemingly":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488793/wm12-5-4_seemingly_v2_dmaaqq.mp3",
+  "WM12-5-5|decelerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488778/wm12-5-5_decelerate_v2_yykk6q.mp3",
+  "WM12-5-5|compassionate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488771/wm12-5-5_compassionate_v2_eculy2.mp3",
+  "WM12-5-5|eastward":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488770/wm12-5-5_eastward_v2_a7hzws.mp3",
+  "WM12-5-5|compassion":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488779/wm12-5-5_compassion_v2_wmthsl.mp3",
+  "WM12-5-5|assumption":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488785/wm12-5-5_assumption_v2_v1mw8h.mp3",
+  "WM12-5-8|craft":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488763/wm12-5-8_craft_v2_lzvugc.mp3",
+  "WM12-5-9|sovereignty":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488752/wm12-5-9_sovereignty_v2_id2lqo.mp3",
+  "WM12-5-9|covenant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488762/wm12-5-9_covenant_v2_hvndkl.mp3",
+  "WM13-1-1|infamous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488735/wm13-1-1_infamous_v2_vygg2k.mp3",
+  "WM13-1-1|abhorrence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488751/wm13-1-1_abhorrence_v2_ercdsw.mp3",
+  "WM13-1-1|posthumous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488724/wm13-1-1_posthumous_v2_tjxubw.mp3",
+  "WM13-1-1|incarcerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488743/wm13-1-1_incarcerate_v2_m6j71b.mp3",
+  "WM13-1-1|alleviate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488744/wm13-1-1_alleviate_v2_adr0ql.mp3",
+  "WM13-1-1|nuisance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488734/wm13-1-1_nuisance_v2_ziv3rk.mp3",
+  "WM13-1-2|clinician":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488723/wm13-1-2_clinician_v2_gcgrju.mp3",
+  "WM13-1-3|methodical":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488717/wm13-1-3_methodical_v2_eqjy8l.mp3",
+  "WM13-1-4|indifference":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488711/wm13-1-4_indifference_v2_mj7rqi.mp3",
+  "WM13-1-4|diminutive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488716/wm13-1-4_diminutive_V2_ldy9th.mp3",
+  "WM13-1-4|inhibition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488706/wm13-1-4_inhibition_v2_xvnawn.mp3",
+  "WM13-1-5|accolade":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488705/wm13-1-5_accolade_v2_l47irl.mp3",
+  "WM13-1-6|ultimately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488693/wm13-1-6_ultimately_v2_lfydec.mp3",
+  "WM13-1-6|heredity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488698/wm13-1-6_heredity_v2_m60uvq.mp3",
+  "WM13-1-6|chronically":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488699/wm13-1-6_chronically_v2_ttuqzb.mp3",
+  "WM13-1-8|disperse":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488692/wm13-1-8_disperse_v2_nbo8sf.mp3",
+  "WM13-1-9|counterpart":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488687/wm13-1-9_counterpart_v2_qcppbj.mp3",
+  "WM13-1-10|enlightenment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488686/wm13-1-10_enlightenment_v2_p0igzu.mp3",
+  "WM13-2-1|vigilant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785574658/wm13-2-1_vigilant_v2_pzkev1.mp3",
+  "WM13-2-2|dominant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488681/wm13-2-2_dominant_v2_cjcgmu.mp3",
+  "WM13-2-6|teem with":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488680/wm13-2-6_teem-with_v2_edvnbr.mp3",
+  "WM13-2-10|metabolism":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488674/wm13-2-10_metabolism_v2_gxtwdd.mp3",
+  "WM13-2-10|forfeiture":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488676/wm13-2-10_forfeiture_v2_ku1ld5.mp3",
+  "WM13-3-1|sympathize":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488672/wm13-3-1_sympathize_v2_uxbsyn.mp3",
+  "WM13-3-3|unavoidable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488668/wm13-3-3_unavoidable_v2_jyrclp.mp3",
+  "WM13-3-3|concurrent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488669/wm13-3-3_concurrent_v2_z5groa.mp3",
+  "WM13-3-9|tantamount":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488666/wm13-3-9_tantamount_v2_cokmxm.mp3",
+  "WM13-4-3|impediment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488664/wm13-4-3_impediment_v2_jwnp00.mp3",
+  "WM13-4-4|hypothesis":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488661/wm13-4-4_hypothesis_v2_ftxige.mp3",
+  "WM13-4-4|groundless":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488662/wm13-4-4_groundless_v2_mouxsx.mp3",
+  "WM13-4-8|remedy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488658/wm13-4-8_remedy_v2_ov1vyz.mp3",
+  "WM13-4-9|intolerance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488658/wm13-4-9_intolerance_v2_ujfqr8.mp3",
+  "WM13-4-10|adolescence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488655/wm13-4-10_adolescence_v2_cgw5uj.mp3",
+  "WM13-5-4|autonomous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488654/wm13-5-4_autonomous_v2_dsiugd.mp3",
+  "WM13-5-5|enactment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488653/wm13-5-5_enactment_v2_eixgjw.mp3",
+  "WM13-5-6|depictive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488652/wm13-5-6_depictive_v2_vnimwg.mp3"
 });
 
 /* distortion은 세트 ID 재확인 후 2차 LOCK 대상에 포함합니다. */
@@ -1403,7 +1717,69 @@ const WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS = Object.freeze([
   "WM12-1-5|statistical", "WM12-1-6|presumption", "WM12-2-7|malnourished",
   "WM12-2-8|melancholic", "WM12-2-8|controvert", "WM13-1-6|uniqueness",
   "WM13-2-7|dither", "WM13-3-3|penal", "WM13-3-7|breed",
-  "WM13-4-8|progenitor", "WM13-4-8|application"
+  "WM13-4-8|progenitor", "WM13-4-8|application", "WM3-1-3|step",
+  "WM3-2-5|xylophone", "WM3-2-7|sheet", "WM4-1-4|curtain",
+  "WM5-2-8|next", "WM6-1-6|aunt", "WM6-1-7|read",
+  "WM6-1-8|heart", "WM7-1-10|surf", "WM7-2-9|suggest",
+  "WM7-3-3|should", "WM7-3-6|introduction", "WM8-4-6|extinct",
+  "WM8-4-7|lives", "WM9-1-1|characteristic", "WM9-1-1|conscience",
+  "WM9-1-1|cucumber", "WM9-1-1|stubborn", "WM9-1-2|consideration",
+  "WM9-1-10|immediate", "WM9-2-2|humanity", "WM9-3-2|witty",
+  "WM9-3-4|surely", "WM10-1-5|typically", "WM10-1-5|graduate",
+  "WM10-1-5|forefather", "WM10-1-5|profession", "WM10-1-5|tolerate",
+  "WM10-3-9|outlet", "WM11-1-6|resistance", "WM11-2-1|universally",
+  "WM11-2-4|unacceptable", "WM11-2-5|indifferent", "WM11-2-8|comprehensive",
+  "WM11-2-8|point of view", "WM11-3-1|oilfield", "WM11-3-1|accelerate",
+  "WM11-3-2|deliberate", "WM11-3-3|compensate", "WM11-3-5|coverage",
+  "WM11-3-8|industrious", "WM11-3-9|second-hand", "WM11-4-1|accumulate",
+  "WM11-4-2|discomfort", "WM11-4-3|compromise", "WM11-4-4|contagious",
+  "WM11-4-6|persuasive", "WM11-4-6|diameter", "WM11-4-6|participate",
+  "WM11-4-7|emergence", "WM11-4-7|electrical", "WM11-4-7|straightforward",
+  "WM11-4-7|endurance", "WM11-4-7|constitution", "WM11-4-8|operation",
+  "WM11-4-8|nevertheless", "WM11-4-8|enlighten", "WM11-4-8|propensity",
+  "WM11-4-8|antipathy", "WM11-4-9|externalize", "WM11-4-9|unexplained",
+  "WM11-4-9|dense", "WM11-4-10|threaten", "WM12-1-1|simulate",
+  "WM12-1-3|institute", "WM12-1-3|initiative", "WM12-1-3|settlement",
+  "WM12-1-4|evaluation", "WM12-1-4|transparent", "WM12-1-6|partiality",
+  "WM12-1-6|dissimilar", "WM12-1-6|misestimate", "WM12-1-6|humiliate",
+  "WM12-1-7|subscriber", "WM12-1-7|commentator", "WM12-1-8|lighthearted",
+  "WM12-1-9|constructive", "WM12-1-10|illuminate", "WM12-1-10|admittance",
+  "WM12-2-1|adhesive", "WM12-2-1|segregation", "WM12-2-1|exquisite",
+  "WM12-2-1|definition", "WM12-2-2|exquisitely", "WM12-2-2|mortgage",
+  "WM12-2-2|moderation", "WM12-2-3|dissuade", "WM12-2-3|acknowledgment",
+  "WM12-2-3|particle", "WM12-2-3|suppress", "WM12-2-3|provincial",
+  "WM12-2-3|stimulation", "WM12-2-4|consistency", "WM12-2-5|annal",
+  "WM12-2-5|nobility", "WM12-2-6|consensus", "WM12-2-6|privately",
+  "WM12-2-6|suspicious", "WM12-2-7|conviction", "WM12-2-7|expedition",
+  "WM12-2-7|temptation", "WM12-2-7|commission", "WM12-2-7|infringement",
+  "WM12-2-8|diplomatic", "WM12-2-8|extroverted", "WM12-2-8|distortion",
+  "WM12-2-8|melancholy", "WM12-2-9|discernment", "WM12-2-9|permanence",
+  "WM12-2-9|nourishment", "WM12-2-10|disgusting", "WM12-2-10|practicable",
+  "WM12-3-1|attachment", "WM12-3-1|patronage", "WM12-3-1|auspicious",
+  "WM12-3-2|temperately", "WM12-3-3|proficiency", "WM12-3-5|complementary",
+  "WM12-3-5|narrative", "WM12-3-7|conjunctive", "WM12-4-3|structured",
+  "WM12-4-4|scholarship", "WM12-4-4|prominent", "WM12-4-5|provocation",
+  "WM12-4-6|baldness", "WM12-4-6|subsequent", "WM12-4-6|substitute",
+  "WM12-4-7|competence", "WM12-4-7|proficient", "WM12-4-8|humbleness",
+  "WM12-4-9|steadily", "WM12-4-9|stunning", "WM12-4-10|weirdness",
+  "WM12-5-1|destructive", "WM12-5-1|constitute", "WM12-5-1|observance",
+  "WM12-5-1|honorable", "WM12-5-3|phenomenal", "WM12-5-4|victorious",
+  "WM12-5-4|frightening", "WM12-5-4|seemingly", "WM12-5-5|decelerate",
+  "WM12-5-5|compassionate", "WM12-5-5|eastward", "WM12-5-5|compassion",
+  "WM12-5-5|assumption", "WM12-5-8|craft", "WM12-5-9|sovereignty",
+  "WM12-5-9|covenant", "WM13-1-1|infamous", "WM13-1-1|abhorrence",
+  "WM13-1-1|posthumous", "WM13-1-1|incarcerate", "WM13-1-1|alleviate",
+  "WM13-1-1|nuisance", "WM13-1-2|clinician", "WM13-1-3|methodical",
+  "WM13-1-4|indifference", "WM13-1-4|diminutive", "WM13-1-4|inhibition",
+  "WM13-1-5|accolade", "WM13-1-6|ultimately", "WM13-1-6|heredity",
+  "WM13-1-6|chronically", "WM13-1-8|disperse", "WM13-1-9|counterpart",
+  "WM13-1-10|enlightenment", "WM13-2-1|vigilant", "WM13-2-2|dominant",
+  "WM13-2-6|teem with", "WM13-2-10|metabolism", "WM13-2-10|forfeiture",
+  "WM13-3-1|sympathize", "WM13-3-3|unavoidable", "WM13-3-3|concurrent",
+  "WM13-3-9|tantamount", "WM13-4-3|impediment", "WM13-4-4|hypothesis",
+  "WM13-4-4|groundless", "WM13-4-8|remedy", "WM13-4-9|intolerance",
+  "WM13-4-10|adolescence", "WM13-5-4|autonomous", "WM13-5-5|enactment",
+  "WM13-5-6|depictive"
 ]);
 
 function wmNormalizeWordAudioOverrideKey(setId, word){
@@ -1423,7 +1799,7 @@ function wmVerifyWordAudioOverrideLock(){
   }, 0);
   return Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_URLS) &&
     Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS) &&
-    WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.length === 26 && verifiedCount === 26;
+    WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.length === 211 && verifiedCount === 211;
 }
 
 /* WM_STUDY_USE_DEV_FINAL_AUDIO_VALUES_V1_20260711
@@ -2861,7 +3237,7 @@ function returnToLmsIfReady(){
 }
 
 function requestLearningFullscreen(){
-  const el=document.getElementById("wordmate-app") || document.documentElement;
+  const el=document.documentElement;
   if(document.fullscreenElement) return;
   if(el.requestFullscreen){
     el.requestFullscreen().catch(()=>{});
@@ -2869,6 +3245,78 @@ function requestLearningFullscreen(){
     el.webkitRequestFullscreen();
   }
 }
+
+/* WM_TEST_BOOTH_FULLSCREEN_EXECUTION_LOCK_V1
+   실제 전체화면 실행함수가 document.documentElement를 대상으로 실행되는지 고정·검증합니다. */
+(function(){
+  'use strict';
+  var actual = requestLearningFullscreen;
+
+  function wmGetTestBoothFullscreenExecutionLockStatus(){
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'requestLearningFullscreen') || {};
+    var source = Function.prototype.toString.call(actual);
+    var registry = window.WM_TEST_BOOTH_FULLSCREEN_EXECUTION_LOCK;
+    var status = {
+      documentElementTarget: /document\.documentElement/.test(source),
+      requestFullscreenCall: /requestFullscreen/.test(source),
+      actualFunction: descriptor.value === actual,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.request === actual
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return key === 'verified' || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFullscreenExecutionLockStatus(){
+    var s = wmGetTestBoothFullscreenExecutionLockStatus();
+    console.group('🔒 WORD MATE TEST BOOTH FULLSCREEN EXECUTION LOCK STATUS — STUDY');
+    console.table({
+      'document.documentElement 대상': s.documentElementTarget,
+      'requestFullscreen 실제 호출': s.requestFullscreenCall,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    });
+    console.log(s.verified ? '🔒 TEST BOOTH FULLSCREEN EXECUTION LOCK VERIFIED' : '❌ TEST BOOTH FULLSCREEN EXECUTION LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'requestLearningFullscreen', {
+    value: actual,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFullscreenExecutionLockStatus', {
+    value: wmGetTestBoothFullscreenExecutionLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFullscreenExecutionLockStatus', {
+    value: wmPrintTestBoothFullscreenExecutionLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FULLSCREEN_EXECUTION_LOCK', {
+    value: Object.freeze({
+      version: 'WM_TEST_BOOTH_FULLSCREEN_EXECUTION_LOCK_V1.0',
+      date: '2026-07-28',
+      request: actual,
+      status: wmGetTestBoothFullscreenExecutionLockStatus,
+      log: wmPrintTestBoothFullscreenExecutionLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  window.addEventListener('load', wmPrintTestBoothFullscreenExecutionLockStatus, {once:true});
+})();
 
 function exitLearningFullscreen(){
   if(document.fullscreenElement && document.exitFullscreen){
@@ -4291,4 +4739,89 @@ wmLogCodeGsAllLockStatusOnStudy_();
 window.wmLogLevelTransitionNoticeLockStatus();
 wmLogRoundRecordRecoveryLockStatus_();
 renderStart();
+</script>
+
+
+<script>
+/* WM_STUDY_WORD_AUDIO_OVERRIDE_FINAL_LOCK_V1_20260807 */
+(function(){
+  'use strict';
+  var VERSION='WM_STUDY_WORD_AUDIO_OVERRIDE_FINAL_LOCK_V1.0';
+  var DATE='2026-08-07';
+  var REGISTRY=Object.freeze({
+    normalize:wmNormalizeWordAudioOverrideKey,
+    getOverride:wmGetWordAudioOverrideUrl,
+    verifyOverride:wmVerifyWordAudioOverrideLock,
+    playWordSegment:playWordSegment,
+    urls:WM_WORD_AUDIO_OVERRIDE_URLS,
+    lockedKeys:WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS
+  });
+
+  function protect(name,value){
+    var d=Object.getOwnPropertyDescriptor(window,name);
+    if(!d || d.configurable!==false){
+      Object.defineProperty(window,name,{value:value,writable:false,configurable:false});
+    }
+  }
+
+  protect('wmNormalizeWordAudioOverrideKey',REGISTRY.normalize);
+  protect('wmGetWordAudioOverrideUrl',REGISTRY.getOverride);
+  protect('wmVerifyWordAudioOverrideLock',REGISTRY.verifyOverride);
+  protect('playWordSegment',REGISTRY.playWordSegment);
+  protect('WM_STUDY_WORD_AUDIO_OVERRIDE_FINAL_LOCK',REGISTRY);
+
+  function locked(name,expected){
+    var d=Object.getOwnPropertyDescriptor(window,name)||{};
+    return window[name]===expected && d.writable===false && d.configurable===false;
+  }
+
+  function wmGetStudyWordAudioOverrideFinalLockStatus(){
+    var s={
+      registryFrozen:Object.isFrozen(REGISTRY),
+      urlsFrozen:Object.isFrozen(REGISTRY.urls),
+      keysFrozen:Object.isFrozen(REGISTRY.lockedKeys),
+      keyCount:REGISTRY.lockedKeys.length===211,
+      valuesVerified:REGISTRY.verifyOverride()===true,
+      normalizeProtected:locked('wmNormalizeWordAudioOverrideKey',REGISTRY.normalize),
+      getterProtected:locked('wmGetWordAudioOverrideUrl',REGISTRY.getOverride),
+      verifierProtected:locked('wmVerifyWordAudioOverrideLock',REGISTRY.verifyOverride),
+      playbackProtected:locked('playWordSegment',REGISTRY.playWordSegment),
+      exactPlayback:REGISTRY.playWordSegment===playWordSegment,
+      exactGetter:REGISTRY.getOverride===wmGetWordAudioOverrideUrl
+    };
+    s.verified=Object.keys(s).every(function(k){return k==='verified'||s[k]===true;});
+    return s;
+  }
+
+  function wmLogStudyWordAudioOverrideFinalLockStatus(){
+    var s=wmGetStudyWordAudioOverrideFinalLockStatus();
+    console.group('🔒 WORD MATE STUDY WORD AUDIO OVERRIDE LOCK STATUS');
+    console.log('LOCK VERSION :',VERSION);
+    console.log('LOCK DATE    :',DATE);
+    console.table({
+      'Registry 동결':s.registryFrozen,
+      'URL Registry 동결':s.urlsFrozen,
+      'LOCK Key Registry 동결':s.keysFrozen,
+      'LOCK Key 211개':s.keyCount,
+      '211개 URL 검증':s.valuesVerified,
+      '키 정규화 함수 보호':s.normalizeProtected,
+      'Override 조회 함수 보호':s.getterProtected,
+      '검증 함수 보호':s.verifierProtected,
+      '실제 playWordSegment 보호':s.playbackProtected,
+      '실제 재생함수 정확 참조':s.exactPlayback,
+      'Override 함수 정확 참조':s.exactGetter
+    });
+    console.log(s.verified ? '🔒 STUDY WORD AUDIO OVERRIDE ALL LOCK VERIFIED' : '❌ STUDY WORD AUDIO OVERRIDE LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  protect('wmGetStudyWordAudioOverrideFinalLockStatus',wmGetStudyWordAudioOverrideFinalLockStatus);
+  protect('wmLogStudyWordAudioOverrideFinalLockStatus',wmLogStudyWordAudioOverrideFinalLockStatus);
+
+  function boot(){setTimeout(window.wmLogStudyWordAudioOverrideFinalLockStatus,0);}
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{boot();}
+})();
 </script>
