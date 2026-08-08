@@ -137,7 +137,7 @@ WM_ENV 값에 따라 Map.html이 호출할 Apps Script URL과 부스별 이동 �
 
 const WM_ENV_CONFIG = {
   TEST: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
     MAP_URL   : 'https://word-mate-test.vercel.app/map',
     STUDY_URL : 'https://word-mate-test.vercel.app/study',
@@ -147,8 +147,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL   : 'https://word-mate-real.vercel.app/map',
-    STUDY_URL : 'https://word-mate-real.vercel.app/study',
+    MAP_URL   : 'https://study.hsam05.com/map',
+    STUDY_URL : 'https://study.hsam05.com/study',
     LMS_URL   : 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -258,6 +258,160 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   }
 });
 </script>
+
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 -->
+<div id="wm-test-booth-banner" role="status" aria-label="TEST 부스">🧪 TEST 부스</div>
+<style>
+  :root{--wm-test-booth-height:64px;}
+  #wm-test-booth-banner{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100%;
+    height:var(--wm-test-booth-height);
+    box-sizing:border-box;
+    align-items:center;
+    justify-content:center;
+    background:#dc2626;
+    color:#fff;
+    text-align:center;
+    font-size:28px;
+    font-weight:900;
+    line-height:55px;
+  text-align:center;
+    padding:0 10px;
+    letter-spacing:-0.02em;
+    font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
+    z-index:2147483000;
+  }
+  body.wm-test-booth-active{
+    margin-top:var(--wm-test-booth-height) !important;
+  }
+  @media (max-width:640px){
+    :root{--wm-test-booth-height:54px;}
+    #wm-test-booth-banner{font-size:22px;}
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  var LOCK_VERSION = 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK_V1.0';
+  var LOCK_DATE = '2026-07-28';
+  var PAGE = "MAP";
+
+  function wmApplyTestBoothFloatingBanner(){
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var banner = document.getElementById('wm-test-booth-banner');
+    if(!banner) return false;
+    banner.style.display = isTest ? 'flex' : 'none';
+    if(document.body){
+      document.body.classList.toggle('wm-test-booth-active', isTest);
+    }
+    return isTest ? banner.style.display === 'flex' : banner.style.display === 'none';
+  }
+
+  function wmGetTestBoothFloatingBannerLockStatus(){
+    var banner = document.getElementById('wm-test-booth-banner');
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'wmApplyTestBoothFloatingBanner') || {};
+    var registry = window.WM_TEST_BOOTH_FLOATING_BANNER_LOCK;
+    var style = banner && window.getComputedStyle ? window.getComputedStyle(banner) : null;
+    var status = {
+      page: PAGE,
+      environmentTest: isTest,
+      bannerElement: !!banner,
+      bannerText: !!banner && String(banner.textContent || '').trim() === '🧪 TEST 부스',
+      floatingFixed: !!style && style.position === 'fixed',
+      topFixed: !!style && style.top === '0px',
+      fullWidth: !!style && style.left === '0px' && style.right === '0px',
+      visibleInTest: !isTest || (!!style && style.display === 'flex'),
+      bodyOffset: !isTest || !!(document.body && document.body.classList.contains('wm-test-booth-active')),
+      actualFunction: descriptor.value === wmApplyTestBoothFloatingBanner,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.apply === wmApplyTestBoothFloatingBanner
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return ['page','verified'].indexOf(key) !== -1 || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFloatingBannerLockStatus(){
+    var s = wmGetTestBoothFloatingBannerLockStatus();
+    var rows = {
+      'TEST 환경': s.environmentTest,
+      '배너 요소': s.bannerElement,
+      '배너 문구': s.bannerText,
+      '상단 고정(position:fixed)': s.floatingFixed,
+      'top:0': s.topFixed,
+      '좌우 전체폭': s.fullWidth,
+      'TEST 표시': s.visibleInTest,
+      '본문 상단 보정': s.bodyOffset,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    };
+    console.group('🔒 WORD MATE TEST BOOTH FLOATING BANNER LOCK STATUS — ' + PAGE);
+    console.log('LOCK VERSION : ' + LOCK_VERSION);
+    console.log('LOCK DATE    : ' + LOCK_DATE);
+    console.table(rows);
+    console.log(s.verified ? '🔒 TEST BOOTH FLOATING BANNER ALL LOCK VERIFIED' : '❌ TEST BOOTH FLOATING BANNER LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'wmApplyTestBoothFloatingBanner', {
+    value: wmApplyTestBoothFloatingBanner,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFloatingBannerLockStatus', {
+    value: wmGetTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFloatingBannerLockStatus', {
+    value: wmPrintTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK', {
+    value: Object.freeze({
+      version: LOCK_VERSION,
+      date: LOCK_DATE,
+      page: PAGE,
+      apply: wmApplyTestBoothFloatingBanner,
+      status: wmGetTestBoothFloatingBannerLockStatus,
+      log: wmPrintTestBoothFloatingBannerLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  function boot(){
+    window.wmApplyTestBoothFloatingBanner();
+    setTimeout(window.wmLogTestBoothFloatingBannerLockStatus, 0);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load', function(){
+    window.wmApplyTestBoothFloatingBanner();
+    window.wmLogTestBoothFloatingBannerLockStatus();
+  }, {once:true});
+})();
+</script>
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 END -->
+
 
 <!-- ==========================================================
      🔒 WM SPEED LOCK V1.0 - F12 INDEPENDENT BOOT LOCK
@@ -546,6 +700,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
       <span><i class="dot complete3"></i>3회 완료</span>
       <span><i class="dot leveldone"></i>레벨완료</span>
       <span class="wm-sequential-guide"><span style="color:#16a34a;font-weight:700;">레벨완료기준</span>에 따라 <span style="color:#2563eb;font-weight:700;">세트순차완주</span> 방식으로 학습이 진행됩니다.</span>
+      <button id="wm-report-view-button" class="wm-report-view-button" type="button">성적표 보기</button>
     </div>
 
     <div id="setMap" class="set-map"></div>
@@ -554,9 +709,716 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
 
   <!-- 3. 하단 학습기록_DB 구조 -->
+<style id="wm-map-report-modal-style">
+.wm-map-report-modal{position:fixed;left:0;right:0;top:0;bottom:0;z-index:120000;display:none;align-items:flex-start;justify-content:center;padding:18px;background:rgba(15,23,42,.72);overflow:hidden;box-sizing:border-box}
+body.wm-test-booth-active .wm-map-report-modal{top:var(--wm-test-booth-height);padding-top:12px}
+.wm-map-report-modal.active{display:flex}
+.wm-map-report-card{width:min(1120px,96vw);height:100%;max-height:100%;display:flex;flex-direction:column;background:#fff;border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden}
+.wm-map-report-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #d8e1ee;padding:12px 16px}
+.wm-map-report-title{font-size:16px;font-weight:950;color:#173b75;white-space:nowrap}
+.wm-map-report-select{min-width:220px;height:40px;border:1px solid #8fb3e8;border-radius:10px;padding:0 12px;background:#fff;color:#173b75;font-weight:800}
+.wm-map-report-close{margin-left:auto;border:0;border-radius:10px;background:#173b75;color:#fff;padding:10px 16px;font-weight:900;cursor:pointer}
+.wm-map-report-body{padding:18px;background:#eaf0f8;display:flex;justify-content:center;min-height:0;flex:1 1 auto;overflow:auto}
+.wm-map-report-message{margin:auto;padding:36px 24px;color:#334155;font-size:18px;font-weight:900;text-align:center}
+body.wm-map-report-open{overflow:hidden}
+@media(max-width:768px){.wm-map-report-modal{padding:6px}.wm-map-report-head{flex-wrap:wrap}.wm-map-report-select{order:3;width:100%}.wm-map-report-body{padding:6px;justify-content:flex-start}}
+</style>
+<div id="wmMapReportModal" class="wm-map-report-modal" role="dialog" aria-modal="true" aria-label="최근성적표보기">
+  <div class="wm-map-report-card">
+    <div class="wm-map-report-head">
+      <div class="wm-map-report-title">최근성적표보기</div>
+      <select id="wmMapReportPeriodSelect" class="wm-map-report-select" aria-label="성적표 기간 선택"></select>
+      <button id="wmMapReportClose" class="wm-map-report-close" type="button">닫기</button>
+    </div>
+    <div id="wmMapReportBody" class="wm-map-report-body"></div>
+  </div>
+</div>
+<template id="wmReportTemplate">
+<style>
+  .wmr-sheet{
+    --wmr-blue:#073b8f; --wmr-blue2:#0d55c8; --wmr-gold:#f5a900;
+    --wmr-line:#bad0ef; --wmr-soft:#f5f9ff; --wmr-text:#10213b;
+    width:210mm; min-height:297mm; max-width:100%; margin:18px auto;
+    padding:8mm 7mm 7mm; position:relative; overflow:hidden;
+    background:#fff; color:var(--wmr-text);
+    border:2px solid var(--wmr-blue); border-radius:18px;
+    box-shadow:0 12px 34px rgba(15,44,88,.14);
+    font-family:"Pretendard","Noto Sans KR",Arial,sans-serif;
+  }
+  .wmr-sheet:before,.wmr-sheet:after{
+    content:""; position:absolute; width:38px; height:38px; top:-2px;
+    border-top:2px solid var(--wmr-gold);
+  }
+  .wmr-sheet:before{left:-2px;border-left:2px solid var(--wmr-gold);border-radius:18px 0 0 0}
+  .wmr-sheet:after{right:-2px;border-right:2px solid var(--wmr-gold);border-radius:0 18px 0 0}
+  /* WM_REPORT_TOP_PART_1_2_SAMPLE_MATCH_V2 */
+  .wmr-head{position:relative;display:flex;align-items:center;justify-content:center;padding:1px 11px 10px;min-height:92px}
+  .wmr-brand{position:absolute;left:50%;transform:translateX(-50%);display:block;white-space:nowrap;min-width:0}
+  .wmr-brand-motion{position:absolute;right:calc(100% + 10px);top:50%;font-size:35px;line-height:.98;color:#e43c31;font-weight:950;font-style:italic;letter-spacing:-2.4px;transform:translateY(-50%) rotate(-5deg);padding:2px 0 0 9px;text-shadow:0 1px 0 rgba(255,255,255,.65)}
+  .wmr-brand-motion:before{content:"";position:absolute;left:-2px;top:-12px;width:28px;height:21px;background:linear-gradient(72deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 0 0/9px 18px no-repeat,linear-gradient(98deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 10px 0/9px 15px no-repeat,linear-gradient(118deg,transparent 46%,#073b8f 47% 53%,transparent 54%) 20px 6px/8px 12px no-repeat;transform:rotate(-9deg)}
+  .wmr-brand-motion:after{content:"";position:absolute;left:17px;right:1px;bottom:-8px;height:2px;background:#e43c31;border-radius:999px;transform:rotate(-6deg);box-shadow:25px 4px 0 -0.4px #e43c31}
+  .wmr-brand-lockup{display:flex;flex-direction:column;align-items:center;line-height:1;min-width:0}
+  .wmr-brand-static{font:800 44px/.96 Georgia,"Times New Roman",serif;color:#0b3272;letter-spacing:-1.9px}
+  .wmr-brand-ribbon{position:relative;margin-top:7px;background:#073b8f;color:#fff;font:700 15px/1.1 Georgia,"Times New Roman",serif;padding:4px 28px 5px;min-width:184px;text-align:center;box-shadow:inset 0 -1px 0 rgba(255,255,255,.18)}
+  .wmr-brand-ribbon:before,.wmr-brand-ribbon:after{content:"";position:absolute;top:0;width:20px;height:100%;background:#073b8f}
+  .wmr-brand-ribbon:before{left:-15px;clip-path:polygon(0 0,100% 0,72% 50%,100% 100%,0 100%,28% 50%)}
+  .wmr-brand-ribbon:after{right:-15px;clip-path:polygon(0 0,100% 0,72% 50%,100% 100%,0 100%,28% 50%);transform:scaleX(-1)}
+  .wmr-month{position:absolute;right:11px;top:auto;bottom:10px;transform:none;width:88px;background:linear-gradient(180deg,#0f4db2 0%,#052f78 100%);color:#fff;border-radius:13px;text-align:center;padding:7px 5px 6px;box-shadow:0 5px 13px rgba(5,47,120,.22);border:1px solid rgba(0,38,105,.22)}
+  .wmr-month small{display:block;font-size:11px;font-weight:850;line-height:1.15}.wmr-month strong{display:block;font-size:33px;line-height:1;letter-spacing:-1.7px;margin:2px 0}.wmr-month span{display:block;font-size:11px;font-weight:850;line-height:1.15}
+  .wmr-head-note{align-self:center}.wmr-head-note h2{margin:0 0 7px;font-size:17px;color:#0b3272;white-space:nowrap;letter-spacing:-.4px}.wmr-head-note p{margin:0;font-size:10.5px;line-height:1.55;color:#24364f}
+  .wmr-info{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--wmr-line);border-radius:12px;overflow:hidden;margin:0 10px 10px;background:#fff;min-height:61px}
+  .wmr-info-item{display:grid;grid-template-columns:31px 1fr;align-items:center;gap:6px;padding:8px 7px;border-right:1px solid var(--wmr-line);text-align:left;min-width:0}.wmr-info-item:last-child{border-right:0}
+  .wmr-info-icon{width:27px;height:27px;display:grid;place-items:center;color:#0d55c8}
+  .wmr-info-icon svg{display:block;width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .wmr-info-copy{min-width:0}.wmr-info-copy span{display:block;font-size:9.5px;color:#5c6d85;font-weight:850;line-height:1.1}.wmr-info-copy strong{display:block;margin-top:4px;font-size:13.5px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#16243b}
+  .wmr-section-title{display:flex;align-items:center;gap:8px;margin:9px 0 7px;font-size:17px;font-weight:950;color:#073b8f}
+  .wmr-section-title:before,.wmr-section-title:after{content:"";height:1px;background:#a9c6eb;flex:1}.wmr-section-title:before{max-width:none}
+  .wmr-kpis{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--wmr-line);border-radius:14px;overflow:hidden;background:#fff}
+  .wmr-kpi{min-height:88px;padding:9px 6px 7px;text-align:center;border-right:1px solid var(--wmr-line)}.wmr-kpi:last-child{border-right:0}
+  .wmr-kpi-label{font-size:11px;font-weight:900;line-height:1.2}.wmr-kpi-main{display:flex;justify-content:center;align-items:baseline;gap:4px;margin-top:6px;white-space:nowrap}
+  .wmr-kpi-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;align-self:center}.wmr-kpi-icon svg{width:24px;height:24px;display:block;overflow:visible}.wmr-kpi-icon.book{color:#0750b8}.wmr-kpi-icon.word{color:#fff;background:#4aa43f;border-radius:3px;transform:rotate(-6deg);box-shadow:0 1px 2px rgba(15,23,42,.16)}.wmr-kpi-icon.word svg{width:17px;height:17px}.wmr-kpi-icon.score{color:#e43c31}.wmr-kpi-icon.time{color:#6a55b5}.wmr-kpi-icon.days{color:#f47b18}
+  .wmr-kpi-value{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-unit{font-size:8px;line-height:1;font-weight:900;margin-left:-1px}.wmr-kpi-time{display:inline-flex;align-items:baseline;gap:1px;white-space:nowrap}.wmr-kpi-time-number{font-size:19px;line-height:1;font-weight:950;letter-spacing:-.35px}.wmr-kpi-time-unit{font-size:7px;line-height:1;font-weight:900;margin-right:2px}.wmr-kpi-sub{margin-top:6px;font-size:9px;color:#5c6d85;font-weight:700;white-space:nowrap}
+  .wmr-visuals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;margin-top:10px;border:1px solid var(--wmr-line);border-radius:14px;padding:10px 10px 9px;min-height:180px}
+  .wmr-visuals>div{min-width:0;padding:0 16px 0 0}
+  .wmr-visuals>div+div{border-left:1px solid #b8cbea;padding:0 0 0 16px}
+  .wmr-box-title{font-size:16px;font-weight:950;color:#073b8f;margin-bottom:3px}
+  .wmr-box-title small{font-size:10px;color:#334155;font-weight:800}
+  .wmr-chart{height:142px;position:relative}.wmr-chart svg{width:100%;height:100%;display:block}
+  .wmr-level{display:grid;grid-template-columns:138px minmax(0,1fr);align-items:center;gap:13px;min-height:142px}
+  .wmr-donut{position:relative;width:126px;height:126px;border-radius:50%;margin:auto;display:grid;place-items:center;background:conic-gradient(#0d55c8 var(--wmr-progress),#dbe7f7 0)}
+  .wmr-donut:before{content:"";width:100px;height:100px;border-radius:50%;background:#fff;position:absolute}
+  .wmr-donut-text{position:relative;text-align:center;font-weight:900;color:#0b3272;line-height:1.15}.wmr-donut-text span{font-size:14px}.wmr-donut-text b{display:block;font-size:31px;margin-top:3px}
+  .wmr-mini-table{width:100%;border-collapse:collapse;min-width:0;table-layout:fixed}.wmr-mini-table td{font-size:11px;padding:6px 9px;border:1px solid var(--wmr-line);white-space:nowrap}
+  .wmr-mini-table td:first-child{width:58%;background:#f8fbff}.wmr-mini-table td:last-child{text-align:center;font-weight:850}
+  .wmr-mini-table tr:last-child td{font-weight:950;color:#073b8f;background:#e8f1ff}
+  .wmr-week-summary{width:100%;border-collapse:collapse;min-width:0;border-radius:12px;overflow:hidden}
+  .wmr-week-summary th{background:#073b8f;color:#fff;text-align:center;font-size:11px;line-height:1.1;padding:4px 6px;border:1px solid #3f6eaf}
+  .wmr-week-summary td{text-align:center;font-size:11px;line-height:1.1;padding:3px 5px;border:1px solid var(--wmr-line)}
+  .wmr-week-summary tbody tr:last-child td{background:#dceaff;font-weight:950;color:#073b8f}
+  .wmr-detail{width:100%;border-collapse:collapse;min-width:0;table-layout:fixed}
+  .wmr-detail th{background:#073b8f;color:#fff;text-align:center;font-size:9px;line-height:1.15;padding:3px 2px;border:1px solid #4b74ab;white-space:nowrap}
+  .wmr-detail td{text-align:center;font-size:9px;line-height:1.15;padding:2px 2px;height:18px;border:1px solid var(--wmr-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wmr-detail tbody tr:last-child td{border-bottom:1px solid var(--wmr-line)}
+  .wmr-detail th:nth-child(1),.wmr-detail td:nth-child(1){width:7%}
+  .wmr-detail th:nth-child(2),.wmr-detail td:nth-child(2){width:9%}
+  .wmr-detail th:nth-child(3),.wmr-detail td:nth-child(3){width:11%}
+  .wmr-detail th:nth-child(4),.wmr-detail td:nth-child(4){width:9%}
+  .wmr-detail th:nth-child(5),.wmr-detail td:nth-child(5){width:11%}
+  .wmr-detail th:nth-child(6),.wmr-detail td:nth-child(6){width:12%}
+  .wmr-detail th:nth-child(7),.wmr-detail td:nth-child(7){width:7%}
+  .wmr-detail th:nth-child(8),.wmr-detail td:nth-child(8){width:7%}
+  .wmr-detail th:nth-child(9),.wmr-detail td:nth-child(9){width:12%}
+  .wmr-detail th:nth-child(10),.wmr-detail td:nth-child(10){width:10%}
+  /* WM_REPORT_GRADE_SUMMARY_COMMENT_LAYOUT_V1: 성적 결산표 + 자동코멘트 구도 */
+  .wmr-comments{display:grid;grid-template-columns:minmax(0,28%) minmax(0,72%);gap:10px;margin-top:10px}
+  .wmr-grade-summary{border:1px solid #e43c31;border-radius:14px;overflow:hidden;min-height:105px;background:#fff}
+  .wmr-grade-summary-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;min-height:26px;border-bottom:1px solid #f2aaa5;font-size:11px;line-height:1.2}
+  .wmr-grade-summary-row:last-child{border-bottom:0}
+  .wmr-grade-summary-label{height:100%;display:flex;align-items:center;justify-content:center;padding:6px 9px;font-weight:800;color:#173b75;background:#fff7f6;text-align:center}
+  .wmr-grade-summary-value{height:100%;display:flex;align-items:center;justify-content:center;padding:6px 5px;border-left:1px solid #f2aaa5;font-weight:950;color:#073b8f;background:#fff;white-space:nowrap;text-align:center}
+  .wmr-grade-summary-row.total .wmr-grade-summary-label,.wmr-grade-summary-row.total .wmr-grade-summary-value{background:#e43c31;color:#fff;border-color:#f28f88}
+  .wmr-auto-comment{border:1px solid #f5c168;border-radius:14px;padding:7px 12px;min-height:105px;background:#fffaf0;overflow:hidden}
+  .wmr-auto-comment h3{margin:0 0 3px;font-size:15px;line-height:1.1;color:#ef8b00;text-align:center}
+  .wmr-auto-comment p{margin:0;font-size:11px;line-height:1.25;letter-spacing:-.35px;color:#173b75;text-align:left;white-space:normal;overflow:hidden;max-height:69px;word-break:keep-all;overflow-wrap:normal}
+  .wmr-auto-comment-line{display:block;white-space:nowrap;overflow:hidden;text-overflow:clip;color:#173b75;font-weight:400;text-align:left}
+  .wmr-auto-comment-emphasis{color:#173b75;font-weight:400}
+  .wmr-auto-comment-key{color:#173b75;font-weight:950}
+  .wmr-auto-comment-score-sub{font-size:9px;font-weight:400}
+  .wmr-legacy-comment-bind{display:none !important}
+  .wmr-footer{position:relative;margin:10px -7mm -7mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);color:#fff;display:flex;align-items:center;justify-content:space-between;min-height:55px;padding:6px 18px}.wmr-footer:after{content:"";position:absolute;left:0;right:0;top:100%;height:30mm;background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b);pointer-events:none}
+  .wmr-footer-brand{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;font-weight:900;line-height:1.05;white-space:nowrap;text-align:center}.wmr-footer-brand small{display:block;width:100%;margin-top:2px;font-size:7px;font-weight:700;letter-spacing:.01em;text-transform:none;text-align:center}
+  .wmr-footer-copy{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;text-align:center;font:italic 18px Georgia,serif;letter-spacing:.08em}
+  .wmr-footer-logo{width:32px;height:32px;display:flex;align-items:center;justify-content:center;overflow:visible}
+  .wmr-footer-logo img{display:block;width:32px;height:32px;max-width:32px;max-height:32px;object-fit:contain}
+  .wmr-footer-logo-fallback{display:none}
+  /* ==========================================================================================
+     WM_REPORT_TEMPLATE_LOCK_V3 — 실제 디자인 고정 완료
+     현재 정상 화면의 실측 CSS 값을 1~7번 영역에 그대로 고정한다.
+     이후 데이터 바인딩은 텍스트·숫자·표 셀 값·그래프 값만 변경할 수 있다.
+  ========================================================================================== */
+
+  /* 0. A4 전체 틀: 현재 정상 크기와 여백 유지 */
+  .wmr-sheet[data-wmr-template-lock="V1"]{
+    width:210mm !important;
+    min-width:210mm !important;
+    max-width:210mm !important;
+    min-height:297mm !important;
+    margin:18px auto !important;
+    padding:8mm 7mm 7mm !important;
+    position:relative !important;
+    overflow:hidden !important;
+    border:2px solid var(--wmr-blue) !important;
+    border-radius:18px !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 1. Header */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="1"]{
+    position:relative !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    min-height:92px !important;
+    height:92px !important;
+    max-height:92px !important;
+    padding:1px 11px 10px !important;
+    flex:0 0 92px !important;
+    overflow:visible !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 2. Student Info */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="2"]{
+    display:grid !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    grid-template-rows:61px !important;
+    min-height:61px !important;
+    height:61px !important;
+    max-height:61px !important;
+    margin:0 10px 10px !important;
+    border:1px solid var(--wmr-line) !important;
+    border-radius:12px !important;
+    overflow:hidden !important;
+    flex:0 0 61px !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="2"] .wmr-info-item{
+    grid-template-columns:31px minmax(0,1fr) !important;
+    padding:8px 7px !important;
+    gap:6px !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="2"] .wmr-info-icon{
+    width:27px !important;
+    height:27px !important;
+    min-width:27px !important;
+    max-width:27px !important;
+  }
+
+  /* 3. Monthly Summary */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="3"]{
+    display:grid !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    grid-template-rows:88px !important;
+    min-height:88px !important;
+    height:88px !important;
+    max-height:88px !important;
+    border:1px solid var(--wmr-line) !important;
+    border-radius:14px !important;
+    overflow:hidden !important;
+    flex:0 0 88px !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="3"] .wmr-kpi{
+    min-height:88px !important;
+    height:88px !important;
+    max-height:88px !important;
+    padding:9px 6px 7px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="3"] .wmr-kpi-icon{
+    width:24px !important;
+    height:24px !important;
+    flex:0 0 24px !important;
+  }
+
+  /* 4. Charts & Progress */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="4"]{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+    grid-template-rows:180px !important;
+    gap:0 !important;
+    min-height:180px !important;
+    height:180px !important;
+    max-height:180px !important;
+    margin-top:10px !important;
+    padding:10px 10px 9px !important;
+    border:1px solid var(--wmr-line) !important;
+    border-radius:14px !important;
+    overflow:hidden !important;
+    flex:0 0 180px !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="4"] .wmr-chart{
+    height:142px !important;
+    min-height:142px !important;
+    max-height:142px !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="4"] .wmr-level{
+    grid-template-columns:138px minmax(0,1fr) !important;
+    min-height:142px !important;
+    height:142px !important;
+    max-height:142px !important;
+    gap:13px !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="4"] .wmr-donut{
+    width:126px !important;
+    height:126px !important;
+    min-width:126px !important;
+    max-width:126px !important;
+    flex:0 0 126px !important;
+  }
+
+  /* 5. Weekly Table */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="5"]{
+    width:100% !important;
+    min-width:0 !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="5"] th{
+    height:23px !important;
+    max-height:23px !important;
+    padding:4px 6px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="5"] td{
+    height:20px !important;
+    max-height:20px !important;
+    padding:3px 5px !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 6. Detail Table */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="6"]{
+    width:100% !important;
+    min-width:0 !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="6"] th{
+    height:21px !important;
+    max-height:21px !important;
+    padding:3px 2px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="6"] td{
+    height:18px !important;
+    min-height:18px !important;
+    max-height:18px !important;
+    padding:2px !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 7. 성적 결산표 + 자동코멘트 */
+  .wmr-auto-comment-created{margin-top:3px;text-align:right;font-size:9px;line-height:1.2;color:#64748b;font-weight:600;}
+
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"].wmr-comments{
+    display:grid !important;
+    grid-template-columns:minmax(0,28%) minmax(0,72%) !important;
+    grid-template-rows:105px !important;
+    gap:10px !important;
+    min-height:105px !important;
+    height:105px !important;
+    max-height:105px !important;
+    margin-top:10px !important;
+    overflow:hidden !important;
+    flex:0 0 105px !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"] .wmr-grade-summary,
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"] .wmr-auto-comment{
+    min-height:105px !important;
+    height:105px !important;
+    max-height:105px !important;
+    overflow:hidden !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 7. Footer: 현재 정상 하단 마감 포함 */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"].wmr-footer{
+    position:relative !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    min-height:55px !important;
+    height:55px !important;
+    max-height:55px !important;
+    margin:10px -7mm -7mm !important;
+    padding:6px 18px !important;
+    overflow:visible !important;
+    flex:0 0 55px !important;
+    box-sizing:border-box !important;
+  }
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"].wmr-footer:after{
+    content:"" !important;
+    position:absolute !important;
+    left:0 !important;
+    right:0 !important;
+    top:100% !important;
+    height:30mm !important;
+    background:linear-gradient(90deg,#052d6b,#0750b8,#052d6b) !important;
+    pointer-events:none !important;
+  }
+
+  /* 데이터가 길어져도 디자인 크기 변경 금지 */
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-data-scope] strong,
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-data-scope] td,
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-data-scope] .wmr-kpi-main,
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-data-scope] .wmr-kpi-sub,
+  .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-data-scope] p{
+    min-width:0 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  /* ==========================================================================================
+     WM_REPORT_TEMPLATE_LOCK_V4 — 내부 세부 디자인 실제 고정 마무리
+     Header 내부 / 제목 / 미니표 / 표 열너비 / 코멘트 / Footer 내부까지 현재 정상값으로 고정.
+  ========================================================================================== */
+
+  .wmr-sheet[data-wm-template="fixed"] [data-wm-lock="design"]{
+    box-sizing:border-box !important;
+  }
+
+  /* 1. Header 내부 요소 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-brand{
+    position:absolute !important;
+    left:50% !important;
+    top:50% !important;
+    transform:translate(-50%,-50%) !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    white-space:nowrap !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-brand-motion{
+    right:calc(100% + 10px) !important;
+    top:50% !important;
+    font-size:35px !important;
+    line-height:.98 !important;
+    letter-spacing:-2.4px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-brand-static{
+    font-size:44px !important;
+    line-height:.96 !important;
+    letter-spacing:-1.9px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-brand-ribbon{
+    min-width:184px !important;
+    height:26px !important;
+    margin-top:7px !important;
+    padding:4px 28px 5px !important;
+    font-size:15px !important;
+    line-height:1.1 !important;
+    overflow:visible !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-month{
+    right:11px !important;
+    bottom:10px !important;
+    width:88px !important;
+    min-width:88px !important;
+    max-width:88px !important;
+    height:73px !important;
+    min-height:73px !important;
+    max-height:73px !important;
+    padding:7px 5px 6px !important;
+    overflow:hidden !important;
+  }
+
+  /* 공통 구역 제목 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-section-title{
+    height:27px !important;
+    min-height:27px !important;
+    max-height:27px !important;
+    margin:9px 0 7px !important;
+    gap:8px !important;
+    font-size:17px !important;
+    line-height:1 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-monthly-condition{
+    font-size:70% !important;
+    font-weight:800 !important;
+    line-height:1 !important;
+    color:#334155 !important;
+    white-space:nowrap !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-monthly-condition-number{
+    color:#dc2626 !important;
+  }
+
+  /* 3. KPI 내부 글자와 간격 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-kpi-label{
+    height:14px !important;
+    font-size:11px !important;
+    line-height:1.2 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-kpi-main{
+    height:25px !important;
+    margin-top:6px !important;
+    gap:4px !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-kpi-sub{
+    height:11px !important;
+    margin-top:6px !important;
+    font-size:9px !important;
+    line-height:1 !important;
+    overflow:hidden !important;
+  }
+
+  /* 4. 그래프 내부 SVG / 제목 / 진행현황 미니표 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-box-title{
+    height:20px !important;
+    min-height:20px !important;
+    max-height:20px !important;
+    margin-bottom:3px !important;
+    font-size:16px !important;
+    line-height:1.1 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-chart svg{
+    width:100% !important;
+    height:142px !important;
+    max-height:142px !important;
+    display:block !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-donut:before{
+    width:100px !important;
+    height:100px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-donut-text span{
+    font-size:14px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-donut-text b{
+    font-size:31px !important;
+    margin-top:3px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-mini-table{
+    width:100% !important;
+    table-layout:fixed !important;
+    border-collapse:collapse !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-mini-table tr{
+    height:29px !important;
+    min-height:29px !important;
+    max-height:29px !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-mini-table td{
+    height:29px !important;
+    min-height:29px !important;
+    max-height:29px !important;
+    padding:6px 9px !important;
+    font-size:11px !important;
+    line-height:1 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-mini-table td:first-child{
+    width:50% !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-mini-table td:last-child{
+    width:50% !important;
+  }
+
+  /* 5. 주차표 열너비 */
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(1),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(1){width:10% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(2),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(2){width:18% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(3),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(3){width:14% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(4),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(4){width:13% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(5),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(5){width:14% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(6),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(6){width:17% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] th:nth-child(7),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="5"] td:nth-child(7){width:14% !important}
+
+  /* 6. 상세표 기존 열너비를 강제 고정 */
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(1),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(1){width:7% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(2),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(2){width:9% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(3),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(3){width:11% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(4),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(4){width:9% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(5),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(5){width:11% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(6),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(6){width:12% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(7),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(7){width:7% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(8),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(8){width:7% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(9),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(9){width:12% !important}
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] th:nth-child(10),
+  .wmr-sheet[data-wm-template="fixed"] [data-wmr-section="6"] td:nth-child(10){width:10% !important}
+
+  /* 7. 코멘트 내부 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-comment h3{
+    height:19px !important;
+    margin:0 0 5px !important;
+    font-size:16px !important;
+    line-height:1.1 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-comment p,
+  .wmr-sheet[data-wm-template="fixed"] .wmr-auto-comment p{
+    height:69px !important;
+    min-height:69px !important;
+    max-height:69px !important;
+    font-size:11px !important;
+    line-height:1.25 !important;
+    -webkit-line-clamp:5 !important;
+    line-clamp:5 !important;
+    overflow:hidden !important;
+  }
+
+  /* Footer 내부 3요소 */
+  .wmr-sheet[data-wm-template="fixed"] .wmr-footer-brand{
+    width:110px !important;
+    min-width:110px !important;
+    max-width:110px !important;
+    font-size:14px !important;
+    line-height:1.05 !important;
+    overflow:hidden !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-footer-copy{
+    left:50% !important;
+    top:50% !important;
+    transform:translate(-50%,-50%) !important;
+    width:280px !important;
+    min-width:280px !important;
+    max-width:280px !important;
+    font-size:18px !important;
+    line-height:1 !important;
+    overflow:hidden !important;
+    white-space:nowrap !important;
+    color:#fff !important;
+    z-index:1 !important;
+  }
+  .wmr-sheet[data-wm-template="fixed"] .wmr-footer-logo,
+  .wmr-sheet[data-wm-template="fixed"] .wmr-footer-logo img{
+    width:32px !important;
+    min-width:32px !important;
+    max-width:32px !important;
+    height:32px !important;
+    min-height:32px !important;
+    max-height:32px !important;
+  }
+
+  @media print{
+    @page{size:A4 portrait;margin:0}
+    body{background:#fff!important}
+    .wmr-sheet{width:210mm;height:297mm;margin:0;border-radius:0;box-shadow:none;page-break-after:avoid}
+  }
+  @media(max-width:900px){
+    .wmr-sheet{width:100%;min-height:auto;padding:16px}
+    .wmr-head{grid-template-columns:1fr}.wmr-brand{justify-content:center}.wmr-month,.wmr-head-note{text-align:center}
+    .wmr-info{grid-template-columns:repeat(2,1fr)}.wmr-kpis{grid-template-columns:repeat(2,1fr)}
+    .wmr-visuals,.wmr-comments{grid-template-columns:1fr}.wmr-level{grid-template-columns:1fr}
+    .wmr-footer{margin:10px -16px -16px;grid-template-columns:1fr;text-align:center;gap:5px}.wmr-footer-stars{text-align:center}
+  }
+</style>
+<!-- WM_REPORT_TEMPLATE_LOCK_V1
+1~7번 성적표 디자인 기준본.
+HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구조 변경 금지.
+이후 작업은 데이터 값 연결만 허용.
+-->
+<!--
+  WM_REPORT_TEMPLATE_LOCK_V2 적용 완료
+  1 Header / 2 Student Info / 3 Monthly Summary / 4 Charts
+  5 Weekly Table / 6 Detail Table / 7 Comments & Footer
+  각 영역에는 data-wmr-section, data-wmr-design-fixed, data-wmr-data-scope가 부여되어 있다.
+  이후 데이터 바인딩은 기존 data-wmr-* 값 요소만 변경한다.
+-->
+<!--
+  WM_REPORT_TEMPLATE_LOCK_V4 실제 고정 마무리 완료
+  data-wm-template="fixed" : 전체 고정 템플릿
+  data-wm-lock="design"    : 1~7번 디자인 고정 영역
+  data-wm-bind="..."       : 이후 실제 데이터만 교체되는 값
+-->
+<article class="wmr-sheet" data-wmr-template-lock="V1" data-wm-template="fixed" aria-label="Word Mate Monthly Report 고정 디자인 템플릿">
+  <header class="wmr-head" data-wmr-section="1" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="report-period">
+    <div class="wmr-brand"><span class="wmr-brand-motion">영어잡는</span><span class="wmr-brand-lockup"><span class="wmr-brand-static">Word Mate</span><span class="wmr-brand-ribbon">Monthly Report</span></span></div>
+    <div class="wmr-month"><small data-wmr-year data-wm-bind="reportYear">2026년</small><strong data-wmr-month data-wm-bind="reportMonth">6월</strong><span data-wmr-week data-wm-bind="reportWeek">3주차</span></div>
+
+  </header>
+  <section class="wmr-info" data-wmr-section="2" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="student-info">
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 27V12h7v15M21 27V8h7v19M2 27h28M7 16h1M7 20h1M7 24h1M24 12h1M24 16h1M24 20h1M14 27V4h5v23M16.5 8v3M16.5 15v3M16.5 22v3"/></svg></span><span class="wmr-info-copy"><span>학교</span><strong data-wmr-school data-wm-bind="school">해나초등학교</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 11 16 4l13 7-13 7L3 11Z M8 14v8c5 4 11 4 16 0v-8M28 12v9M28 21l-2 4h4l-2-4Z"/></svg></span><span class="wmr-info-copy"><span>학년</span><strong data-wmr-grade data-wm-bind="grade">3학년</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="9" r="5"/><path d="M5 28c1-8 5-12 11-12s10 4 11 12"/></svg></span><span class="wmr-info-copy"><span>이름</span><strong data-wmr-name data-wm-bind="studentName">김해나</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="m12 3 4 4 4-4 4 7-4 4H12L8 10l4-7Z"/><circle cx="16" cy="20" r="8"/><path d="m16 15 1.6 3.2 3.5.5-2.5 2.5.6 3.5-3.2-1.7-3.2 1.7.6-3.5-2.5-2.5 3.5-.5L16 15Z"/></svg></span><span class="wmr-info-copy"><span>학생 ID</span><strong data-wmr-student-id data-wm-bind="studentId">S4821</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="8" r="4.5"/><path d="M7 27c1-7 4-11 9-11s8 4 9 11M9 27h14M12 20h8"/></svg></span><span class="wmr-info-copy"><span>Class</span><strong data-wmr-class data-wm-bind="className">해나반</strong></span></div>
+    <div class="wmr-info-item"><span class="wmr-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="7" y="3" width="18" height="26" rx="1.5"/><path d="M11 8h10M11 12h10M11 18h3M17 18h4M11 22h3M17 22h4"/></svg></span><span class="wmr-info-copy"><span>학습레벨</span><strong data-wmr-level data-wm-bind="learningLevel">Level 3</strong></span></div>
+  </section>
+  <div class="wmr-section-title">✦ 월 누적 학습 결과 ✦ <small class="wmr-monthly-condition" data-wmr-monthly-condition data-wm-bind="monthlyCondition">(레벨완료조건 <span class="wmr-monthly-condition-number">2</span>회 중 <span class="wmr-monthly-condition-number">2</span>회차 진행중)</small></div>
+  <section class="wmr-kpis" data-wmr-section="3" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="monthly-summary">
+    <div class="wmr-kpi"><div class="wmr-kpi-label">완료 세트 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon book" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 7.5c4-1.3 7.2-.7 11 1.7v17c-3.8-2.4-7-3-11-1.7z" fill="currentColor" opacity=".22"/><path d="M27 7.5c-4-1.3-7.2-.7-11 1.7v17c3.8-2.4 7-3 11-1.7z" fill="currentColor" opacity=".12"/><path d="M5 7.5c4-1.3 7.2-.7 11 1.7v17c-3.8-2.4-7-3-11-1.7zM27 7.5c-4-1.3-7.2-.7-11 1.7v17c3.8-2.4 7-3 11-1.7zM16 9.2v17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span class="wmr-kpi-value" data-wmr-completed data-wm-bind="completedSets">8</span><span class="wmr-kpi-unit">세트</span></div><div class="wmr-kpi-sub" data-wmr-kpi-completed-sub data-wm-bind="completedSetsSub">2회차 기준</div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">총 단어 수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon word" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 4 27 27h-5.3l-2.4-5.7h-7L9.8 27H5zm-2 13.2h3.7L15.9 12z" fill="currentColor"/></svg></span><span class="wmr-kpi-value" data-wmr-words data-wm-bind="totalWords">80</span><span class="wmr-kpi-unit">단어</span></div><div class="wmr-kpi-sub" data-wmr-kpi-words-sub data-wm-bind="totalWordsSub">2회차 기준</div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">평균 점수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon score" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="15" cy="17" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="17" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="17" r="2.3" fill="currentColor"/><path d="m18 14 8-8m-3 0h3v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="wmr-kpi-value" data-wmr-average data-wm-bind="averageScore">92.5</span><span class="wmr-kpi-unit">점</span></div><div class="wmr-kpi-sub" data-wmr-kpi-average-sub data-wm-bind="averageScoreSub">2회차 기준</div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">총 소요 시간</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon time" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="17" r="11" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10v7l5 3M12 4h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="wmr-kpi-time" data-wmr-time data-wm-bind="totalTime"><span class="wmr-kpi-time-number">3</span><span class="wmr-kpi-time-unit">시간</span><span class="wmr-kpi-time-number">27</span><span class="wmr-kpi-time-unit">분</span></span></div><div class="wmr-kpi-sub" data-wmr-kpi-time-sub data-wm-bind="totalTimeSub">2회차 기준</div></div>
+    <div class="wmr-kpi"><div class="wmr-kpi-label">출석 일수</div><div class="wmr-kpi-main"><span class="wmr-kpi-icon days" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="5" y="7" width="22" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 12h22M11 4v6M21 4v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 16h3v3h-3zm5 0h3v3h-3zm5 0h3v3h-3zm-10 5h3v3h-3zm5 0h3v3h-3z" fill="currentColor"/></svg></span><span class="wmr-kpi-value" data-wmr-days data-wm-bind="attendanceDays">10</span><span class="wmr-kpi-unit">일</span></div><div class="wmr-kpi-sub" data-wmr-kpi-days-sub data-wm-bind="attendanceDaysSub">2회차 기준</div></div>
+  </section>
+  <section class="wmr-visuals" data-wmr-section="4" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="charts-progress">
+    <div><div class="wmr-box-title">점수 추이 <small>(평균 점수)</small></div><div class="wmr-chart" data-wmr-score-chart data-wm-bind="scoreTrend"><svg viewBox="0 0 390 145" aria-label="주차별 평균점수 추이"><g stroke="#d9e4f3" stroke-width="1"><line x1="42" y1="118" x2="374" y2="118"/><text x="32" y="121" text-anchor="end" font-size="9" fill="#334155">0</text><line x1="42" y1="98" x2="374" y2="98"/><text x="32" y="101" text-anchor="end" font-size="9" fill="#334155">20</text><line x1="42" y1="78" x2="374" y2="78"/><text x="32" y="81" text-anchor="end" font-size="9" fill="#334155">40</text><line x1="42" y1="58" x2="374" y2="58"/><text x="32" y="61" text-anchor="end" font-size="9" fill="#334155">60</text><line x1="42" y1="38" x2="374" y2="38"/><text x="32" y="41" text-anchor="end" font-size="9" fill="#334155">80</text><line x1="42" y1="18" x2="374" y2="18"/><text x="32" y="21" text-anchor="end" font-size="9" fill="#334155">100</text></g><line x1="42" y1="18" x2="42" y2="118" stroke="#64748b" stroke-width="1"/><line x1="42" y1="118" x2="374" y2="118" stroke="#64748b" stroke-width="1"/><polyline fill="none" stroke="#0d55c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="62,40 138,33 214,28 290,25 366,23"/><circle cx="62" cy="40" r="4" fill="#0d55c8"/><text x="62" y="32" text-anchor="middle" font-size="10" fill="#111827">78</text><circle cx="138" cy="33" r="4" fill="#0d55c8"/><text x="138" y="25" text-anchor="middle" font-size="10" fill="#111827">85</text><circle cx="214" cy="28" r="4" fill="#0d55c8"/><text x="214" y="20" text-anchor="middle" font-size="10" fill="#111827">90</text><circle cx="290" cy="25" r="4" fill="#0d55c8"/><text x="290" y="17" text-anchor="middle" font-size="10" fill="#111827">93</text><circle cx="366" cy="23" r="4" fill="#0d55c8"/><text x="366" y="15" text-anchor="middle" font-size="10" fill="#111827">95</text><text x="62" y="137" text-anchor="middle" font-size="10" fill="#111827">1주차</text><text x="138" y="137" text-anchor="middle" font-size="10" fill="#111827">2주차</text><text x="214" y="137" text-anchor="middle" font-size="10" fill="#111827">3주차</text><text x="290" y="137" text-anchor="middle" font-size="10" fill="#111827">4주차</text><text x="366" y="137" text-anchor="middle" font-size="10" fill="#111827">5주차</text></svg></div></div>
+    <div><div class="wmr-box-title">레벨 진행 현황</div><div class="wmr-level"><div class="wmr-donut" data-wmr-donut data-wm-bind="levelProgress" style="--wmr-progress:66%"><div class="wmr-donut-text"><span data-wmr-donut-level data-wm-bind="levelName">Basic 5</span><b data-wmr-progress data-wm-bind="levelProgressPercent">66%</b></div></div><table class="wmr-mini-table"><tbody data-wmr-level-table data-wm-bind="levelProgressTable"><tr><td>레벨완료조건</td><td>2회</td></tr><tr><td>레벨완료횟수</td><td>1회</td></tr><tr><td>현재최종회차</td><td>2회차 진행 중</td></tr><tr><td>완료세트수</td><td>8/12</td></tr><tr><td>남은세트수</td><td>4/12</td></tr></tbody></table></div></div>
+  </section>
+  <div class="wmr-section-title" style="justify-content:flex-start">주차별 학습 현황 <small style="font-size:11px;color:#334155">(최대 5주차 누적)</small></div>
+  <table class="wmr-week-summary" data-wmr-section="5" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="weekly-summary">
+    <thead><tr><th>주차</th><th>기간</th><th>완료 세트 수</th><th>총 단어 수</th><th>평균 점수</th><th>총 소요 시간</th><th>출석 일수</th></tr></thead>
+    <tbody data-wmr-week-body data-wm-bind="weeklyRows">
+      <tr><td>1주차</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>2주차</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>3주차</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>4주차</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>5주차</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>합계</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+    </tbody>
+  </table>
+  <div class="wmr-section-title" style="justify-content:flex-start">세트별 상세 성적표</div>
+  <table class="wmr-detail" data-wmr-section="6" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="set-detail"><thead><tr><th>일련번호</th><th>리포트주차</th><th>학습날짜</th><th>학습레벨</th><th>Set_ID</th><th>세트학습시간</th><th>단어수</th><th>점수</th><th>시험소요시간</th><th>기기정보</th></tr></thead><tbody data-wmr-detail-body data-wm-bind="detailRows"><tr><td>1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>4</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>6</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>7</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>8</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>9</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>10</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody></table>
+  <section class="wmr-comments" data-wmr-section="7" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="comments">
+    <div class="wmr-grade-summary" aria-label="성적 결산표">
+      <div class="wmr-grade-summary-row"><span class="wmr-grade-summary-label">출석점수</span><strong class="wmr-grade-summary-value" data-wmr-grade-attendance>30점</strong></div>
+      <div class="wmr-grade-summary-row"><span class="wmr-grade-summary-label">학업집중도</span><strong class="wmr-grade-summary-value" data-wmr-grade-focus>28점</strong></div>
+      <div class="wmr-grade-summary-row"><span class="wmr-grade-summary-label">점수추이</span><strong class="wmr-grade-summary-value" data-wmr-grade-trend>29점</strong></div>
+      <div class="wmr-grade-summary-row total"><span class="wmr-grade-summary-label">등급</span><strong class="wmr-grade-summary-value" data-wmr-grade-final>1.1등급</strong></div>
+    </div>
+    <div class="wmr-auto-comment">
+      <h3>해나샘영어 Teacher's Comment</h3>
+      <p data-wmr-auto-comment aria-label="5줄 학습결과 코멘트">
+        <span class="wmr-auto-comment-line">이영이 학생의 2026년 7월 5주 학습결과 보고서입니다.</span>
+        <span class="wmr-auto-comment-line">이영이 학생의 학습약속은 출석 주 3회, 세트 3세트로</span>
+        <span class="wmr-auto-comment-line">학습 결과는 <strong class="wmr-auto-comment-emphasis">출석점수 4점 · 학업집중도 10점 · 점수추이 10점</strong>입니다.</span>
+        <span class="wmr-auto-comment-line">이에 따라 이번 주 성적은 <strong class="wmr-auto-comment-key">최종점수 23.1점</strong><span class="wmr-auto-comment-score-sub">(23.1/30)</span>, <strong class="wmr-auto-comment-key">등급은 1.8등급</strong>입니다.</span>
+        <span class="wmr-auto-comment-line">다음 주에도 현재 학습 리듬을 유지하며 최고 등급에 도전해 보세요.</span>
+      </p>
+      <span class="wmr-legacy-comment-bind" data-wmr-teacher-comment data-wm-bind="teacherComment"></span>
+      <span class="wmr-legacy-comment-bind" data-wmr-message data-wm-bind="encouragementMessage"></span>
+    </div>
+  </section>
+  <footer class="wmr-footer" data-wmr-section="7" data-wmr-design-fixed="true" data-wm-lock="design" data-wmr-data-scope="footer"><div class="wmr-footer-brand">해나샘영어<small>Hannahsam English</small></div><div class="wmr-footer-copy">Thank you for your effort.</div><div class="wmr-footer-logo"><img data-wmr-logo data-wm-bind="logoUrl" src="" alt="해나샘영어 로고"></div></footer>
+</article>
+</template>
+
+
   <div id="wm-learning-record-widget">
 
     <div class="detail-box">
+
+      <div class="wm-homework-control-box">
 
       <div class="detail-header">
         <h2>숙제검사 / 학습기록 자세히 보기</h2>
@@ -630,6 +1492,8 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
         학습 블럭을 클릭하면 상세기록이 표시됩니다.
       </div>
 
+      </div>
+
       <div class="homework-scroll-top-fixed" id="homeworkScrollTopFixed">
         <div class="homework-scroll-inner"></div>
       </div>
@@ -639,6 +1503,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
           <thead>
             <tr>
+              <th>일련번호</th>
               <th>학습날짜</th>
               <th>Set_ID</th>
               <th>점수</th>
@@ -662,7 +1527,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
           <tbody id="homeworkTableBody">
             <tr>
-              <td colspan="18">아직 표시할 학습기록이 없습니다.</td>
+              <td colspan="19">아직 표시할 학습기록이 없습니다.</td>
             </tr>
           </tbody>
 
@@ -699,6 +1564,46 @@ body{
 #wm-learning-record-widget{
   font-family:Pretendard, Arial, sans-serif;
   color:#111;
+}
+
+html body.wm-lms-map-preview{
+  margin:0 !important;
+  padding:24px !important;
+  background:#f4f6fb !important;
+  overflow:auto !important;
+}
+body.wm-lms-map-preview #wm-test-booth-banner{
+  display:none !important;
+}
+body.wm-lms-map-preview .logout-card,
+body.wm-lms-map-preview button,
+body.wm-lms-map-preview input,
+body.wm-lms-map-preview select{
+  pointer-events:none !important;
+  user-select:none !important;
+}
+body.wm-lms-map-preview .logout-card,
+body.wm-lms-map-preview button{
+  cursor:default !important;
+}
+body.wm-lms-map-preview #wm-map-root{
+  width:min(1180px,100%) !important;
+  margin:0 auto !important;
+  padding:0 !important;
+}
+body.wm-lms-map-preview #wm-level-map-widget{
+  margin:0 !important;
+}
+body.wm-lms-map-preview #setMap,
+body.wm-lms-map-preview #setMap *{
+  pointer-events:none !important;
+  user-select:none !important;
+}
+body.wm-lms-map-preview .level-bar button{
+  pointer-events:none !important;
+}
+body.wm-lms-map-preview.wm-test-booth-active{
+  margin-top:0 !important;
 }
 
 #wm-map-root{
@@ -759,7 +1664,7 @@ body.wm-homework-fixed-scroll-ready{
 
 .wm-map-loading-sub{
   margin-top:8px;
-  font-size:14px;
+  font-size:16px;
   font-weight:800;
   color:#555;
 }
@@ -783,6 +1688,46 @@ body.wm-map-loading-active #wm-learning-record-widget{
   background:#fff;
 }
 
+.wm-homework-control-box{
+  margin-bottom:12px;
+  padding:14px;
+  border:2px solid #0066cc;
+  border-radius:16px;
+  background:linear-gradient(180deg,#ffffff 0%,#f5f9ff 100%);
+  box-shadow:0 8px 22px rgba(13,85,200,.08);
+}
+
+.wm-homework-control-box .detail-header{
+  margin:-14px -14px 12px -14px;
+  padding:12px 14px;
+  border-radius:14px 14px 0 0;
+  background:linear-gradient(135deg,#0066cc,#004a99);
+  color:#fff;
+}
+
+.wm-homework-control-box .detail-header h2{
+  color:#fff;
+}
+
+.wm-homework-control-box .detail-header button{
+  background:#fff;
+  color:#0066cc;
+  border:1.5px solid #0066cc;
+  box-shadow:none;
+}
+
+.wm-homework-control-box .filter-box{
+  margin-bottom:12px;
+}
+
+.wm-homework-control-box .record-summary{
+  margin-bottom:12px;
+}
+
+.wm-homework-control-box .learning-detail-box{
+  margin-bottom:0;
+}
+
 .detail-box{
   overflow-x:hidden;
 }
@@ -791,16 +1736,25 @@ body.wm-map-loading-active #wm-learning-record-widget{
   text-align:center !important;
   font-size:40px !important;
   font-weight:900 !important;
-  margin-bottom:18px !important;
+  margin:0 12px 0 !important;
+  padding:14px 18px !important;
+  border-radius:16px 16px 0 0;
+  background:linear-gradient(135deg,#0066cc,#004a99);
+  color:#fff !important;
+  box-shadow:0 8px 22px rgba(13,85,200,.08);
 }
 
 .student-top-card{
   display:flex;
   flex-direction:column;
   gap:10px;
-  margin-bottom:14px;
-  padding-left:12px;
-  padding-right:12px;
+  margin:0 12px 14px;
+  padding:14px;
+  border:2px solid #0066cc;
+  border-top:0;
+  border-radius:0 0 16px 16px;
+  background:linear-gradient(180deg,#ffffff 0%,#f5f9ff 100%);
+  box-shadow:0 8px 22px rgba(13,85,200,.08);
   box-sizing:border-box;
 }
 
@@ -831,7 +1785,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
   align-items:center;
   gap:16px;
   background:linear-gradient(135deg,#ffffff 0%,#ffffff 58%,#f8fbff 100%);
-  border:1px solid rgba(255,255,255,0.85);
+  border:1px solid #0066cc;
   border-radius:14px;
   box-shadow:0 6px 18px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.04);
   box-sizing:border-box;
@@ -1016,6 +1970,31 @@ body.wm-map-loading-active #wm-learning-record-widget{
   font-weight:800;
 }
 
+.wm-report-view-button{
+  margin-left:auto;
+  width:180px;
+  height:60px;
+  padding:0 18px;
+  border:0;
+  border-radius:10px;
+  background:linear-gradient(135deg,#0066cc,#004a99);
+  color:#fff;
+  font-size:17px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,74,153,.18);
+}
+
+.wm-report-view-button:hover{
+  background:linear-gradient(135deg,#005bb8,#003f82);
+}
+
+.wm-report-view-button:focus{
+  outline:3px solid rgba(37,99,235,.28);
+  outline-offset:2px;
+}
+
 .dot{
   width:11px;
   height:11px;
@@ -1119,15 +2098,26 @@ body.wm-map-loading-active #wm-learning-record-widget{
   grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto auto;
   gap:8px;
   margin-bottom:14px;
+  padding:14px;
+  border:1.5px solid #4f8fe8;
+  border-radius:14px;
+  background:linear-gradient(180deg,#f4f8ff 0%,#eaf2ff 100%);
+  box-shadow:0 8px 22px rgba(7,59,143,.08);
 }
 
 .filter-box input,
 .filter-box select{
   padding:10px;
-  border:1px solid #ddd;
+  border:1px solid #b9cbea;
   border-radius:10px;
   font-size:13px;
+  background:#fff;
   box-sizing:border-box;
+}
+.filter-box input:focus,
+.filter-box select:focus{
+  outline:2px solid rgba(13,85,200,.18);
+  border-color:#0d55c8;
 }
 
 .reset-btn{
@@ -1142,9 +2132,11 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 .record-summary div{
-  background:#f8f8f8;
+  background:#fff;
+  border:1.5px solid #82aef3;
   border-radius:12px;
   padding:12px;
+  box-shadow:0 3px 10px rgba(13,85,200,.05);
 }
 
 .record-summary span{
@@ -1167,10 +2159,12 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 .learning-detail-box{
-  background:#f8f8f8;
+  background:#fff;
+  border:1.5px solid #82aef3;
   border-radius:14px;
   padding:14px;
   margin-bottom:13px;
+  box-shadow:0 3px 10px rgba(13,85,200,.05);
 }
 
 .learning-detail-box.wm-mode-banner-box{
@@ -1229,7 +2223,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
 
 .homework-table-scroll{
   width:100%;
-  max-height:1120px;
+  max-height:690px;
   overflow-x:hidden;
   overflow-y:auto;
   scrollbar-width:none;
@@ -1314,17 +2308,18 @@ body.wm-map-loading-active #wm-learning-record-widget{
   z-index:20;
   background:#f3f3f3;
 }
- .homework-table th:nth-child(1), .homework-table td:nth-child(1){min-width:82px;}
-.homework-table th:nth-child(2), .homework-table td:nth-child(2){min-width:72px;}
-.homework-table th:nth-child(3), .homework-table td:nth-child(3){min-width:44px;}
-.homework-table th:nth-child(n+4):nth-child(-n+10),
-.homework-table td:nth-child(n+4):nth-child(-n+10){min-width:68px;white-space:nowrap;}
-.homework-table th:nth-child(n+11):nth-child(-n+14){min-width:48px;font-size:10px;line-height:1.1;letter-spacing:-0.04em;padding-left:4px;padding-right:4px;}
-.homework-table td:nth-child(n+11):nth-child(-n+14){min-width:48px;font-size:13px;line-height:1.2;padding-left:4px;padding-right:4px;white-space:nowrap;}
-.homework-table th:nth-child(15), .homework-table td:nth-child(15){min-width:42px;max-width:48px;white-space:nowrap;}
-.homework-table th:nth-child(16), .homework-table td:nth-child(16){min-width:36px;}
-.homework-table th:nth-child(17), .homework-table td:nth-child(17){min-width:42px;}
-.homework-table th:nth-child(18), .homework-table td:nth-child(18){min-width:32px;}
+.homework-table th:nth-child(1), .homework-table td:nth-child(1){min-width:58px;width:58px;text-align:center;}
+.homework-table th:nth-child(2), .homework-table td:nth-child(2){min-width:82px;}
+.homework-table th:nth-child(3), .homework-table td:nth-child(3){min-width:72px;}
+.homework-table th:nth-child(4), .homework-table td:nth-child(4){min-width:44px;}
+.homework-table th:nth-child(n+5):nth-child(-n+11),
+.homework-table td:nth-child(n+5):nth-child(-n+11){min-width:68px;white-space:nowrap;}
+.homework-table th:nth-child(n+12):nth-child(-n+15){min-width:48px;font-size:10px;line-height:1.1;letter-spacing:-0.04em;padding-left:4px;padding-right:4px;}
+.homework-table td:nth-child(n+12):nth-child(-n+15){min-width:48px;font-size:13px;line-height:1.2;padding-left:4px;padding-right:4px;white-space:nowrap;}
+.homework-table th:nth-child(16), .homework-table td:nth-child(16){min-width:42px;max-width:48px;white-space:nowrap;}
+.homework-table th:nth-child(17), .homework-table td:nth-child(17){min-width:36px;}
+.homework-table th:nth-child(18), .homework-table td:nth-child(18){min-width:42px;}
+.homework-table th:nth-child(19), .homework-table td:nth-child(19){min-width:32px;}
 .homework-table .wm-score-head{font-size:10px;line-height:1.1;letter-spacing:-0.04em;}
 
 .score{
@@ -1357,6 +2352,11 @@ body.wm-map-loading-active #wm-learning-record-widget{
 
   .filter-box{
     grid-template-columns:1fr;
+  }
+
+  .wm-report-view-button{
+    width:100%;
+    margin-left:0;
   }
 
   .record-summary{
@@ -1413,9 +2413,10 @@ let wmMapLoadingStartAt = 0;
 let wmMapDataReady = false;
 let wmCurrentProgressHistoryCache = null;
 let wmBottomRecordsDirectLoading = false;
+let wmBottomRecordsDetailedLoaded = false;
 let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
-const WM_HOMEWORK_PAGE_SIZE = 25;
+const WM_HOMEWORK_PAGE_SIZE = 15;
 const WM_HOMEWORK_DEFAULT_MONTHS = 3;
 const WM_HOMEWORK_DEFAULT_PERIOD_RANGE = '0-3';
 let wmHomeworkCurrentPage = 1;
@@ -1535,6 +2536,97 @@ if(document.readyState === 'loading'){
 function wmGetUrlParam(name){
   const params = new URLSearchParams(window.location.search || '');
   return String(params.get(name) || '').trim();
+}
+
+function wmIsLmsMapPreview_(){
+  const entry = String(wmGetUrlParam('wmEntry') || '').trim();
+  const preview = String(wmGetUrlParam('wmPreview') || '').trim();
+
+  if(entry !== 'lmsPreview' || preview !== '1') return false;
+
+  try{
+    if(!window.opener || window.opener.closed) return false;
+    return window.opener.location.origin === window.location.origin;
+  }catch(err){
+    return false;
+  }
+}
+
+function wmApplyLmsPreviewReadOnly_(){
+  if(!wmIsLmsMapPreview_()) return false;
+
+  const root = document.getElementById('wm-map-root');
+  if(!root) return false;
+
+  root.setAttribute('aria-label','교사용 학습맵 읽기 전용 화면');
+
+  root.querySelectorAll('button').forEach(function(button){
+    button.disabled = true;
+    button.removeAttribute('onclick');
+    button.setAttribute('tabindex','-1');
+    button.setAttribute('aria-disabled','true');
+  });
+
+  root.querySelectorAll('input, select, textarea').forEach(function(control){
+    control.disabled = true;
+    control.setAttribute('tabindex','-1');
+    control.setAttribute('aria-disabled','true');
+  });
+
+  const logoutCard = root.querySelector('.logout-card');
+  if(logoutCard){
+    logoutCard.removeAttribute('onclick');
+    logoutCard.removeAttribute('role');
+    logoutCard.setAttribute('tabindex','-1');
+    logoutCard.setAttribute('aria-disabled','true');
+  }
+
+  return true;
+}
+
+function wmWatchLmsPreviewReadOnly_(){
+  if(!wmIsLmsMapPreview_() || window.__WM_LMS_PREVIEW_READONLY_OBSERVER__) return;
+
+  const root = document.getElementById('wm-map-root');
+  if(!root) return;
+
+  const observer = new MutationObserver(function(){
+    wmApplyLmsPreviewReadOnly_();
+  });
+  observer.observe(root, {childList:true, subtree:true});
+  window.__WM_LMS_PREVIEW_READONLY_OBSERVER__ = observer;
+}
+
+function wmRenderLmsMapPreview_(){
+  document.documentElement.classList.remove('wm-map-auth-pending');
+  document.body.classList.add('wm-lms-map-preview');
+
+  const root = document.getElementById('wm-map-root');
+  if(root) root.style.display = 'block';
+
+  wmCurrentStudent = wmResolveStudentInfo();
+  wmStudentProfile = wmMergeStudentPreserveValues_({}, wmCurrentStudent || {});
+  wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
+  wmShowMapLoadingState_();
+  renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
+
+  wmApplyLmsPreviewReadOnly_();
+  wmWatchLmsPreviewReadOnly_();
+
+  const studentId = String(wmCurrentStudent && wmCurrentStudent.학생ID || '').trim().toUpperCase();
+  if(!studentId){
+    wmStopMapLoadingState_();
+    wmShowMapUnavailable_('선택한 학생ID가 전달되지 않아 학습맵을 불러올 수 없습니다.');
+    wmApplyLmsPreviewReadOnly_();
+    return false;
+  }
+
+  /* LMS 학습맵 Preview
+     선택 학생의 최신 상단정보·현재 진도맵·최근 학습기록 첫 화면만 조회하며,
+     검색·페이지 이동·학습 진입·저장 등 모든 추가 동작은 비활성화한
+     교사용 읽기 전용 화면입니다. */
+  wmFetchLearningMap(studentId);
+  return true;
 }
 
 function wmSafeJsonParse(value){
@@ -1957,6 +3049,11 @@ function wmRenderInstantMapFromStudentCache_(){
 function wmInitLearningMap(){
   wmMapDataReady = false;
 
+  if(wmIsLmsMapPreview_()){
+    wmRenderLmsMapPreview_();
+    return;
+  }
+
   /* 주소창 직접 /map 진입 차단: 로그인 또는 Study 복귀 표시가 없으면 로그인 화면으로 이동 */
   if(!wmAuthorizeMapEntry_()){
     wmRedirectToLogin_();
@@ -2359,6 +3456,7 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     if(!directRecords.length) return;
 
+    wmBottomRecordsDetailedLoaded = payload && payload.learningRecordDbDirect === true;
     wmLearningRecords = directRecords;
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
@@ -2429,7 +3527,10 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
 
-  wmLearningRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(data, cacheData));
+  const receivedLearningRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(data, cacheData));
+  if(!wmBottomRecordsDetailedLoaded && receivedLearningRecords.length){
+    wmLearningRecords = receivedLearningRecords;
+  }
   wmServerLevelHistoryLevels = Array.isArray(data && data.levelHistoryLevels) ? data.levelHistoryLevels.slice() : [];
   wmCurrentProgressHistoryCache = cacheData.historyCache || null;
 
@@ -2508,7 +3609,6 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryRecentScore', wmCurrentProgressRecentScoreForMap_ ? wmCurrentProgressRecentScoreForMap_ + '점' : '-');
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
-  wmLoadLearningRecordsDirectForMap_('direct-full-refresh');
   wmShowLearningModeBanner();
   return true;
 }
@@ -2838,7 +3938,11 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
   const levelCompleteCount = Math.max(0, Math.min(targetLimit, Number(formulaSource.레벨완료횟수 || 0)));
   const sequentialRound = Math.max(0, Math.min(targetLimit, Number(formulaSource.순차완주회차 || 0)));
   const sequentialSetCount = Math.max(0, Math.min(sequence.length, Number(formulaSource.순차완주세트 || 0)));
+  const formulaCurrentSet = normalizeSetIdForMap_(formulaSource.currentSet || '');
+  const formulaLevelMatch = formulaCurrentSet.match(/^(3|4|5|6|7|8|9|10|11|12|13)-/);
+  const formulaLevelNumber = formulaLevelMatch ? Number(formulaLevelMatch[1]) : 0;
   const hasDirectFormula =
+    (!formulaLevelNumber || formulaLevelNumber === sourceLevelNumber) &&
     String(formulaSource.레벨완료횟수 || '').trim() !== '' &&
     String(formulaSource.순차완주회차 || '').trim() !== '' &&
     String(formulaSource.순차완주세트 || '').trim() !== '';
@@ -2851,13 +3955,17 @@ function wmBuildSequentialDisplayRoundMapForMap_(records, setStatusMap, levelNum
       }
     });
 
+    const levelComplete = sequence.length > 0 && sequence.every(function(setId){
+      return Number(officialRoundMap[setId] || 0) >= targetLimit;
+    });
+
     return {
       targetLimit: targetLimit,
       repeatMap: officialRoundMap,
       officialRoundMap: officialRoundMap,
-      순차완주회차: sequentialRound,
-      순차완주세트: sequentialSetCount,
-      levelComplete: levelCompleteCount >= targetLimit
+      순차완주회차: levelComplete ? targetLimit : sequentialRound,
+      순차완주세트: levelComplete ? sequence.length : sequentialSetCount,
+      levelComplete: levelComplete
     };
   }
 
@@ -3426,6 +4534,23 @@ function wmApplyLearningMapStatus(mapData){
     const recordRepeatCount = wmGetRepeatCountFromRecordsForMap_(records, item.set, normalizeSetIdForMap_, isCompletedRecord_);
     const repeatCount = Math.max(1, Number(statusInfo.repeatCount || 0), recordRepeatCount);
 
+    /* WM_MAP_ALL_COMPLETED_HISTORY_LEVELS_GREEN_FIX_20260731
+       완료된 이전 레벨을 열었을 때는 개별 학습기록 개수와 무관하게
+       해당 레벨의 모든 세트를 완료 상태·초록색으로 고정합니다. */
+    if(forceLevelDone){
+      return {
+        set:item.set,
+        status:'complete',
+        progress:100,
+        repeatCount:repeatCount,
+        officialRound:Number(sequentialState.targetLimit || 1),
+        targetRoundLimit:Number(sequentialState.targetLimit || 1),
+        levelComplete:true,
+        score:String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || statusInfo.latestScore || statusInfo.score || '-').trim() || '-',
+        latestDate:String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
+      };
+    }
+
     if(isComplete){
       return {
         set:item.set,
@@ -3766,9 +4891,9 @@ function renderHomeworkTable(records, profile, options){
     wmHomeworkCurrentSourceRecords = [];
 
     if(baseProfile && (baseProfile.학생ID || baseProfile.학생이름)){
-      tbody.innerHTML = wmRenderHomeworkRow(baseProfile);
+      tbody.innerHTML = wmRenderHomeworkRow(baseProfile, '');
     }else{
-      tbody.innerHTML = '<tr><td colspan="18">아직 표시할 학습기록이 없습니다.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="19">아직 표시할 학습기록이 없습니다.</td></tr>';
     }
     wmUpdateHomeworkPager_(0);
     wmInitHomeworkTopScrollbar();
@@ -3779,7 +4904,7 @@ function renderHomeworkTable(records, profile, options){
   wmHomeworkCurrentSourceRecords = sortedRecords;
 
   if(sortedRecords.length === 0){
-    tbody.innerHTML = '<tr><td colspan="18">선택한 조회기간에 표시할 학습기록이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="19">선택한 조회기간에 표시할 학습기록이 없습니다.</td></tr>';
     wmUpdateHomeworkPager_(0);
     wmInitHomeworkTopScrollbar();
     return;
@@ -3787,8 +4912,8 @@ function renderHomeworkTable(records, profile, options){
 
   const startIndex = (wmHomeworkCurrentPage - 1) * WM_HOMEWORK_PAGE_SIZE;
   const pageRecords = sortedRecords.slice(startIndex, startIndex + WM_HOMEWORK_PAGE_SIZE);
-  tbody.innerHTML = pageRecords.map(function(record){
-    return wmRenderHomeworkRow(record);
+  tbody.innerHTML = pageRecords.map(function(record, pageIndex){
+    return wmRenderHomeworkRow(record, startIndex + pageIndex + 1);
   }).join('');
   wmUpdateHomeworkPager_(sortedRecords.length);
   wmInitHomeworkTopScrollbar();
@@ -3838,9 +4963,10 @@ function wmFormatScoreWithPoint_(value){
   return /점$/.test(text) ? text : text + '점';
 }
 
-function wmRenderHomeworkRow(record){
+function wmRenderHomeworkRow(record, serialNumber){
   return `
     <tr>
+      <td>${escapeHtml(serialNumber === undefined || serialNumber === null ? '' : serialNumber)}</td>
       <td>${escapeHtml(record.학습날짜 || '')}</td>
       <td>${escapeHtml(record.Set_ID || '')}</td>
       <td class="score">${escapeHtml(wmFormatScoreWithPoint_(record.한영주관식 || record.점수 || ''))}</td>
@@ -4445,6 +5571,374 @@ function resetHomeworkFilters(){
 
 wmForceHomeworkBottomFixedBarOnFirstView();
 wmInitHomeworkSearchEnterKey();
+/* WM_MAP_PUBLISHED_REPORT_MODAL_V1
+ * 성적표생성_DB 발행본만 1회 조회하고 LMS A4 템플릿을 Map 내부 모달에 렌더링합니다.
+ * 학습맵·학습기록·저장 API와 완전히 분리된 사용자 클릭 전용 경로입니다.
+ */
+let wmMapPublishedReportState = {loaded:false, loading:false, periods:[], rows:[], defaultKey:''};
+
+function wmMapReportDate_(value){
+  const m=String(value||'').match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if(!m) return null;
+  const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+  return Number.isNaN(d.getTime())?null:d;
+}
+function wmMapReportNumber_(value){
+  const m=String(value===undefined||value===null?'':value).replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
+  return m?Number(m[0]):0;
+}
+function wmMapReportSeconds_(value){
+  const text=String(value||'').trim();
+  if(!text) return 0;
+  let total=0;
+  const h=text.match(/(\d+(?:\.\d+)?)\s*시간/),m=text.match(/(\d+(?:\.\d+)?)\s*분/),s=text.match(/(\d+(?:\.\d+)?)\s*초/);
+  if(h)total+=Number(h[1])*3600;if(m)total+=Number(m[1])*60;if(s)total+=Number(s[1]);
+  if(total)return total;
+  const colon=text.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+  if(colon)return colon[3]?Number(colon[1])*3600+Number(colon[2])*60+Number(colon[3]):Number(colon[1])*60+Number(colon[2]);
+  return /^\d+(?:\.\d+)?$/.test(text)?Number(text):0;
+}
+function wmMapReportTime_(seconds){
+  const safe=Math.max(0,Math.round(Number(seconds)||0));
+  const h=Math.floor(safe/3600),m=Math.floor((safe%3600)/60);
+  return h?h+'시간 '+m+'분':m+'분';
+}
+function wmMapReportCell_(row,names){
+  row=row||{};
+  for(const name of names){if(Object.prototype.hasOwnProperty.call(row,name)&&String(row[name]||'').trim()!=='')return row[name];}
+  return '';
+}
+function wmMapReportWeek_(date){
+  if(!date)return 1;
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+  const first=new Date(d.getFullYear(),d.getMonth(),1);
+  const firstDay=first.getDay(),offset=firstDay===0?6:firstDay-1;
+  return Math.max(1,Math.min(5,Math.floor((d.getDate()+offset-1)/7)+1));
+}
+function wmMapReportSummary_(rows){
+  const sets=new Set(),days=new Set(),scores=[];
+  let words=0,seconds=0;
+  (rows||[]).forEach(function(row){
+    const setId=String(wmMapReportCell_(row,['Set_ID','Set ID','세트ID'])||'').trim();if(setId)sets.add(setId);
+    const date=wmMapReportDate_(wmMapReportCell_(row,['학습날짜','등록일']));if(date)days.add(date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate());
+    words+=wmMapReportNumber_(wmMapReportCell_(row,['단어수','학습단어수']));
+    seconds+=wmMapReportSeconds_(wmMapReportCell_(row,['총소요시간','총 소요시간']));
+    const scoreText=String(wmMapReportCell_(row,['점수','Score'])||'').trim();if(scoreText)scores.push(wmMapReportNumber_(scoreText));
+  });
+  return {completedSets:sets.size,wordCount:words,attendanceDays:days.size,totalSeconds:seconds,averageScore:scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length*10)/10:0};
+}
+function wmMapReportSetText_(sheet,selector,value){const el=sheet.querySelector(selector);if(el)el.textContent=value===undefined||value===null?'':String(value);}
+function wmMapReportRowsForPeriod_(period){
+  return (wmMapPublishedReportState.rows||[]).filter(function(row){
+    return period.type==='monthly'?row.__wmMonthlyKey===period.key:row.__wmWeeklyKey===period.key;
+  });
+}
+function wmMapReportRenderA4_(period){
+  const body=document.getElementById('wmMapReportBody');
+  const template=document.getElementById('wmReportTemplate');
+  if(!body||!template)return;
+  const rows=wmMapReportRowsForPeriod_(period);
+  if(!rows.length){body.innerHTML='<div class="wm-map-report-message">성적 내용이 없습니다.</div>';return;}
+  const parser=document.createElement('div');parser.innerHTML=template.innerHTML;
+  const sheet=parser.querySelector('.wmr-sheet');if(!sheet){body.innerHTML='<div class="wm-map-report-message">성적표 템플릿을 찾을 수 없습니다.</div>';return;}
+  const first=rows[0]||{},summary=wmMapReportSummary_(rows);
+  const year=Number(period.year),month=Number(period.month),week=Number(period.week||5);
+  const lastDay=new Date(year,month,0).getDate();
+  wmMapReportSetText_(sheet,'[data-wmr-year]',year+'년');
+  wmMapReportSetText_(sheet,'[data-wmr-month]',month+'월');
+  wmMapReportSetText_(sheet,'[data-wmr-week]',period.type==='monthly'?'Monthly':week+'주차');
+  wmMapReportSetText_(sheet,'[data-wmr-school]',wmMapReportCell_(first,['학교','School']));
+  wmMapReportSetText_(sheet,'[data-wmr-grade]',wmMapReportCell_(first,['학년','Grade']));
+  wmMapReportSetText_(sheet,'[data-wmr-name]',wmMapReportCell_(first,['학생이름','학생명','이름']));
+  wmMapReportSetText_(sheet,'[data-wmr-student-id]',wmMapReportCell_(first,['학생ID','Student_ID']));
+  wmMapReportSetText_(sheet,'[data-wmr-class]',wmMapReportCell_(first,['Class','반명','반']));
+  const levelText=wmMapReportCell_(first,['학습레벨','Level','레벨']);
+  wmMapReportSetText_(sheet,'[data-wmr-level]',levelText);
+  wmMapReportSetText_(sheet,'[data-wmr-completed]',summary.completedSets);
+  wmMapReportSetText_(sheet,'[data-wmr-words]',summary.wordCount);
+  wmMapReportSetText_(sheet,'[data-wmr-average]',summary.averageScore);
+  wmMapReportSetText_(sheet,'[data-wmr-days]',summary.attendanceDays);
+  wmMapReportSetText_(sheet,'[data-wmr-monthly-condition]',period.label+' 발행 기준');
+  ['[data-wmr-kpi-completed-sub]','[data-wmr-kpi-words-sub]','[data-wmr-kpi-average-sub]','[data-wmr-kpi-time-sub]','[data-wmr-kpi-days-sub]'].forEach(s=>wmMapReportSetText_(sheet,s,period.label+' 기준'));
+  const timeEl=sheet.querySelector('[data-wmr-time]');if(timeEl){const h=Math.floor(summary.totalSeconds/3600),m=Math.floor((summary.totalSeconds%3600)/60);timeEl.innerHTML=(h?'<span class="wmr-kpi-time-number">'+h+'</span><span class="wmr-kpi-time-unit">시간</span>':'')+'<span class="wmr-kpi-time-number">'+m+'</span><span class="wmr-kpi-time-unit">분</span>';}
+
+  const weekly=Array.from({length:5},(_,i)=>{const w=i+1;const wr=rows.filter(r=>wmMapReportWeek_(wmMapReportDate_(wmMapReportCell_(r,['학습날짜','등록일'])))===w);return {week:w,rows:wr,summary:wmMapReportSummary_(wr)};});
+  const weekBody=sheet.querySelector('[data-wmr-week-body]');if(weekBody){weekBody.innerHTML=weekly.map(item=>'<tr><td>'+item.week+'주차</td><td>'+year+'.'+month+'.'+Math.max(1,(item.week-1)*7+1)+'~'+Math.min(lastDay,item.week*7)+'</td><td>'+(item.rows.length?item.summary.completedSets:'-')+'</td><td>'+(item.rows.length?item.summary.wordCount:'-')+'</td><td>'+(item.rows.length?item.summary.averageScore:'-')+'</td><td>'+(item.rows.length?wmMapReportTime_(item.summary.totalSeconds):'-')+'</td><td>'+(item.rows.length?item.summary.attendanceDays:'-')+'</td></tr>').join('')+'<tr><td>합계</td><td>-</td><td>'+summary.completedSets+'</td><td>'+summary.wordCount+'</td><td>'+summary.averageScore+'</td><td>'+wmMapReportTime_(summary.totalSeconds)+'</td><td>'+summary.attendanceDays+'</td></tr>';}
+  const detailBody=sheet.querySelector('[data-wmr-detail-body]');if(detailBody){const sorted=rows.slice().sort((a,b)=>(wmMapReportDate_(wmMapReportCell_(a,['학습날짜']))||0)-(wmMapReportDate_(wmMapReportCell_(b,['학습날짜']))||0)).slice(-10);detailBody.innerHTML=Array.from({length:10},(_,i)=>{const r=sorted[i];if(!r)return '<tr><td>'+(i+1)+'</td>'+Array(9).fill('<td>-</td>').join('')+'</tr>';const d=wmMapReportCell_(r,['학습날짜']);const sid=wmMapReportCell_(r,['Set_ID']);return '<tr><td>'+(i+1)+'</td><td>'+wmMapReportWeek_(wmMapReportDate_(d))+'주차</td><td>'+escapeHtml(String(d||'-'))+'</td><td>'+escapeHtml(String(wmMapReportCell_(r,['학습레벨','Level'])||levelText||'-'))+'</td><td>'+escapeHtml(String(sid||'-'))+'</td><td>'+escapeHtml(String(wmMapReportCell_(r,['총소요시간'])||'-'))+'</td><td>'+(wmMapReportNumber_(wmMapReportCell_(r,['단어수']))||'-')+'</td><td>'+(wmMapReportNumber_(wmMapReportCell_(r,['점수']))||'-')+'</td><td>'+escapeHtml(String(wmMapReportCell_(r,['Test_총시간'])||'-'))+'</td><td>'+escapeHtml(String(wmMapReportCell_(r,['기기정보'])||'PC'))+'</td></tr>';}).join('');}
+  const chart=sheet.querySelector('[data-wmr-score-chart]');if(chart){const pts=weekly.map((x,i)=>x.rows.length?{x:62+i*76,y:118-Math.max(0,Math.min(100,x.summary.averageScore)),v:x.summary.averageScore}:null).filter(Boolean);chart.innerHTML='<svg viewBox="0 0 390 145"><line x1="42" y1="118" x2="374" y2="118" stroke="#64748b"/>'+(pts.length?'<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" points="'+pts.map(p=>p.x+','+p.y).join(' ')+'"/>':'')+pts.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#0d55c8"/><text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" font-size="10">'+p.v+'</text>').join('')+Array.from({length:5},(_,i)=>'<text x="'+(62+i*76)+'" y="137" text-anchor="middle" font-size="10">'+(i+1)+'주차</text>').join('')+'</svg>';}
+  const levelMatch=String(levelText||'').match(/\d+/),level=levelMatch?Number(levelMatch[0]):0,total=level&&WM_LEVEL_CONFIG[level]?WM_LEVEL_CONFIG[level].reduce((a,b)=>a+b,0):Math.max(summary.completedSets,1),progress=Math.min(100,Math.round(summary.completedSets/Math.max(1,total)*100));
+  const donut=sheet.querySelector('[data-wmr-donut]');if(donut)donut.style.setProperty('--wmr-progress',progress+'%');wmMapReportSetText_(sheet,'[data-wmr-donut-level]',levelText);wmMapReportSetText_(sheet,'[data-wmr-progress]',progress+'%');
+  const levelTable=sheet.querySelector('[data-wmr-level-table]');if(levelTable)levelTable.innerHTML='<tr><td>완료세트수</td><td>'+summary.completedSets+'/'+total+'</td></tr><tr><td>남은세트수</td><td>'+Math.max(0,total-summary.completedSets)+'/'+total+'</td></tr>';
+  wmMapReportSetText_(sheet,'[data-wmr-teacher-comment]',String(wmMapReportCell_(first,['Teacher’s Comment','Teachers Comment','Teacher_Comment'])||'').slice(0,110));
+  wmMapReportSetText_(sheet,'[data-wmr-message]',String(wmMapReportCell_(first,['격려메시지','Encourage_Message'])||'').slice(0,110));
+  wmMapReportSetText_(sheet,'[data-wmr-grade-final]','');wmMapReportSetText_(sheet,'[data-wmr-grade-attendance]','');wmMapReportSetText_(sheet,'[data-wmr-grade-focus]','');wmMapReportSetText_(sheet,'[data-wmr-grade-trend]','');
+  const auto=sheet.querySelector('[data-wmr-auto-comment]');if(auto)auto.innerHTML='';
+  const logo=sheet.querySelector('[data-wmr-logo]');const logoUrl=wmMapReportCell_(first,['로고URL','Logo_URL']);if(logo){if(logoUrl){logo.src=String(logoUrl);logo.style.visibility='visible';}else{logo.removeAttribute('src');logo.style.visibility='hidden';}}
+  sheet.setAttribute('data-wmr-map-report-db-only','true');body.innerHTML=parser.innerHTML;
+}
+async function wmMapReportBindGradeComment_(period){
+  const rows=wmMapReportRowsForPeriod_(period);
+  const first=rows[0]||{};
+  const sheet=document.querySelector('#wmMapReportBody .wmr-sheet');
+  if(!sheet||!rows.length)return;
+  const studentId=String(wmMapReportCell_(first,['학생ID','Student_ID'])||'').trim();
+  if(!studentId)return;
+  const params=new URLSearchParams();
+  params.set('mode','reportGradeComment');
+  params.set('action','reportGradeComment');
+  params.set('studentId',studentId);
+  params.set('year',String(period.year||''));
+  params.set('month',String(period.month||''));
+  params.set('week',String(period.week||''));
+  params.set('reportType',period.type==='monthly'?'월간':'주간');
+  params.set('ts',String(Date.now()));
+  try{
+    const response=await fetch(wmGetApiBaseUrl()+'?'+params.toString(),{method:'GET',cache:'no-store'});
+    const data=await response.json();
+    const gradeData=data&&data.found&&data.gradeComment?data.gradeComment:null;
+    if(!gradeData)return;
+    const setText=(selector,value)=>{const el=sheet.querySelector(selector);if(el)el.textContent=value==null?'':String(value);};
+    const grade=String(gradeData['Grade']||'').trim();
+    const classValue=String(gradeData['Class']||'').trim();
+    setText('[data-wmr-grade-final]',grade&&classValue?grade+'.'+classValue+'등급':'');
+    setText('[data-wmr-grade-attendance]',gradeData['출석점수']!==undefined?gradeData['출석점수']+'점':'');
+    setText('[data-wmr-grade-focus]',gradeData['참여집중도']!==undefined?gradeData['참여집중도']+'점':'');
+    setText('[data-wmr-grade-trend]',gradeData['점수추이']!==undefined?gradeData['점수추이']+'점':'');
+    const commentEl=sheet.querySelector('[data-wmr-auto-comment]');
+    if(commentEl){
+      const lines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,5);
+      commentEl.innerHTML=lines.map(line=>'<span class="wmr-auto-comment-line">'+escapeHtml(line)+'</span>').join('');
+    }
+    sheet.setAttribute('data-wmr-grade-db-connected','true');
+  }catch(err){
+    console.warn('성적표 하단 기존 성적등급 조회 실패:',err);
+  }
+}
+async function wmMapReportSelect_(key){
+  const period=(wmMapPublishedReportState.periods||[]).find(p=>p.key===key);
+  if(!period)return;
+  wmMapReportRenderA4_(period);
+  await wmMapReportBindGradeComment_(period);
+}
+function wmMapReportFillSelect_(){const select=document.getElementById('wmMapReportPeriodSelect');if(!select)return;select.innerHTML=(wmMapPublishedReportState.periods||[]).map(p=>'<option value="'+escapeHtml(p.key)+'">'+escapeHtml(p.label)+'</option>').join('');select.value=wmMapPublishedReportState.defaultKey||((wmMapPublishedReportState.periods[0]||{}).key||'');wmMapReportSelect_(select.value);}
+async function wmOpenPublishedReportModal_(){
+  const modal=document.getElementById('wmMapReportModal'),body=document.getElementById('wmMapReportBody');if(!modal||!body)return;
+  modal.classList.add('active');document.body.classList.add('wm-map-report-open');
+  if(wmMapPublishedReportState.loaded){wmMapReportFillSelect_();return;}
+  if(wmMapPublishedReportState.loading)return;
+  const studentId=String(wmCurrentStudent&&wmCurrentStudent.학생ID||'').trim().toUpperCase();if(!studentId){body.innerHTML='<div class="wm-map-report-message">학생 정보를 확인할 수 없습니다.</div>';return;}
+  wmMapPublishedReportState.loading=true;body.innerHTML='<div class="wm-map-report-message">성적표를 불러오는 중입니다.</div>';
+  try{const url=wmGetApiBaseUrl()+'?action=mapPublishedReports&mode=mapPublishedReports&studentId='+encodeURIComponent(studentId)+'&t='+Date.now();const response=await fetch(url,{cache:'no-store'});const data=await response.json();if(!data||data.success!==true)throw new Error(data&&data.message||'성적표 조회 실패');wmMapPublishedReportState={loaded:true,loading:false,periods:Array.isArray(data.periods)?data.periods:[],rows:Array.isArray(data.rows)?data.rows:[],defaultKey:data.defaultKey||''};wmMapReportFillSelect_();}catch(err){wmMapPublishedReportState.loading=false;body.innerHTML='<div class="wm-map-report-message">'+escapeHtml(String(err&&err.message||err))+'</div>';}
+}
+function wmClosePublishedReportModal_(){const modal=document.getElementById('wmMapReportModal');if(modal)modal.classList.remove('active');document.body.classList.remove('wm-map-report-open');}
+/* WM_MAP_LMS_RECENT_REPORT_SHARED_V1
+ * Map은 계산하지 않고 LMS 최근성적표보기의 recentReportMonths·monthlyReportData를 그대로 사용합니다. */
+let wmMapRecentReportState_={loaded:false,loading:false,months:[],defaultYearMonth:'',studentId:'',cache:new Map()};
+function wmMapRecentSet_(sheet,selector,value){const el=sheet&&sheet.querySelector(selector);if(el)el.textContent=value==null?'':String(value);}
+function wmMapRecentCells_(row,values){values.forEach(value=>{const td=document.createElement('td');td.textContent=value==null?'':String(value);row.appendChild(td);});}
+function wmMapRecentMinute_(value){const raw=String(value||'').trim(),m=raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2}))?/);return m?m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0')+(m[4]?' '+String(m[4]).padStart(2,'0')+':'+String(m[5]).padStart(2,'0'):''):raw;}
+function wmMapRecentPeriod_(start,end){const s=String(start||'').match(/^(\d{4})-(\d{2})-(\d{2})$/),e=String(end||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!s)return '-';const a=s[1].slice(-2)+'.'+s[2]+'.'+s[3];return !e||start===end?a:a+'-'+e[2]+'.'+e[3];}
+function wmMapRecentCreated_(value){const raw=String(value||'').trim(),m=raw.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})[ T](\d{1,2}):(\d{1,2})/);return m?m[1].slice(-2)+'.'+String(m[2]).padStart(2,'0')+'.'+String(m[3]).padStart(2,'0')+' '+String(m[4]).padStart(2,'0')+':'+String(m[5]).padStart(2,'0'):raw;}
+function wmMapBindRecentReport_(data){
+  const template=document.getElementById('wmReportTemplate'),parser=document.createElement('div');if(!template)return '';parser.innerHTML=template.innerHTML;
+  const sheet=parser.querySelector('.wmr-sheet');if(!sheet)return '';
+  const period=data.period||{},student=data.student||{},monthly=data.monthly||{},comments=data.comments||{},level=data.levelProgress||{};
+  [['[data-wmr-year]',period.year?period.year+'년':''],['[data-wmr-month]',period.month?period.month+'월':''],['[data-wmr-week]',period.label||(period.week?period.week+'주차':'')],['[data-wmr-school]',student.school||''],['[data-wmr-grade]',student.grade||''],['[data-wmr-name]',student.studentName||''],['[data-wmr-student-id]',student.studentId||''],['[data-wmr-class]',student.className||''],['[data-wmr-level]',student.learningLevel||''],['[data-wmr-completed]',monthly.completedSets||0],['[data-wmr-words]',monthly.wordCount||0],['[data-wmr-average]',monthly.averageScore||0],['[data-wmr-days]',monthly.attendanceDays||0]].forEach(pair=>wmMapRecentSet_(sheet,pair[0],pair[1]));
+  const round=Math.max(1,Number(level.currentRound||1)),condition=Math.max(1,Number(level.levelCompletionCondition||1)),conditionEl=sheet.querySelector('[data-wmr-monthly-condition]');if(conditionEl)conditionEl.innerHTML='(레벨완료조건 <span class="wmr-monthly-condition-number">'+condition+'</span>회 중 <span class="wmr-monthly-condition-number">'+round+'</span>회차 진행중)';
+  [['[data-wmr-kpi-completed-sub]','전체 '+Math.max(0,Number(level.totalSets||0))+'세트'],['[data-wmr-kpi-words-sub]','해당 주차'],['[data-wmr-kpi-average-sub]','누적 평균'],['[data-wmr-kpi-time-sub]','학습 소요시간'],['[data-wmr-kpi-days-sub]','누적 출석'],['[data-wmr-teacher-comment]',String(comments.teacherComment||'').slice(0,110)],['[data-wmr-message]',String(comments.encouragementMessage||'').slice(0,110)]].forEach(pair=>wmMapRecentSet_(sheet,pair[0],pair[1]));
+  const totalTime=monthly.totalTime||{},timeEl=sheet.querySelector('[data-wmr-time]');if(timeEl){const h=Math.max(0,Number(totalTime.hours||0)),m=Math.max(0,Number(totalTime.minutesRemainder||0));timeEl.innerHTML=(h?'<span class="wmr-kpi-time-number">'+h+'</span><span class="wmr-kpi-time-unit">시간</span>':'')+'<span class="wmr-kpi-time-number">'+m+'</span><span class="wmr-kpi-time-unit">분</span>';}
+  const logo=sheet.querySelector('[data-wmr-logo]');if(logo&&String(comments.logoUrl||'').trim())logo.src=String(comments.logoUrl).trim();
+  const weekly=Array.from({length:5},(_,i)=>(data.weekly||[]).find(item=>Number(item&&item.week)===i+1)||{week:i+1,label:(i+1)+'주차',period:'-',completedSets:0,wordCount:0,averageScore:0,totalTime:'-',attendanceDays:0}),weekBody=sheet.querySelector('[data-wmr-week-body]');
+  if(weekBody){weekBody.innerHTML='';weekly.forEach((item,i)=>{const has=Number(item.completedSets||0)>0,row=document.createElement('tr');wmMapRecentCells_(row,[item.label||(i+1)+'주차',item.period||'-',has?item.completedSets:'-',has?item.wordCount:'-',has?item.averageScore:'-',has?(item.totalTime||'-'):'-',has?item.attendanceDays:'-']);weekBody.appendChild(row);});const active=weekly.filter(item=>Number(item.completedSets||0)>0),first=active[0],last=active[active.length-1],row=document.createElement('tr');wmMapRecentCells_(row,['합계',monthly.calculationStartDate&&monthly.calculationEndDate?wmMapRecentPeriod_(monthly.calculationStartDate,monthly.calculationEndDate):(first&&last?wmMapRecentPeriod_(first.startDate,last.endDate):'-'),Number(monthly.completedSets||0),Number(monthly.wordCount||0),Number(monthly.averageScore||0),(monthly.totalTime&&monthly.totalTime.text)||'0초',Number(monthly.attendanceDays||0)]);weekBody.appendChild(row);}
+  const detailBody=sheet.querySelector('[data-wmr-detail-body]');if(detailBody){detailBody.innerHTML='';const details=(data.detailRows||[]).slice(0,10);Array.from({length:10},(_,i)=>{const item=details[i]||{},row=document.createElement('tr');wmMapRecentCells_(row,[i+1,item.reportWeek||'-',wmMapRecentMinute_(item.learningDate)||'-',item.learningLevel||'-',item.setId||'-',item.setLearningTime||'-',item.wordCount===0?0:(item.wordCount||'-'),item.score===0?0:(item.score||'-'),item.testTime||'-',item.device||'-']);detailBody.appendChild(row);});}
+  const chart=sheet.querySelector('[data-wmr-score-chart]');if(chart){const scores=data.scoreTrend||[],points=Array.from({length:5},(_,i)=>{const week=i+1,item=scores.find(v=>Number(v&&v.week)===week)||{},has=Number(item.completedSets||0)>0,score=Number(item.averageScore);return !has||!Number.isFinite(score)?null:{week:week,score:Math.max(0,Math.min(100,score)),x:62+i*76,y:118-Math.max(0,Math.min(100,score))};}).filter(Boolean),grid=[0,20,40,60,80,100].map(v=>{const y=118-v;return '<line x1="42" y1="'+y+'" x2="374" y2="'+y+'"/><text x="32" y="'+(y+3)+'" text-anchor="end" font-size="9">'+v+'</text>';}).join(''),line=points.length?'<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" points="'+points.map(p=>p.x+','+p.y).join(' ')+'"/>':'',dots=points.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#0d55c8"/><text x="'+p.x+'" y="'+Math.max(10,p.y-8)+'" text-anchor="middle" font-size="10">'+p.score+'</text>').join(''),labels=Array.from({length:5},(_,i)=>'<text x="'+(62+i*76)+'" y="137" text-anchor="middle" font-size="10">'+(i+1)+'주차</text>').join('');chart.innerHTML='<svg viewBox="0 0 390 145"><g stroke="#d9e4f3">'+grid+'</g><line x1="42" y1="18" x2="42" y2="118" stroke="#64748b"/><line x1="42" y1="118" x2="374" y2="118" stroke="#64748b"/>'+line+dots+labels+'</svg>';}
+  const progress=Math.max(0,Math.min(100,Number(level.percentage||0))),donut=sheet.querySelector('[data-wmr-donut]');if(donut)donut.style.setProperty('--wmr-progress',progress+'%');wmMapRecentSet_(sheet,'[data-wmr-donut-level]',level.level||'');wmMapRecentSet_(sheet,'[data-wmr-progress]',progress+'%');
+  const levelBody=sheet.querySelector('[data-wmr-level-table]');if(levelBody){levelBody.innerHTML='';[['레벨완료조건',condition+'회'],['레벨완료횟수',Math.max(0,Number(level.levelCompletionCount||0))+'회'],['현재최종회차',String(level.currentRoundStatus||round+'회차 진행 중')],['완료세트수',Math.max(0,Number(level.completedSets||0))+'/'+Math.max(0,Number(level.totalSets||0))],['남은세트수',Math.max(0,Number(level.remainingSets||0))+'/'+Math.max(0,Number(level.totalSets||0))]].forEach(values=>{const row=document.createElement('tr');wmMapRecentCells_(row,values);levelBody.appendChild(row);});}
+  const gradeWrap=data.grade||{},gradeData=gradeWrap.found&&gradeWrap.gradeComment?gradeWrap.gradeComment:null;if(gradeData){const grade=String(gradeData.Grade||''),gradeClass=String(gradeData.Class||''),attendance=String(gradeData['출석점수']||'').replace(/점/g,''),focus=String(gradeData['참여집중도']||'').replace(/점/g,''),trend=String(gradeData['점수추이']||'').replace(/점/g,'');wmMapRecentSet_(sheet,'[data-wmr-grade-attendance]',attendance?attendance+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-focus]',focus?focus+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-trend]',trend?trend+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-final]',grade&&gradeClass?grade+'.'+gradeClass+'등급':'');const comment=sheet.querySelector('[data-wmr-auto-comment]'),lines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,5);if(comment)comment.innerHTML=lines.map(line=>'<span class="wmr-auto-comment-line">'+escapeHtml(line).replace(/(\d+\.\d+등급)/g,'<strong class="wmr-auto-comment-key">$1</strong>')+'</span>').join('');let created=sheet.querySelector('[data-wmr-grade-created]');if(!created){const box=sheet.querySelector('.wmr-auto-comment');if(box){created=document.createElement('div');created.className='wmr-auto-comment-created';created.setAttribute('data-wmr-grade-created','');box.appendChild(created);}}if(created)created.textContent=wmMapRecentCreated_(gradeData['생성일시']);}
+  sheet.setAttribute('data-wmr-map-lms-shared','true');return parser.innerHTML;
+}
+async function wmMapRecentMonths_(){const response=await fetch(wmGetApiBaseUrl()+'?mode=recentReportMonths&action=recentReportMonths&ts='+Date.now(),{cache:'no-store'}),data=await response.json();if(!response.ok||!data||data.success!==true||!Array.isArray(data.months)||data.months.length!==4)throw new Error(data&&data.message||'최근성적표 4개월 목록 오류');return data;}
+async function wmMapRecentData_(item){const studentId=wmMapRecentReportState_.studentId,week=Number(item&&item.selectedWeek||0),key=studentId+'|'+item.yearMonth+'|'+week,cached=wmMapRecentReportState_.cache.get(key);if(cached)return cached;const params=new URLSearchParams({mode:'monthlyReportData',action:'monthlyReportData',requestSource:'map',studentId:studentId,yearMonth:item.yearMonth,reportWeek:item.yearMonth+'-'+week+'주차',reportType:'월간',sessionToken:wmGetCurrentSessionToken(),ts:String(Date.now())}),response=await fetch(wmGetApiBaseUrl()+'?'+params.toString(),{cache:'no-store'}),data=await response.json();if(!response.ok||!data||data.success!==true||!data.data){if(data&&data.sessionExpired)wmShowSessionExpiredModal();throw new Error(data&&data.message||'성적 내용이 없습니다.');}wmMapRecentReportState_.cache.set(key,data.data);return data.data;}
+async function wmMapRecentRender_(){const select=document.getElementById('wmMapReportPeriodSelect'),body=document.getElementById('wmMapReportBody'),title=document.querySelector('#wmMapReportModal .wm-map-report-title'),item=wmMapRecentReportState_.months.find(month=>month.yearMonth===String(select&&select.value||''));if(!item||!body)return;body.innerHTML='<div class="wm-map-report-message">성적표를 불러오는 중입니다.</div>';try{const data=await wmMapRecentData_(item),name=String(data&&data.student&&data.student.studentName||'').trim();if(title)title.textContent='최근성적표보기 · '+name+' · '+item.label;body.innerHTML=wmMapBindRecentReport_(data)||'<div class="wm-map-report-message">성적 내용이 없습니다.</div>';}catch(err){body.innerHTML='<div class="wm-map-report-message">'+escapeHtml(String(err&&err.message||err))+'</div>';}}
+async function wmOpenLmsRecentReportModal_(){const modal=document.getElementById('wmMapReportModal'),body=document.getElementById('wmMapReportBody'),select=document.getElementById('wmMapReportPeriodSelect'),studentId=String(wmCurrentStudent&&wmCurrentStudent.학생ID||'').trim().toUpperCase(),sessionToken=wmGetCurrentSessionToken();if(!modal||!body||!select)return;modal.classList.add('active');document.body.classList.add('wm-map-report-open');if(!studentId||!sessionToken){body.innerHTML='<div class="wm-map-report-message">학생 로그인 정보를 확인할 수 없습니다.</div>';return;}wmMapRecentReportState_.studentId=studentId;if(wmMapRecentReportState_.loaded){await wmMapRecentRender_();return;}if(wmMapRecentReportState_.loading)return;wmMapRecentReportState_.loading=true;body.innerHTML='<div class="wm-map-report-message">최근 4개월을 불러오는 중입니다.</div>';try{const data=await wmMapRecentMonths_();wmMapRecentReportState_.months=data.months;wmMapRecentReportState_.defaultYearMonth=data.defaultYearMonth||data.months[0].yearMonth;wmMapRecentReportState_.loaded=true;select.innerHTML=data.months.map(item=>'<option value="'+escapeHtml(item.yearMonth)+'">'+escapeHtml(item.label)+'</option>').join('');select.value=wmMapRecentReportState_.defaultYearMonth;await wmMapRecentRender_();}catch(err){body.innerHTML='<div class="wm-map-report-message">'+escapeHtml(String(err&&err.message||err))+'</div>';}finally{wmMapRecentReportState_.loading=false;}}
+function wmInitPublishedReportModal_(){const open=document.getElementById('wm-report-view-button'),close=document.getElementById('wmMapReportClose'),select=document.getElementById('wmMapReportPeriodSelect'),modal=document.getElementById('wmMapReportModal');if(open)open.addEventListener('click',wmOpenLmsRecentReportModal_);if(close)close.addEventListener('click',wmClosePublishedReportModal_);if(select)select.addEventListener('change',wmMapRecentRender_);if(modal)modal.addEventListener('click',e=>{if(e.target===modal)wmClosePublishedReportModal_();});document.addEventListener('keydown',e=>{if(e.key==='Escape')wmClosePublishedReportModal_();});}
+
+/* ==========================================================
+   🔒 MAP APPROVED UI·FUNCTION LOCK V1.0 / 수정 금지
+
+   [승인 LOCK 8개]
+   1) 상단 학생정보·현재레벨·진행률·완료레벨 탭 블루 디자인
+   2) 완료레벨·완료세트 그린 처리 및 전체 상태별 색상
+   3) 세트 순차 학습·학습 진입 규칙
+   4) 성적표 보기 최근 4개월·드롭다운·모달·월 누적 공식·학생 세션
+   5) 숙제검사/학습기록 자세히 보기 블루 디자인·검색·요약정보
+   6) 하단 학습기록 15행·이전/다음·가로 스크롤·표 구조
+   7) 직접진입 차단·세션만료·LMS 학습맵 읽기전용 Preview
+   8) 조회 중·자료 없음·오류 표시 처리
+
+   Registry·그룹·함수 참조는 동결하며 전역 재할당·삭제를 차단합니다.
+   F12 Console의 WORD MATE MAP APPROVED LOCK STATUS에서 실제 상태를 확인합니다.
+   ========================================================== */
+(function wmMapApprovedLockV1_(){
+  'use strict';
+
+  var VERSION = 'WM_MAP_APPROVED_UI_FUNCTION_LOCK_V1.0';
+  var DATE = '2026-08-04';
+
+  var RAW_GROUPS = {
+    topBlueDesign:{
+      label:'상단 학생정보·레벨·진행률·완료레벨 블루 디자인',
+      functions:['wmApplyStudentLearningMap','wmApplyLearningMapStatus','wmRenderRecordLevelHistoryBoard_','wmUpdateStudentLevelHeaderLabel_','updateProgress'],
+      selectors:['.student-top-card','.level-bar','#mainProgressText','#progressFill']
+    },
+    levelSetColors:{
+      label:'완료레벨·완료세트 그린 및 전체 상태별 색상',
+      functions:['renderSetMap','getBlockClass','getBlockContent','wmGetLevelHistoryClassForLevel_'],
+      selectors:['#setMap','.dot.leveldone']
+    },
+    sequentialStudy:{
+      label:'세트 순차 학습·학습 진입 규칙',
+      functions:['wmBuildSequentialDisplayRoundMapForMap_','renderSetMap','startStudy','showSetDetail'],
+      selectors:['#setMap']
+    },
+    recentReport:{
+      label:'성적표 최근 4개월·드롭다운·모달·월 누적·학생 세션',
+      functions:['wmMapRecentMonths_','wmMapRecentData_','wmMapRecentRender_','wmOpenLmsRecentReportModal_','wmMapBindRecentReport_','wmInitPublishedReportModal_','wmGetCurrentSessionToken'],
+      selectors:['#wm-report-view-button','#wmMapReportModal','#wmMapReportPeriodSelect','#wmMapReportBody']
+    },
+    homeworkBlueDesign:{
+      label:'숙제검사·학습기록 블루 디자인·검색·요약정보',
+      functions:['renderHomeworkTable','filterHomeworkRecords','resetHomeworkFilters','wmRenderHomeworkRow'],
+      selectors:['.wm-homework-control-box','.detail-header','.filter-box','#summaryProgress']
+    },
+    homeworkTable:{
+      label:'학습기록 15행·이전/다음·가로 스크롤·표 구조',
+      functions:['renderHomeworkTable','wmUpdateHomeworkPager_','wmMoveHomeworkPage_','wmInitHomeworkTopScrollbar'],
+      selectors:['.homework-table','#homeworkTableBody','#homeworkPager','#homeworkPageInfo','#homeworkTableScroll'],
+      pageSize:15
+    },
+    accessSessionPreview:{
+      label:'직접진입 차단·세션만료·LMS 읽기전용 Preview',
+      functions:['wmAuthorizeMapEntry_','wmRedirectToLogin_','wmShowSessionExpiredModal','wmIsLmsMapPreview_','wmApplyLmsPreviewReadOnly_','wmWatchLmsPreviewReadOnly_','wmRenderLmsMapPreview_'],
+      selectors:['#wm-map-root']
+    },
+    loadingEmptyError:{
+      label:'조회 중·자료 없음·오류 표시 처리',
+      functions:['wmShowMapLoadingState_','wmStopMapLoadingState_','wmShowMapMessage','wmShowMapUnavailable_','wmMapRecentRender_'],
+      selectors:['#setMap','#wmMapReportBody','#homeworkTableBody']
+    }
+  };
+
+  function freezeGroup_(group){
+    return Object.freeze({
+      label:String(group.label || ''),
+      functions:Object.freeze((group.functions || []).slice()),
+      selectors:Object.freeze((group.selectors || []).slice()),
+      pageSize:group.pageSize || 0
+    });
+  }
+
+  var GROUPS = {};
+  Object.keys(RAW_GROUPS).forEach(function(key){ GROUPS[key] = freezeGroup_(RAW_GROUPS[key]); });
+  GROUPS = Object.freeze(GROUPS);
+
+  function lockGlobal_(name, value){
+    try{
+      var descriptor = Object.getOwnPropertyDescriptor(window, name);
+      if(descriptor && descriptor.configurable === false){
+        if(descriptor.value !== value) return false;
+        if(descriptor.writable === true){
+          Object.defineProperty(window, name, {writable:false});
+          descriptor = Object.getOwnPropertyDescriptor(window, name);
+        }
+        return !!descriptor && descriptor.value === value && descriptor.writable === false;
+      }
+      Object.defineProperty(window, name, {
+        value:value,
+        writable:false,
+        configurable:false
+      });
+      var locked = Object.getOwnPropertyDescriptor(window, name);
+      return !!locked && locked.value === value && locked.writable === false && locked.configurable === false;
+    }catch(err){
+      return false;
+    }
+  }
+
+  var FUNCTION_RESULTS = {};
+  var REGISTRY = {};
+
+  Object.keys(GROUPS).forEach(function(key){
+    var group = GROUPS[key];
+    var functionsLocked = group.functions.every(function(name){
+      var fn = window[name];
+      var locked = typeof fn === 'function' && lockGlobal_(name, fn);
+      FUNCTION_RESULTS[name] = locked;
+      return locked;
+    });
+    var selectorsReady = group.selectors.every(function(selector){
+      return !!document.querySelector(selector);
+    });
+    var pageSizeReady = !group.pageSize || Number(WM_HOMEWORK_PAGE_SIZE) === Number(group.pageSize);
+    REGISTRY[key] = Object.freeze({
+      label:group.label,
+      functionsLocked:functionsLocked,
+      selectorsReady:selectorsReady,
+      pageSizeReady:pageSizeReady,
+      locked:functionsLocked && selectorsReady && pageSizeReady
+    });
+  });
+
+  FUNCTION_RESULTS = Object.freeze(FUNCTION_RESULTS);
+  REGISTRY = Object.freeze(REGISTRY);
+
+  function wmGetMapApprovedLockStatus_(){
+    var allLocked = Object.keys(REGISTRY).length === 8 && Object.keys(REGISTRY).every(function(key){
+      return REGISTRY[key].locked === true;
+    });
+    return Object.freeze({
+      version:VERSION,
+      date:DATE,
+      groups:GROUPS,
+      registry:REGISTRY,
+      functions:FUNCTION_RESULTS,
+      allLocked:allLocked
+    });
+  }
+
+  function wmPrintMapApprovedLockStatus_(){
+    var status = wmGetMapApprovedLockStatus_();
+    var rows = {};
+    Object.keys(status.registry).forEach(function(key){
+      var item = status.registry[key];
+      rows[item.label] = item.locked ? '✅ LOCK' : '❌ CHECK';
+    });
+    console.group('🔒 WORD MATE MAP APPROVED LOCK STATUS');
+    console.log('LOCK VERSION : ' + status.version);
+    console.log('LOCK DATE    : ' + status.date);
+    console.table(rows);
+    console.log(status.allLocked ? '🔒 MAP APPROVED 8 GROUPS ALL LOCK VERIFIED' : '⚠️ MAP APPROVED LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return status;
+  }
+
+  var globalsLocked = [
+    lockGlobal_('WM_MAP_APPROVED_LOCK_GROUPS', GROUPS),
+    lockGlobal_('WM_MAP_APPROVED_LOCK_FUNCTIONS', FUNCTION_RESULTS),
+    lockGlobal_('WM_MAP_APPROVED_LOCK_REGISTRY', REGISTRY),
+    lockGlobal_('WM_MAP_APPROVED_LOCK_VERSION', VERSION),
+    lockGlobal_('WM_MAP_APPROVED_LOCK_DATE', DATE),
+    lockGlobal_('wmGetMapApprovedLockStatus', wmGetMapApprovedLockStatus_),
+    lockGlobal_('wmLogMapApprovedLockStatus', wmPrintMapApprovedLockStatus_)
+  ].every(function(value){ return value === true; });
+
+  if(!globalsLocked){
+    console.error('MAP APPROVED LOCK GLOBAL PROTECTION ERROR');
+  }
+  wmPrintMapApprovedLockStatus_();
+})();
+
+wmInitPublishedReportModal_();
 wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
