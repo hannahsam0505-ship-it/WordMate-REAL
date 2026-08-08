@@ -371,6 +371,39 @@ WMDC_CURRENT_SET_RUN_AND_AUX_TESTS_V2 적용: 현재세트실행 상단 고정�
   align-items:end;
 }
 
+/* WMDC_BOTTOM_DEV_TEST_CONTROL_V1: 빠른이동테스트 하단 복제 제어판 / 상단 원본·Floating 배너 유지 */
+#wmdc-root .wmdc-bottom-dev-control{
+  margin-top:16px;
+  padding:18px;
+  border:2px solid #2563eb;
+  border-radius:16px;
+  background:#f8fbff;
+}
+#wmdc-root .wmdc-bottom-dev-control-title{
+  margin-bottom:14px;
+  font-size:19px;
+  font-weight:900;
+  color:#111827;
+}
+#wmdc-root .wmdc-bottom-dev-control-actions{
+  display:flex;
+  justify-content:center;
+  margin-top:12px;
+}
+#wmdc-root .wmdc-bottom-dev-control-run{
+  min-width:220px;
+  min-height:42px;
+  border:none;
+  border-radius:12px;
+  background:#2563eb;
+  color:#fff;
+  font-size:15px;
+  font-weight:900;
+  cursor:pointer;
+  padding:10px 18px;
+}
+#wmdc-root .wmdc-bottom-dev-control-run:hover{opacity:.92;}
+
 @media (max-width:1100px){
   #wmdc-root .wmdc-deploy-grid,
   #wmdc-root .wmdc-deploy-grid.five{
@@ -1022,6 +1055,115 @@ WMDC_CURRENT_SET_RUN_AND_AUX_TESTS_V2 적용: 현재세트실행 상단 고정�
   line-height:1.6;
 }
 
+
+/* WMDC_AUDIO_QA_SIMPLE_ACTUAL_TEXT_WAVE_V1 */
+#wmdc-root .wmdc-qa-result{font-size:12px;font-weight:900;line-height:1.45;white-space:normal;min-width:110px;}
+#wmdc-root .wmdc-qa-result.ok{color:#15803d;}
+#wmdc-root .wmdc-qa-result.check{color:#b45309;}
+#wmdc-root .wmdc-qa-result.danger{color:#dc2626;}
+#wmdc-root .wmdc-qa-human-actions{display:flex;gap:5px;flex-wrap:wrap;min-width:130px;}
+#wmdc-root .wmdc-qa-mini-btn.listen{background:#7c3aed;}
+#wmdc-root .wmdc-qa-mini-btn.analyze{background:#0369a1;}
+#wmdc-root .wmdc-qa-mini-btn.human-ok{background:#16a34a;}
+#wmdc-root .wmdc-qa-mini-btn.human-error{background:#dc2626;}
+#wmdc-root .wmdc-qa-wave{width:120px;height:34px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;}
+#wmdc-root .wmdc-audio-qa-table th,#wmdc-root .wmdc-audio-qa-table td{vertical-align:top;}
+
+
+/* WMDC_185_AUDIO_FINAL_QA_V1: 185개 수정음원 전용 이어듣기 최종검수 */
+#wmdc-root .wmdc-185qa-card{
+  margin-top:20px;
+  border:2px solid #0f766e;
+  border-radius:16px;
+  background:#f0fdfa;
+  padding:18px;
+}
+#wmdc-root .wmdc-185qa-title{font-size:20px;font-weight:900;color:#134e4a;margin-bottom:6px;}
+#wmdc-root .wmdc-185qa-note{font-size:13px;line-height:1.55;color:#475569;margin-bottom:12px;}
+#wmdc-root .wmdc-185qa-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+#wmdc-root .wmdc-185qa-btn{
+  border:none;border-radius:10px;background:#0f172a;color:#fff;
+  font-size:13px;font-weight:900;padding:10px 13px;cursor:pointer;
+}
+#wmdc-root .wmdc-185qa-btn.primary{background:#0f766e;}
+#wmdc-root .wmdc-185qa-btn.stop{background:#b91c1c;}
+#wmdc-root .wmdc-185qa-btn.ok{background:#15803d;}
+#wmdc-root .wmdc-185qa-btn.error{background:#dc2626;}
+#wmdc-root .wmdc-185qa-btn:disabled{opacity:.5;cursor:not-allowed;}
+#wmdc-root .wmdc-185qa-status{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;
+}
+#wmdc-root .wmdc-185qa-stat{background:#fff;border:1px solid #99f6e4;border-radius:10px;padding:10px;font-size:13px;font-weight:800;color:#334155;}
+#wmdc-root .wmdc-185qa-now{
+  background:#fff;border:2px solid #5eead4;border-radius:14px;padding:16px;margin-bottom:12px;
+}
+#wmdc-root .wmdc-185qa-word{font-size:30px;font-weight:900;color:#111827;margin:4px 0 8px;}
+#wmdc-root .wmdc-185qa-meta{font-size:13px;color:#475569;word-break:break-all;line-height:1.55;}
+#wmdc-root .wmdc-185qa-human{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+#wmdc-root .wmdc-185qa-list{
+  max-height:300px;overflow:auto;background:#fff;border:1px solid #ccfbf1;border-radius:12px;
+}
+#wmdc-root .wmdc-185qa-row{
+  display:grid;grid-template-columns:52px 115px minmax(130px,1fr) 80px;
+  gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #e5e7eb;
+  font-size:12px;
+}
+#wmdc-root .wmdc-185qa-row.current{background:#ecfeff;font-weight:900;}
+#wmdc-root .wmdc-185qa-row:last-child{border-bottom:none;}
+@media(max-width:700px){
+  #wmdc-root .wmdc-185qa-status{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #wmdc-root .wmdc-185qa-row{grid-template-columns:42px 100px minmax(110px,1fr) 70px;}
+}
+
+
+/* WMDC_LEVEL_ACTUAL_AUDIO_CONTINUOUS_QA_V1: 레벨별 실제 적용음원 이어듣기 */
+#wmdc-root .wmdc-levelqa-card{
+  margin-top:20px;border:2px solid #4f46e5;border-radius:16px;
+  background:#eef2ff;padding:18px;
+}
+#wmdc-root .wmdc-levelqa-title{font-size:20px;font-weight:900;color:#312e81;margin-bottom:6px;}
+#wmdc-root .wmdc-levelqa-note{font-size:13px;line-height:1.55;color:#475569;margin-bottom:12px;}
+#wmdc-root .wmdc-levelqa-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+#wmdc-root .wmdc-levelqa-select{
+  min-height:40px;border:1px solid #a5b4fc;border-radius:10px;background:#fff;
+  padding:8px 12px;font-size:13px;font-weight:900;
+}
+#wmdc-root .wmdc-levelqa-btn{
+  border:none;border-radius:10px;background:#3730a3;color:#fff;
+  font-size:13px;font-weight:900;padding:10px 13px;cursor:pointer;
+}
+#wmdc-root .wmdc-levelqa-btn.gray{background:#475569;}
+#wmdc-root .wmdc-levelqa-btn.stop{background:#b91c1c;}
+#wmdc-root .wmdc-levelqa-btn:disabled{opacity:.5;cursor:not-allowed;}
+#wmdc-root .wmdc-levelqa-status{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;
+}
+#wmdc-root .wmdc-levelqa-stat{
+  background:#fff;border:1px solid #c7d2fe;border-radius:10px;
+  padding:10px;font-size:13px;font-weight:800;color:#334155;
+}
+#wmdc-root .wmdc-levelqa-now{
+  background:#fff;border:2px solid #a5b4fc;border-radius:14px;padding:16px;margin-bottom:12px;
+}
+#wmdc-root .wmdc-levelqa-word{font-size:30px;font-weight:900;color:#111827;margin:4px 0 8px;}
+#wmdc-root .wmdc-levelqa-meta{font-size:13px;color:#475569;word-break:break-all;line-height:1.55;}
+#wmdc-root .wmdc-levelqa-source{
+  display:inline-flex;border-radius:999px;padding:4px 8px;margin-left:6px;
+  background:#e0e7ff;color:#3730a3;font-size:11px;font-weight:900;
+}
+#wmdc-root .wmdc-levelqa-list{
+  max-height:300px;overflow:auto;background:#fff;border:1px solid #c7d2fe;border-radius:12px;
+}
+#wmdc-root .wmdc-levelqa-row{
+  display:grid;grid-template-columns:58px 110px minmax(130px,1fr) 92px;
+  gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;
+}
+#wmdc-root .wmdc-levelqa-row.current{background:#eef2ff;font-weight:900;}
+#wmdc-root .wmdc-levelqa-row:last-child{border-bottom:none;}
+@media(max-width:700px){
+  #wmdc-root .wmdc-levelqa-status{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #wmdc-root .wmdc-levelqa-row{grid-template-columns:48px 96px minmax(110px,1fr) 80px;}
+}
 
 /* WMDC_SET_NAV_V7 + WMDC_TOP_DOCKING_MINI_BAR_V5: 현재세트 접두어 13px / 세트번호 26px / 로딩 32px 유지 / 상단바 세로·가로 여백 축소 / DB·음원·LOCK 로직 무변경 */
 #wmdc-root .wmdc-set-nav{
@@ -3009,8 +3151,16 @@ window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
 
 
 
+    <!--
+      WMDC_AUDIO_QA_FUTURE_USE_NOTE_V1
+      [보존 목적]
+      - 전체 음원 자동검수 기능은 삭제하지 않고 향후 문제 음원·신규/수정 음원 발생 시 재사용합니다.
+      - 현재 7,300여 전체 음원에 검수완료 판정을 강제 적용하지 않습니다.
+      - 기능: 실제 적용 음원 확인 + 문자 비교 + 파형 검사 + 5회 동일성 + 사람 정상/오류 판정.
+      - 현재 운영 검수의 우선 대상은 아래 별도 "185개 수정음원 최종검수" 패널입니다.
+    -->
     <div class="dev-card">
-      <div class="dev-section-title">9레벨 음원 자동검수 패널 <span class="wmdc-course-badge" data-wmdc-course-label>WMB 9-1-1</span></div>
+      <div class="dev-section-title">음원 자동검수 패널 <span class="wmdc-course-badge" data-wmdc-course-label>WMB 9-1-1</span></div>
       <div class="wmdc-audio-qa-topline">
         <div class="status-box wmdc-audio-qa-status-inline">
           <div class="status-item" id="wmdc-qa-total">검수대상 : 대기</div>
@@ -3020,13 +3170,14 @@ window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
         </div>
         <!-- WM_AUDIO_QA_BUTTONS_LOCK_V1 -->
         <div class="wmdc-audio-qa-tools">
+          <button class="wmdc-audio-qa-btn" type="button" id="wmdc-run-audio-qa">자동검수 실행</button>
           <button class="wmdc-audio-qa-btn red" type="button" id="wmdc-show-risk-only">확인필요만</button>
           <button class="wmdc-audio-qa-btn gray" type="button" id="wmdc-show-all-qa">세트복귀</button>
           <button class="wmdc-audio-qa-btn" type="button" id="wmdc-fix-all-qa">전체수정</button>
         </div>
       </div>
       <div id="wmdc-audio-qa-panel" class="wmdc-qa-empty">
-        DEV 학습테스트를 눌러 실제 DB 데이터를 먼저 불러오면, 9레벨 DB 콘텐츠를 확인합니다. 실제 mp3 음원 연결은 후속 작업에서 적용합니다.
+        현재세트를 실행한 뒤 자동검수를 누르면 학생에게 실제 재생되는 음원을 기준으로 문자·파형·5회 동일성을 검사합니다. 마지막에는 정답 단어를 보면서 실제음원을 듣고 정상/오류를 직접 판정합니다.
       </div>
     </div>
 
@@ -3071,6 +3222,131 @@ window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
         <span class="wmdc-nav-current"><span data-wmdc-nav-current><span class="wmdc-nav-prefix">현재세트</span><span class="wmdc-nav-set">9-1-1</span></span><span class="wmdc-nav-spinner" data-wmdc-nav-spinner aria-label="loading"></span></span>
         <button class="wmdc-nav-btn next" type="button" data-wmdc-nav-action="next">다음세트</button>
       </div>
+
+      <!-- WMDC_BOTTOM_DEV_TEST_CONTROL_V1 -->
+      <div class="wmdc-bottom-dev-control" id="wmdc-bottom-dev-control">
+        <div class="wmdc-bottom-dev-control-title">DEV TEST CONTROL · 하단 복제 제어판</div>
+        <div class="wmdc-dev-control-grid">
+          <div class="form-group">
+            <label class="form-label">DEV분류</label>
+            <select class="form-select" id="wmdc-bottom-student"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">레벨</label>
+            <select class="form-select" id="wmdc-bottom-level"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">파트</label>
+            <select class="form-select" id="wmdc-bottom-part"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">세트</label>
+            <select class="form-select" id="wmdc-bottom-set"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Set_ID</label>
+            <input type="text" class="form-input" id="wmdc-bottom-set-id" readonly>
+          </div>
+        </div>
+        <div class="wmdc-bottom-dev-control-actions">
+          <button class="wmdc-bottom-dev-control-run" type="button" id="wmdc-bottom-run-dev">
+            현재세트 실행
+          </button>
+        </div>
+      </div>
+      <!-- WMDC_BOTTOM_DEV_TEST_CONTROL_V1 END -->
+    </div>
+
+
+    <!-- WMDC_185_AUDIO_FINAL_QA_V1
+      이번 수정분 185개만 검수합니다.
+      1회/2회/5회 이어듣기는 각 독립 MP3를 "파일 끝까지" 재생한 뒤 다음 단어로 이동합니다.
+      특히 발음 종료 뒤 늦게 발생하는 잡음까지 사람이 들을 수 있도록 재생 중간에 강제 cut 하지 않습니다.
+      상단 전체 자동검수 패널과 분리되어 기존 전체 음원 판정에는 영향을 주지 않습니다.
+    -->
+    <div class="wmdc-185qa-card" id="wmdc-185qa-card">
+      <div class="wmdc-185qa-title">185개 수정음원 최종검수</div>
+      <div class="wmdc-185qa-note">
+        이번 수정분 185개만 실제 적용 MP3의 끝까지 이어듣습니다. 2회 듣기를 기본 전수검수로 권장하며,
+        1회는 빠른 재확인, 5회는 잡음·반복 이상 의심 단어 정밀확인용입니다.
+      </div>
+      <div class="wmdc-185qa-tools">
+        <button type="button" class="wmdc-185qa-btn primary" id="wmdc-185qa-play1">1회 이어듣기</button>
+        <button type="button" class="wmdc-185qa-btn primary" id="wmdc-185qa-play2">2회 이어듣기</button>
+        <button type="button" class="wmdc-185qa-btn primary" id="wmdc-185qa-play5">5회 이어듣기</button>
+        <button type="button" class="wmdc-185qa-btn" id="wmdc-185qa-pause">일시정지</button>
+        <button type="button" class="wmdc-185qa-btn" id="wmdc-185qa-resume">계속</button>
+        <button type="button" class="wmdc-185qa-btn stop" id="wmdc-185qa-stop">정지</button>
+        <button type="button" class="wmdc-185qa-btn" id="wmdc-185qa-prev">이전</button>
+        <button type="button" class="wmdc-185qa-btn" id="wmdc-185qa-next">다음</button>
+      </div>
+      <div class="wmdc-185qa-status">
+        <div class="wmdc-185qa-stat" id="wmdc-185qa-total">대상: 185</div>
+        <div class="wmdc-185qa-stat" id="wmdc-185qa-progress">진행: 0 / 185</div>
+        <div class="wmdc-185qa-stat" id="wmdc-185qa-okcount">정상: 0</div>
+        <div class="wmdc-185qa-stat" id="wmdc-185qa-errorcount">오류: 0</div>
+      </div>
+      <div class="wmdc-185qa-now">
+        <div class="wmdc-185qa-meta" id="wmdc-185qa-index">현재: 1 / 185</div>
+        <div class="wmdc-185qa-word" id="wmdc-185qa-word">대기</div>
+        <div class="wmdc-185qa-meta" id="wmdc-185qa-set">Set_ID: -</div>
+        <div class="wmdc-185qa-meta" id="wmdc-185qa-repeat">재생: 대기</div>
+        <div class="wmdc-185qa-meta" id="wmdc-185qa-url">실제 적용 MP3: -</div>
+        <div class="wmdc-185qa-human">
+          <button type="button" class="wmdc-185qa-btn ok" id="wmdc-185qa-human-ok">사람판정 정상</button>
+          <button type="button" class="wmdc-185qa-btn error" id="wmdc-185qa-human-error">사람판정 오류</button>
+          <button type="button" class="wmdc-185qa-btn" id="wmdc-185qa-replay">현재단어 다시듣기</button>
+        </div>
+      </div>
+      <div class="wmdc-185qa-list" id="wmdc-185qa-list"></div>
+    </div>
+
+
+    <!-- WMDC_LEVEL_ACTUAL_AUDIO_CONTINUOUS_QA_V1
+      레벨 단위로 모든 Set을 순서대로 불러와 학생에게 실제 적용되는 음원을 이어듣습니다.
+      - override 단어: 독립 MP3 전체를 끝까지 재생
+      - 일반 단어: 해당 Set의 실제 세트 음원 + DB Start/End 구간 재생
+      - 한 Set 종료 후 다음 Set으로 자동 진행하며 레벨 끝까지 끊지 않습니다.
+      - Study/DB 저장값을 수정하지 않는 검수 전용 기능입니다.
+    -->
+    <div class="wmdc-levelqa-card" id="wmdc-levelqa-card">
+      <div class="wmdc-levelqa-title">레벨별 실제 적용음원 이어듣기</div>
+      <div class="wmdc-levelqa-note">
+        선택한 레벨의 전체 세트를 순서대로 연결합니다. 수정 단어는 독립 MP3, 나머지는 실제 세트 음원의 Start/End 구간을 재생하므로 학생이 듣는 기준과 같습니다.
+      </div>
+      <div class="wmdc-levelqa-controls">
+        <select class="wmdc-levelqa-select" id="wmdc-levelqa-level">
+          <option value="3">Level 3</option><option value="4">Level 4</option>
+          <option value="5">Level 5</option><option value="6">Level 6</option>
+          <option value="7">Level 7</option><option value="8">Level 8</option>
+          <option value="9">Level 9</option><option value="10">Level 10</option>
+          <option value="11">Level 11</option><option value="12">Level 12</option>
+          <option value="13">Level 13</option>
+        </select>
+        <button type="button" class="wmdc-levelqa-btn" id="wmdc-levelqa-load">레벨 목록 불러오기</button>
+        <button type="button" class="wmdc-levelqa-btn" id="wmdc-levelqa-play1">1회 이어듣기</button>
+        <button type="button" class="wmdc-levelqa-btn" id="wmdc-levelqa-play2">2회 이어듣기</button>
+        <button type="button" class="wmdc-levelqa-btn" id="wmdc-levelqa-play5">5회 이어듣기</button>
+        <button type="button" class="wmdc-levelqa-btn gray" id="wmdc-levelqa-pause">일시정지</button>
+        <button type="button" class="wmdc-levelqa-btn gray" id="wmdc-levelqa-resume">계속</button>
+        <button type="button" class="wmdc-levelqa-btn stop" id="wmdc-levelqa-stop">정지</button>
+        <button type="button" class="wmdc-levelqa-btn gray" id="wmdc-levelqa-prev">이전</button>
+        <button type="button" class="wmdc-levelqa-btn gray" id="wmdc-levelqa-next">다음</button>
+      </div>
+      <div class="wmdc-levelqa-status">
+        <div class="wmdc-levelqa-stat" id="wmdc-levelqa-loadstate">목록: 미불러옴</div>
+        <div class="wmdc-levelqa-stat" id="wmdc-levelqa-total">대상: 0단어</div>
+        <div class="wmdc-levelqa-stat" id="wmdc-levelqa-progress">진행: 0 / 0</div>
+        <div class="wmdc-levelqa-stat" id="wmdc-levelqa-setprogress">세트: -</div>
+      </div>
+      <div class="wmdc-levelqa-now">
+        <div class="wmdc-levelqa-meta" id="wmdc-levelqa-index">현재: -</div>
+        <div class="wmdc-levelqa-word" id="wmdc-levelqa-word">대기</div>
+        <div class="wmdc-levelqa-meta" id="wmdc-levelqa-meta">Set_ID: -</div>
+        <div class="wmdc-levelqa-meta" id="wmdc-levelqa-repeat">재생: 대기</div>
+        <div class="wmdc-levelqa-meta" id="wmdc-levelqa-url">실제 적용 음원: -</div>
+      </div>
+      <div class="wmdc-levelqa-list" id="wmdc-levelqa-list"></div>
     </div>
 
     <!-- WM_DEVLOG_TOGGLE_LOCK_V1 -->
@@ -4750,7 +5026,7 @@ WM_ENV 값에 따라 Study.html이 호출할 Apps Script URL과 아임웹 주소
 
 const WM_ENV_CONFIG = {
   TEST: {
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzRlU8mLizcOC3Ycmy1B_hHRIQ6PzRs3Kit_Eaf-pCtdFzjKs04w5KwFsmB5OFAs9dH/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec',
     LOGIN_URL: 'https://hsam05.com/test-login',
     MAP_URL: 'https://word-mate-test.vercel.app/map',
     STUDY_URL: 'https://word-mate-test.vercel.app/study',
@@ -4759,8 +5035,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL: 'https://word-mate-real.vercel.app/map',
-    STUDY_URL: 'https://word-mate-real.vercel.app/study',
+    MAP_URL: 'https://study.hsam05.com/map',
+    STUDY_URL: 'https://study.hsam05.com/study',
     LMS_URL: 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -4818,34 +5094,163 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 })();
 </script>
 
-<!-- TEST_BOOTH_BANNER_DELETE_START -->
-<div id="wm-test-booth-banner">🧪 TEST 부스</div>
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 -->
+<div id="wm-test-booth-banner" role="status" aria-label="TEST 부스">🧪 TEST 부스</div>
 <style>
+  :root{--wm-test-booth-height:64px;}
   #wm-test-booth-banner{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
     width:100%;
+    height:var(--wm-test-booth-height);
     box-sizing:border-box;
+    align-items:center;
+    justify-content:center;
     background:#dc2626;
     color:#fff;
     text-align:center;
     font-size:28px;
     font-weight:900;
-    line-height:1.25;
-    padding:14px 10px;
+    line-height:1;
+    padding:0 10px;
     letter-spacing:-0.02em;
     font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
-    position:relative;
-    z-index:999999;
+    z-index:2147483000;
+  }
+  body.wm-test-booth-active{
+    margin-top:var(--wm-test-booth-height) !important;
+  }
+  body.wm-test-booth-active .wm-exit-btn{
+    top:calc(var(--wm-test-booth-height) + 14px) !important;
+  }
+  body.wm-test-booth-active .wm-exit-modal{
+    top:var(--wm-test-booth-height) !important;
+  }
+  @media (max-width:640px){
+    :root{--wm-test-booth-height:54px;}
+    #wm-test-booth-banner{font-size:22px;}
   }
 </style>
 <script>
 (function(){
-  const banner = document.getElementById('wm-test-booth-banner');
-  if(banner && WM_ENV !== 'TEST'){
-    banner.style.display = 'none';
+  'use strict';
+
+  var LOCK_VERSION = 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK_V1.0';
+  var LOCK_DATE = '2026-07-28';
+  var PAGE = "DEV";
+
+  function wmApplyTestBoothFloatingBanner(){
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var banner = document.getElementById('wm-test-booth-banner');
+    if(!banner) return false;
+    banner.style.display = isTest ? 'flex' : 'none';
+    if(document.body){
+      document.body.classList.toggle('wm-test-booth-active', isTest);
+    }
+    return isTest ? banner.style.display === 'flex' : banner.style.display === 'none';
   }
+
+  function wmGetTestBoothFloatingBannerLockStatus(){
+    var banner = document.getElementById('wm-test-booth-banner');
+    var isTest = String(typeof WM_ENV !== 'undefined' ? WM_ENV : '').toUpperCase() === 'TEST';
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'wmApplyTestBoothFloatingBanner') || {};
+    var registry = window.WM_TEST_BOOTH_FLOATING_BANNER_LOCK;
+    var style = banner && window.getComputedStyle ? window.getComputedStyle(banner) : null;
+    var status = {
+      page: PAGE,
+      environmentTest: isTest,
+      bannerElement: !!banner,
+      bannerText: !!banner && String(banner.textContent || '').trim() === '🧪 TEST 부스',
+      floatingFixed: !!style && style.position === 'fixed',
+      topFixed: !!style && style.top === '0px',
+      fullWidth: !!style && style.left === '0px' && style.right === '0px',
+      visibleInTest: !isTest || (!!style && style.display === 'flex'),
+      bodyOffset: !isTest || !!(document.body && document.body.classList.contains('wm-test-booth-active')),
+      actualFunction: descriptor.value === wmApplyTestBoothFloatingBanner,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.apply === wmApplyTestBoothFloatingBanner
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return ['page','verified'].indexOf(key) !== -1 || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFloatingBannerLockStatus(){
+    var s = wmGetTestBoothFloatingBannerLockStatus();
+    var rows = {
+      'TEST 환경': s.environmentTest,
+      '배너 요소': s.bannerElement,
+      '배너 문구': s.bannerText,
+      '상단 고정(position:fixed)': s.floatingFixed,
+      'top:0': s.topFixed,
+      '좌우 전체폭': s.fullWidth,
+      'TEST 표시': s.visibleInTest,
+      '본문 상단 보정': s.bodyOffset,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    };
+    console.group('🔒 WORD MATE TEST BOOTH FLOATING BANNER LOCK STATUS — ' + PAGE);
+    console.log('LOCK VERSION : ' + LOCK_VERSION);
+    console.log('LOCK DATE    : ' + LOCK_DATE);
+    console.table(rows);
+    console.log(s.verified ? '🔒 TEST BOOTH FLOATING BANNER ALL LOCK VERIFIED' : '❌ TEST BOOTH FLOATING BANNER LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'wmApplyTestBoothFloatingBanner', {
+    value: wmApplyTestBoothFloatingBanner,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFloatingBannerLockStatus', {
+    value: wmGetTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFloatingBannerLockStatus', {
+    value: wmPrintTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK', {
+    value: Object.freeze({
+      version: LOCK_VERSION,
+      date: LOCK_DATE,
+      page: PAGE,
+      apply: wmApplyTestBoothFloatingBanner,
+      status: wmGetTestBoothFloatingBannerLockStatus,
+      log: wmPrintTestBoothFloatingBannerLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  function boot(){
+    window.wmApplyTestBoothFloatingBanner();
+    setTimeout(window.wmLogTestBoothFloatingBannerLockStatus, 0);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load', function(){
+    window.wmApplyTestBoothFloatingBanner();
+    window.wmLogTestBoothFloatingBannerLockStatus();
+  }, {once:true});
 })();
 </script>
-<!-- TEST_BOOTH_BANNER_DELETE_END -->
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 END -->
 
 
 
@@ -6112,7 +6517,192 @@ const WM_WORD_AUDIO_OVERRIDE_URLS = Object.freeze({
   "WM13-3-3|penal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159109/WM13-3-3_penal_v2_isliyr.mp3",
   "WM13-3-7|breed":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159111/WM13-3-7_breed_v2_xqgap1.mp3",
   "WM13-4-8|progenitor":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159119/WM13-4-8_progenitor_v2_g0fvnr.mp3",
-  "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3"
+  "WM13-4-8|application":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1784159117/WM13-4-8_application_v2_neiryh.mp3",
+  "WM3-1-3|step":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488000/WM3-1-3_step_v2_sefab7.mp3",
+  "WM3-2-5|xylophone":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488539/wm3-2-5_xylophone_v2_ns1s37.mp3",
+  "WM3-2-7|sheet":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488545/wm3-2-7_sheet_v2_qbo2k3.mp3",
+  "WM4-1-4|curtain":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488545/wm4-1-4curtain_v2_pauauf.mp3",
+  "WM5-2-8|next":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488543/wm5-2-8_next_v2_gcbyp8.mp3",
+  "WM6-1-6|aunt":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488542/wm6-1-6_aunt_v2_yaml9n.mp3",
+  "WM6-1-7|read":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488539/wm6-1-7_read_v2_p7pdeq.mp3",
+  "WM6-1-8|heart":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488538/wm6-1-8_heart_v2_ahddvx.mp3",
+  "WM7-1-10|surf":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488590/wm7-1-10_surf_v2_fk1c5j.mp3",
+  "WM7-2-9|suggest":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488589/wm7-2-9_suggest_v2_yb0zco.mp3",
+  "WM7-3-3|should":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488588/wm7-3-3_should_v2_qaplss.mp3",
+  "WM7-3-6|introduction":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488587/wm7-3-6_introduction_v2_yafd3a.mp3",
+  "WM8-4-6|extinct":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488587/wm8-4-6_extinct_v2_hg0zmv.mp3",
+  "WM8-4-7|lives":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488586/wm8-4-7_lives_v2_kguull.mp3",
+  "WM9-1-1|characteristic":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488585/wm9-1-1_characteristic_v2_mj3tmb.mp3",
+  "WM9-1-1|conscience":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488584/wm9-1-1_conscience_v2_tbi4eu.mp3",
+  "WM9-1-1|cucumber":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488583/wm9-1-1_cucumber_v2_k8sliq.mp3",
+  "WM9-1-1|stubborn":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488582/wm9-1-1_stubborn_v2_knzisl.mp3",
+  "WM9-1-2|consideration":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488581/wm9-1-2_consideration_v2_chne4k.mp3",
+  "WM9-1-10|immediate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488581/wm9-1-10_immediate_v2_fsforv.mp3",
+  "WM9-2-2|humanity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488580/wm9-2-2_humanity_v2_pixizw.mp3",
+  "WM9-3-2|witty":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488578/wm9-3-2_witty_v2_aibkqk.mp3",
+  "WM9-3-4|surely":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488577/wm9-3-4_surely_v2_gzggdk.mp3",
+  "WM10-1-5|typically":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489257/wm10-1-5_typically_v2_qmj8jn.mp3",
+  "WM10-1-5|graduate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489268/wm10-1-5_graduate_v2_q8zspd.mp3",
+  "WM10-1-5|forefather":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489275/wm10-1-5_forefather_v2_yvehw4.mp3",
+  "WM10-1-5|profession":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489267/wm10-1-5_profession_v2_bbr0ro.mp3",
+  "WM10-1-5|tolerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489258/wm10-1-5_tolerate_v2_jwxjb6.mp3",
+  "WM10-3-9|outlet":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489248/wm10-3-9_outlet_v2_scdvwc.mp3",
+  "WM11-1-6|resistance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489240/wm11-1-6_resistance_v2_ivfzwl.mp3",
+  "WM11-2-1|universally":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489239/wm11-2-1_universally_v2_fnx1xu.mp3",
+  "WM11-2-4|unacceptable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489232/wm11-2-4_unacceptable_v2_ovrhpe.mp3",
+  "WM11-2-5|indifferent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489231/wm11-2-5_indifferent_v2_nwvjxk.mp3",
+  "WM11-2-8|comprehensive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489223/wm11-2-8_comprehensive_v2_ekcgve.mp3",
+  "WM11-2-8|point of view":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489222/wm11-2-8_point_of_view_v2_x5lyni.mp3",
+  "WM11-3-1|oilfield":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489212/wm11-3-1_oilfield_v2_pm8cgc.mp3",
+  "WM11-3-1|accelerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489216/wm11-3-1_accelerate_v2_sllpte.mp3",
+  "WM11-3-2|deliberate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489204/wm11-3-2_deliberate_v2_bo6zcv.mp3",
+  "WM11-3-3|compensate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489203/wm11-3-3_compensate_v2_zk4ino.mp3",
+  "WM11-3-5|coverage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489193/wm11-3-5_coverage_v2_ss1s5h.mp3",
+  "WM11-3-8|industrious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489192/wm11-3-8_industrious_v2_musbu2.mp3",
+  "WM11-3-9|second-hand":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489186/wm11-3-9_second-hand_v2_ul01ew.mp3",
+  "WM11-4-1|accumulate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489182/wm11-4-1_accumulate_v2_pnfbzs.mp3",
+  "WM11-4-2|discomfort":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489174/wm11-4-2_discomfort_v2_qwjbjk.mp3",
+  "WM11-4-3|compromise":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489173/wm11-4-3_compromise_v2_uglpqr.mp3",
+  "WM11-4-4|contagious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489167/wm11-4-4_contagious_v2_gehnxg.mp3",
+  "WM11-4-6|persuasive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489158/wm11-4-6_persuasive_v2_n7ngim.mp3",
+  "WM11-4-6|diameter":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489166/wm11-4-6_diameter_v2_hesxic.mp3",
+  "WM11-4-6|participate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489159/wm11-4-6_participate_v2_iunykc.mp3",
+  "WM11-4-7|emergence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489144/wm11-4-7_emergence_v2_ov8yke.mp3",
+  "WM11-4-7|electrical":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489151/wm11-4-7_electrical_v2_s0ogfv.mp3",
+  "WM11-4-7|straightforward":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489137/wm11-4-7_straightforward_v2_nakglc.mp3",
+  "WM11-4-7|endurance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489143/wm11-4-7_endurance_v2_qrpffv.mp3",
+  "WM11-4-7|constitution":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489152/wm11-4-7_constitution_v2_pr8qx0.mp3",
+  "WM11-4-8|operation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489122/wm11-4-8_operation_v2_oh1p7s.mp3",
+  "WM11-4-8|nevertheless":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489128/wm11-4-8_nevertheless_v2_q5ai4c.mp3",
+  "WM11-4-8|enlighten":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489129/wm11-4-8_enlighten_v2_yv25dw.mp3",
+  "WM11-4-8|propensity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489121/wm11-4-8_propensity_v2_momqdm.mp3",
+  "WM11-4-8|antipathy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489136/wm11-4-8_antipathy_v2_plvl7b.mp3",
+  "WM11-4-9|externalize":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489113/wm11-4-9_externalize_v2_zvt5im.mp3",
+  "WM11-4-9|unexplained":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489106/wm11-4-9_unexplained_v2_ppb4ol.mp3",
+  "WM11-4-9|dense":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489114/wm11-4-9_dense_v2_ojxea0.mp3",
+  "WM11-4-10|threaten":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489105/wm11-4-10_threaten_v2_akui2s.mp3",
+  "WM12-1-1|simulate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489098/wm12-1-1_simulate_v2_hlus5v.mp3",
+  "WM12-1-3|institute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489090/wm12-1-3_institute_v2_tqmbg2.mp3",
+  "WM12-1-3|initiative":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489097/wm12-1-3_initiative_v2_rzefdy.mp3",
+  "WM12-1-3|settlement":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489089/wm12-1-3_settlement_v2_ntehau.mp3",
+  "WM12-1-4|evaluation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489083/wm12-1-4_evaluation_v2_z29rqb.mp3",
+  "WM12-1-4|transparent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489082/wm12-1-4_transparent_v2_mwbdz2.mp3",
+  "WM12-1-6|partiality":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489067/wm12-1-6_partiality_v2_jqxsvl.mp3",
+  "WM12-1-6|dissimilar":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489076/wm12-1-6_dissimilar_v2_iqjcia.mp3",
+  "WM12-1-6|misestimate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489071/wm12-1-6_misestimate_v2_gp8meg.mp3",
+  "WM12-1-6|humiliate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489075/wm12-1-6_humiliate_v2_fd5gh0.mp3",
+  "WM12-1-7|subscriber":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489060/wm12-1-7_subscriber_v2_e18ifz.mp3",
+  "WM12-1-7|commentator":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489061/wm12-1-7_commentator_v2_zxamfh.mp3",
+  "WM12-1-8|lighthearted":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489054/wm12-1-8_lighthearted_v2_hcpd9i.mp3",
+  "WM12-1-9|constructive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489053/wm12-1-9_constructive_v2_ordo2m.mp3",
+  "WM12-1-10|illuminate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489045/wm12-1-10_illuminate_v2_sj98nz.mp3",
+  "WM12-1-10|admittance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489046/wm12-1-10_admittance_v2_jcyru9.mp3",
+  "WM12-2-1|adhesive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489038/wm12-2-1_adhesive_v2_ndcjyw.mp3",
+  "WM12-2-1|segregation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489029/wm12-2-1_segregation_v2_vj2xph.mp3",
+  "WM12-2-1|exquisite":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489030/wm12-2-1_exquisite_v2_oli7uc.mp3",
+  "WM12-2-1|definition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489037/wm12-2-1_definition_v2_kkdfdj.mp3",
+  "WM12-2-2|exquisitely":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489022/wm12-2-2_exquisitely_v2_pefay3.mp3",
+  "WM12-2-2|mortgage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489014/wm12-2-2_mortgage_v2_xakutz.mp3",
+  "WM12-2-2|moderation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489021/wm12-2-2_moderation_v2_fhcgv2.mp3",
+  "WM12-2-3|dissuade":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489006/wm12-2-3_dissuade_v2_e4mykq.mp3",
+  "WM12-2-3|acknowledgment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489013/wm12-2-3_acknowledgment_v2_iersbv.mp3",
+  "WM12-2-3|particle":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785489005/wm12-2-3_particle_v2_tahsyw.mp3",
+  "WM12-2-3|suppress":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488988/wm12-2-3_suppress_v2_nret5p.mp3",
+  "WM12-2-3|provincial":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488998/wm12-2-3_provincial_v2_zxovnm.mp3",
+  "WM12-2-3|stimulation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488997/wm12-2-3_stimulation_v2_fd0v6w.mp3",
+  "WM12-2-4|consistency":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488987/wm12-2-4_consistency_v2_bh5qee.mp3",
+  "WM12-2-5|annal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488981/wm12-2-5_annal_V2_nmvxab.mp3",
+  "WM12-2-5|nobility":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488976/wm12-2-5_nobility_v2_d6oubb.mp3",
+  "WM12-2-6|consensus":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488971/wm12-2-6_consensus_v2_ec3zar.mp3",
+  "WM12-2-6|privately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488966/wm12-2-6_privately_v2_q2lrzt.mp3",
+  "WM12-2-6|suspicious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488957/wm12-2-6_suspicious_v2_c9e84v.mp3",
+  "WM12-2-7|conviction":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488948/wm12-2-7_conviction_v2_a0y2ts.mp3",
+  "WM12-2-7|expedition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488947/wm12-2-7_expedition_v2_h3oxlc.mp3",
+  "WM12-2-7|temptation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488935/wm12-2-7_temptation_v2_h7vndu.mp3",
+  "WM12-2-7|commission":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488956/wm12-2-7_commission_v2_nolwqj.mp3",
+  "WM12-2-7|infringement":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488936/wm12-2-7_infringement_v2_frqtfe.mp3",
+  "WM12-2-8|diplomatic":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488926/wm12-2-8_diplomatic_v2_cbuklc.mp3",
+  "WM12-2-8|extroverted":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488917/wm12-2-8_extroverted_v2_skcvut.mp3",
+  "WM12-2-8|distortion":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488926/wm12-2-8_distortion_v2_s9z6u8.mp3",
+  "WM12-2-8|melancholy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488915/wm12-2-8_melancholy_v2_peflmm.mp3",
+  "WM12-2-9|discernment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488909/wm12-2-9_discernment_v2_al1qe4.mp3",
+  "WM12-2-9|permanence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488897/wm12-2-9_permanence_v2_fqxdyw.mp3",
+  "WM12-2-9|nourishment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488906/wm12-2-9_nourishment_v2_hj3mtw.mp3",
+  "WM12-2-10|disgusting":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488896/wm12-2-10_disgusting_v2_nbrrj3.mp3",
+  "WM12-2-10|practicable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488888/wm12-2-10_practicable_v2_gsqysz.mp3",
+  "WM12-3-1|attachment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488887/wm12-3-1_attachment_v2_xo0xh3.mp3",
+  "WM12-3-1|patronage":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488878/wm12-3-1_patronage_v2_w30eeb.mp3",
+  "WM12-3-1|auspicious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488880/wm12-3-1_auspicious_v2_ti6wr6.mp3",
+  "WM12-3-2|temperately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488877/wm12-3-2_temperately_v2_xn4kxh.mp3",
+  "WM12-3-3|proficiency":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488871/wm12-3-3_proficiency_v2_icqoad.mp3",
+  "WM12-3-5|complementary":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488870/wm12-3-5_complementary_v2_icikhq.mp3",
+  "WM12-3-5|narrative":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488864/wm12-3-5_narrative_v2_wdjb9c.mp3",
+  "WM12-3-7|conjunctive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488863/wm12-3-7_conjunctive_v2_kaujjd.mp3",
+  "WM12-4-3|structured":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488857/wm12-4-3_structured_v2_k37iis.mp3",
+  "WM12-4-4|scholarship":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488850/wm12-4-4_scholarship_v2_itylh5.mp3",
+  "WM12-4-4|prominent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488856/wm12-4-4_prominent_v2_aeak79.mp3",
+  "WM12-4-5|provocation":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488849/wm12-4-5_provocation_v2_mras6c.mp3",
+  "WM12-4-6|baldness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488842/wm12-4-6_baldness_v2_wwdbne.mp3",
+  "WM12-4-6|subsequent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488841/wm12-4-6_subsequent_v2_zoahbv.mp3",
+  "WM12-4-6|substitute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488833/wm12-4-6_substitute_v2_rdvs9n.mp3",
+  "WM12-4-7|competence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488832/wm12-4-7_competence_v2_cq7svd.mp3",
+  "WM12-4-7|proficient":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488831/wm12-4-7_proficient_v2_nzjsv0.mp3",
+  "WM12-4-8|humbleness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488824/wm12-4-8_humbleness_v2_vqxicx.mp3",
+  "WM12-4-9|steadily":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488823/wm12-4-9_steadily_v2_t5fwwx.mp3",
+  "WM12-4-9|stunning":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488822/wm12-4-9_stunning_v2_j3y65q.mp3",
+  "WM12-4-10|weirdness":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488816/wm12-4-10_weirdness_v2_csxtzl.mp3",
+  "WM12-5-1|destructive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488809/wm12-5-1_destructive_v2_uzjzxt.mp3",
+  "WM12-5-1|constitute":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488815/wm12-5-1_constitute_v2_k4kuyl.mp3",
+  "WM12-5-1|observance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488801/wm12-5-1_observance_v2_hrxkdu.mp3",
+  "WM12-5-1|honorable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488808/wm12-5-1_honorable_v2_pzzp0a.mp3",
+  "WM12-5-3|phenomenal":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488800/wm12-5-3_phenomenal_v2_bsczfv.mp3",
+  "WM12-5-4|victorious":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488786/wm12-5-4_victorious_v2_srnset.mp3",
+  "WM12-5-4|frightening":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488796/wm12-5-4_frightening_v2_al5phl.mp3",
+  "WM12-5-4|seemingly":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488793/wm12-5-4_seemingly_v2_dmaaqq.mp3",
+  "WM12-5-5|decelerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488778/wm12-5-5_decelerate_v2_yykk6q.mp3",
+  "WM12-5-5|compassionate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488771/wm12-5-5_compassionate_v2_eculy2.mp3",
+  "WM12-5-5|eastward":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488770/wm12-5-5_eastward_v2_a7hzws.mp3",
+  "WM12-5-5|compassion":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488779/wm12-5-5_compassion_v2_wmthsl.mp3",
+  "WM12-5-5|assumption":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488785/wm12-5-5_assumption_v2_v1mw8h.mp3",
+  "WM12-5-8|craft":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488763/wm12-5-8_craft_v2_lzvugc.mp3",
+  "WM12-5-9|sovereignty":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488752/wm12-5-9_sovereignty_v2_id2lqo.mp3",
+  "WM12-5-9|covenant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488762/wm12-5-9_covenant_v2_hvndkl.mp3",
+  "WM13-1-1|infamous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488735/wm13-1-1_infamous_v2_vygg2k.mp3",
+  "WM13-1-1|abhorrence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488751/wm13-1-1_abhorrence_v2_ercdsw.mp3",
+  "WM13-1-1|posthumous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488724/wm13-1-1_posthumous_v2_tjxubw.mp3",
+  "WM13-1-1|incarcerate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488743/wm13-1-1_incarcerate_v2_m6j71b.mp3",
+  "WM13-1-1|alleviate":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488744/wm13-1-1_alleviate_v2_adr0ql.mp3",
+  "WM13-1-1|nuisance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488734/wm13-1-1_nuisance_v2_ziv3rk.mp3",
+  "WM13-1-2|clinician":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488723/wm13-1-2_clinician_v2_gcgrju.mp3",
+  "WM13-1-3|methodical":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488717/wm13-1-3_methodical_v2_eqjy8l.mp3",
+  "WM13-1-4|indifference":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488711/wm13-1-4_indifference_v2_mj7rqi.mp3",
+  "WM13-1-4|diminutive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488716/wm13-1-4_diminutive_V2_ldy9th.mp3",
+  "WM13-1-4|inhibition":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488706/wm13-1-4_inhibition_v2_xvnawn.mp3",
+  "WM13-1-5|accolade":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488705/wm13-1-5_accolade_v2_l47irl.mp3",
+  "WM13-1-6|ultimately":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488693/wm13-1-6_ultimately_v2_lfydec.mp3",
+  "WM13-1-6|heredity":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488698/wm13-1-6_heredity_v2_m60uvq.mp3",
+  "WM13-1-6|chronically":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488699/wm13-1-6_chronically_v2_ttuqzb.mp3",
+  "WM13-1-8|disperse":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488692/wm13-1-8_disperse_v2_nbo8sf.mp3",
+  "WM13-1-9|counterpart":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488687/wm13-1-9_counterpart_v2_qcppbj.mp3",
+  "WM13-1-10|enlightenment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488686/wm13-1-10_enlightenment_v2_p0igzu.mp3",
+  "WM13-2-1|vigilant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785574658/wm13-2-1_vigilant_v2_pzkev1.mp3",
+  "WM13-2-2|dominant":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488681/wm13-2-2_dominant_v2_cjcgmu.mp3",
+  "WM13-2-6|teem with":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488680/wm13-2-6_teem-with_v2_edvnbr.mp3",
+  "WM13-2-10|metabolism":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488674/wm13-2-10_metabolism_v2_gxtwdd.mp3",
+  "WM13-2-10|forfeiture":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488676/wm13-2-10_forfeiture_v2_ku1ld5.mp3",
+  "WM13-3-1|sympathize":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488672/wm13-3-1_sympathize_v2_uxbsyn.mp3",
+  "WM13-3-3|unavoidable":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488668/wm13-3-3_unavoidable_v2_jyrclp.mp3",
+  "WM13-3-3|concurrent":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488669/wm13-3-3_concurrent_v2_z5groa.mp3",
+  "WM13-3-9|tantamount":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488666/wm13-3-9_tantamount_v2_cokmxm.mp3",
+  "WM13-4-3|impediment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488664/wm13-4-3_impediment_v2_jwnp00.mp3",
+  "WM13-4-4|hypothesis":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488661/wm13-4-4_hypothesis_v2_ftxige.mp3",
+  "WM13-4-4|groundless":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488662/wm13-4-4_groundless_v2_mouxsx.mp3",
+  "WM13-4-8|remedy":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488658/wm13-4-8_remedy_v2_ov1vyz.mp3",
+  "WM13-4-9|intolerance":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488658/wm13-4-9_intolerance_v2_ujfqr8.mp3",
+  "WM13-4-10|adolescence":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488655/wm13-4-10_adolescence_v2_cgw5uj.mp3",
+  "WM13-5-4|autonomous":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488654/wm13-5-4_autonomous_v2_dsiugd.mp3",
+  "WM13-5-5|enactment":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488653/wm13-5-5_enactment_v2_eixgjw.mp3",
+  "WM13-5-6|depictive":"https://res.cloudinary.com/dxb7rmph3/video/upload/v1785488652/wm13-5-6_depictive_v2_vnimwg.mp3"
 });
 
 /* distortion은 세트 ID 재확인 후 2차 LOCK 대상에 포함합니다. */
@@ -6125,7 +6715,69 @@ const WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS = Object.freeze([
   "WM12-1-5|statistical", "WM12-1-6|presumption", "WM12-2-7|malnourished",
   "WM12-2-8|melancholic", "WM12-2-8|controvert", "WM13-1-6|uniqueness",
   "WM13-2-7|dither", "WM13-3-3|penal", "WM13-3-7|breed",
-  "WM13-4-8|progenitor", "WM13-4-8|application"
+  "WM13-4-8|progenitor", "WM13-4-8|application", "WM3-1-3|step",
+  "WM3-2-5|xylophone", "WM3-2-7|sheet", "WM4-1-4|curtain",
+  "WM5-2-8|next", "WM6-1-6|aunt", "WM6-1-7|read",
+  "WM6-1-8|heart", "WM7-1-10|surf", "WM7-2-9|suggest",
+  "WM7-3-3|should", "WM7-3-6|introduction", "WM8-4-6|extinct",
+  "WM8-4-7|lives", "WM9-1-1|characteristic", "WM9-1-1|conscience",
+  "WM9-1-1|cucumber", "WM9-1-1|stubborn", "WM9-1-2|consideration",
+  "WM9-1-10|immediate", "WM9-2-2|humanity", "WM9-3-2|witty",
+  "WM9-3-4|surely", "WM10-1-5|typically", "WM10-1-5|graduate",
+  "WM10-1-5|forefather", "WM10-1-5|profession", "WM10-1-5|tolerate",
+  "WM10-3-9|outlet", "WM11-1-6|resistance", "WM11-2-1|universally",
+  "WM11-2-4|unacceptable", "WM11-2-5|indifferent", "WM11-2-8|comprehensive",
+  "WM11-2-8|point of view", "WM11-3-1|oilfield", "WM11-3-1|accelerate",
+  "WM11-3-2|deliberate", "WM11-3-3|compensate", "WM11-3-5|coverage",
+  "WM11-3-8|industrious", "WM11-3-9|second-hand", "WM11-4-1|accumulate",
+  "WM11-4-2|discomfort", "WM11-4-3|compromise", "WM11-4-4|contagious",
+  "WM11-4-6|persuasive", "WM11-4-6|diameter", "WM11-4-6|participate",
+  "WM11-4-7|emergence", "WM11-4-7|electrical", "WM11-4-7|straightforward",
+  "WM11-4-7|endurance", "WM11-4-7|constitution", "WM11-4-8|operation",
+  "WM11-4-8|nevertheless", "WM11-4-8|enlighten", "WM11-4-8|propensity",
+  "WM11-4-8|antipathy", "WM11-4-9|externalize", "WM11-4-9|unexplained",
+  "WM11-4-9|dense", "WM11-4-10|threaten", "WM12-1-1|simulate",
+  "WM12-1-3|institute", "WM12-1-3|initiative", "WM12-1-3|settlement",
+  "WM12-1-4|evaluation", "WM12-1-4|transparent", "WM12-1-6|partiality",
+  "WM12-1-6|dissimilar", "WM12-1-6|misestimate", "WM12-1-6|humiliate",
+  "WM12-1-7|subscriber", "WM12-1-7|commentator", "WM12-1-8|lighthearted",
+  "WM12-1-9|constructive", "WM12-1-10|illuminate", "WM12-1-10|admittance",
+  "WM12-2-1|adhesive", "WM12-2-1|segregation", "WM12-2-1|exquisite",
+  "WM12-2-1|definition", "WM12-2-2|exquisitely", "WM12-2-2|mortgage",
+  "WM12-2-2|moderation", "WM12-2-3|dissuade", "WM12-2-3|acknowledgment",
+  "WM12-2-3|particle", "WM12-2-3|suppress", "WM12-2-3|provincial",
+  "WM12-2-3|stimulation", "WM12-2-4|consistency", "WM12-2-5|annal",
+  "WM12-2-5|nobility", "WM12-2-6|consensus", "WM12-2-6|privately",
+  "WM12-2-6|suspicious", "WM12-2-7|conviction", "WM12-2-7|expedition",
+  "WM12-2-7|temptation", "WM12-2-7|commission", "WM12-2-7|infringement",
+  "WM12-2-8|diplomatic", "WM12-2-8|extroverted", "WM12-2-8|distortion",
+  "WM12-2-8|melancholy", "WM12-2-9|discernment", "WM12-2-9|permanence",
+  "WM12-2-9|nourishment", "WM12-2-10|disgusting", "WM12-2-10|practicable",
+  "WM12-3-1|attachment", "WM12-3-1|patronage", "WM12-3-1|auspicious",
+  "WM12-3-2|temperately", "WM12-3-3|proficiency", "WM12-3-5|complementary",
+  "WM12-3-5|narrative", "WM12-3-7|conjunctive", "WM12-4-3|structured",
+  "WM12-4-4|scholarship", "WM12-4-4|prominent", "WM12-4-5|provocation",
+  "WM12-4-6|baldness", "WM12-4-6|subsequent", "WM12-4-6|substitute",
+  "WM12-4-7|competence", "WM12-4-7|proficient", "WM12-4-8|humbleness",
+  "WM12-4-9|steadily", "WM12-4-9|stunning", "WM12-4-10|weirdness",
+  "WM12-5-1|destructive", "WM12-5-1|constitute", "WM12-5-1|observance",
+  "WM12-5-1|honorable", "WM12-5-3|phenomenal", "WM12-5-4|victorious",
+  "WM12-5-4|frightening", "WM12-5-4|seemingly", "WM12-5-5|decelerate",
+  "WM12-5-5|compassionate", "WM12-5-5|eastward", "WM12-5-5|compassion",
+  "WM12-5-5|assumption", "WM12-5-8|craft", "WM12-5-9|sovereignty",
+  "WM12-5-9|covenant", "WM13-1-1|infamous", "WM13-1-1|abhorrence",
+  "WM13-1-1|posthumous", "WM13-1-1|incarcerate", "WM13-1-1|alleviate",
+  "WM13-1-1|nuisance", "WM13-1-2|clinician", "WM13-1-3|methodical",
+  "WM13-1-4|indifference", "WM13-1-4|diminutive", "WM13-1-4|inhibition",
+  "WM13-1-5|accolade", "WM13-1-6|ultimately", "WM13-1-6|heredity",
+  "WM13-1-6|chronically", "WM13-1-8|disperse", "WM13-1-9|counterpart",
+  "WM13-1-10|enlightenment", "WM13-2-1|vigilant", "WM13-2-2|dominant",
+  "WM13-2-6|teem with", "WM13-2-10|metabolism", "WM13-2-10|forfeiture",
+  "WM13-3-1|sympathize", "WM13-3-3|unavoidable", "WM13-3-3|concurrent",
+  "WM13-3-9|tantamount", "WM13-4-3|impediment", "WM13-4-4|hypothesis",
+  "WM13-4-4|groundless", "WM13-4-8|remedy", "WM13-4-9|intolerance",
+  "WM13-4-10|adolescence", "WM13-5-4|autonomous", "WM13-5-5|enactment",
+  "WM13-5-6|depictive"
 ]);
 
 function wmNormalizeWordAudioOverrideKey(setId, word){
@@ -6145,7 +6797,7 @@ function wmVerifyWordAudioOverrideLock(){
   }, 0);
   return Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_URLS) &&
     Object.isFrozen(WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS) &&
-    WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.length === 26 && verifiedCount === 26;
+    WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS.length === 211 && verifiedCount === 211;
 }
 
 /* WM_STUDY_USE_DEV_FINAL_AUDIO_VALUES_V1_20260711
@@ -9466,7 +10118,7 @@ renderStart();
 
     panel.className = 'wmdc-audio-qa-table-wrap';
     var html = '<table class="wmdc-audio-qa-table"><thead><tr>'
-      + '<th>No</th><th>단어</th><th>Start</th><th>End</th><th>길이</th><th>상태</th><th>보정 추천값</th><th>바로듣기</th><th>판단/수정</th>'
+      + '<th>No</th><th>정답 단어</th><th>Start</th><th>End</th><th>길이</th><th>기존구간</th><th>문자·파형·5회</th><th>사람 최종검수</th><th>기존 판단/수정</th>'
       + '</tr></thead><tbody>';
 
     for(var i=0; i<visibleRows.length; i++){
@@ -9477,10 +10129,10 @@ renderStart();
         + '<td>' + wmdcFormatTime(item.start) + '</td>'
         + '<td>' + wmdcFormatTime(item.end) + '</td>'
         + '<td>' + wmdcFormatTime(item.duration) + '초</td>'
-        + '<td><span class="wmdc-qa-status ' + item.status.code + '">' + item.status.label + '</span><br><span style="font-size:12px;color:#64748b;">' + item.status.reason + '</span></td>'
-        + '<td>' + wmdcFormatTime(item.safeStart) + ' / ' + wmdcFormatTime(item.safeEnd) + '</td>'
-        + '<td><button class="wmdc-qa-mini-btn safe" type="button" data-wmdc-qa-play="safe" data-index="' + item.index + '">보정듣기</button>'
-        + '<button class="wmdc-qa-mini-btn" type="button" data-wmdc-qa-play="raw" data-index="' + item.index + '">원본듣기</button></td>'
+        + '<td><span class="wmdc-qa-status ' + item.status.code + '">' + item.status.label + '</span><br><span style="font-size:12px;color:#64748b;">' + item.status.reason + '</span><br><span style="font-size:11px;color:#64748b;">보정 '+wmdcFormatTime(item.safeStart)+' / '+wmdcFormatTime(item.safeEnd)+'</span></td>'
+        + '<td><button class="wmdc-qa-mini-btn safe" type="button" data-wmdc-qa-play="safe" data-index="' + item.index + '">보정듣기</button><button class="wmdc-qa-mini-btn" type="button" data-wmdc-qa-play="raw" data-index="' + item.index + '">원본듣기</button></td>'
+        + '<td>' + wmdcRenderActualQaResult(item) + '</td>'
+        + '<td>' + wmdcRenderHumanQa(item) + '</td>'
         + '<td>' + wmdcRenderQaDecisionButtons(item) + '</td>'
         + '</tr>';
     }
@@ -9489,6 +10141,7 @@ renderStart();
     panel.innerHTML = html;
     wmdcBindAudioQaPlayButtons();
     wmdcBindAudioQaDecisionButtons();
+    wmdcBindActualQaButtons();
   }
 
   function wmdcRenderQaDecisionButtons(item){
@@ -9523,6 +10176,124 @@ renderStart();
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+
+  var WMDC_AUDIO_QA_ANALYSIS = Object.create(null);
+  var WMDC_AUDIO_QA_HUMAN = Object.create(null);
+
+  function wmdcNormalizeQaText(value){
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+  }
+
+  function wmdcGetActualQaSource(item){
+    var setId = wmdcGetSetId();
+    var overrideUrl = '';
+    try{ if(typeof wmGetWordAudioOverrideUrl === 'function'){ overrideUrl = wmGetWordAudioOverrideUrl(setId, item.word) || ''; } }catch(e){}
+    return {
+      url: overrideUrl || wmdcGetQaAudioUrl(item),
+      start: overrideUrl ? 0 : Number(item.start),
+      end: overrideUrl ? null : Number(item.end),
+      override: !!overrideUrl,
+      signature: [overrideUrl || wmdcGetQaAudioUrl(item), overrideUrl ? 0 : Number(item.start), overrideUrl ? 'FULL' : Number(item.end)].join('|')
+    };
+  }
+
+  function wmdcArrayBufferToBase64(buffer){
+    var bytes = new Uint8Array(buffer), binary = '', chunk = 0x8000;
+    for(var i=0;i<bytes.length;i+=chunk){ binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i+chunk,bytes.length))); }
+    return btoa(binary);
+  }
+
+  function wmdcEncodeMonoWav(samples, sampleRate){
+    var buffer = new ArrayBuffer(44 + samples.length * 2), view = new DataView(buffer);
+    function s(o,v){ for(var i=0;i<v.length;i++) view.setUint8(o+i,v.charCodeAt(i)); }
+    s(0,'RIFF'); view.setUint32(4,36+samples.length*2,true); s(8,'WAVE'); s(12,'fmt ');
+    view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true); view.setUint32(24,sampleRate,true);
+    view.setUint32(28,sampleRate*2,true); view.setUint16(32,2,true); view.setUint16(34,16,true); s(36,'data'); view.setUint32(40,samples.length*2,true);
+    var off=44;
+    for(var i=0;i<samples.length;i++,off+=2){ var x=Math.max(-1,Math.min(1,samples[i])); view.setInt16(off,x<0?x*0x8000:x*0x7fff,true); }
+    return buffer;
+  }
+
+  function wmdcDrawQaWave(canvas, samples){
+    if(!canvas || !samples || !samples.length) return;
+    var ctx=canvas.getContext('2d'), w=canvas.width=120, h=canvas.height=34; ctx.clearRect(0,0,w,h); ctx.beginPath();
+    var step=Math.max(1,Math.floor(samples.length/w));
+    for(var x=0;x<w;x++){ var min=1,max=-1; for(var j=0;j<step && x*step+j<samples.length;j++){ var v=samples[x*step+j]; if(v<min)min=v;if(v>max)max=v; } ctx.moveTo(x,(1+min)*h/2);ctx.lineTo(x,(1+max)*h/2); }
+    ctx.stroke();
+  }
+
+  async function wmdcPostQaTranscript(wavBuffer, expectedWord){
+    var body = new URLSearchParams();
+    body.set('action','audioQaTranscribe'); body.set('audioBase64',wmdcArrayBufferToBase64(wavBuffer)); body.set('expectedWord',expectedWord || ''); body.set('languageCode','en-US');
+    var response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:body.toString()});
+    var data=await response.json();
+    if(!data || data.success===false) throw new Error((data&&data.message)||'음성인식 실패');
+    return data;
+  }
+
+  async function wmdcAnalyzeActualAudioQa(index, button){
+    var item=WMDC_AUDIO_QA_ROWS[Number(index)]; if(!item) return;
+    if(button){button.disabled=true;button.textContent='검수중...';}
+    try{
+      var source=wmdcGetActualQaSource(item); if(!source.url) throw new Error('실제 음원 URL 없음');
+      var signatures=[]; for(var n=0;n<5;n++) signatures.push(wmdcGetActualQaSource(item).signature);
+      var same5=signatures.every(function(v){return v===signatures[0];});
+      var ab=await (await fetch(source.url)).arrayBuffer();
+      var Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) throw new Error('Web Audio 미지원');
+      var ctx=new Ctx(); var decoded=await ctx.decodeAudioData(ab.slice(0));
+      var sr=decoded.sampleRate, start=Math.max(0,Math.floor((source.start||0)*sr)), end=source.end===null?decoded.length:Math.min(decoded.length,Math.ceil(source.end*sr));
+      if(end<=start) throw new Error('실제 재생구간 오류');
+      var len=end-start, mono=new Float32Array(len);
+      for(var c=0;c<decoded.numberOfChannels;c++){var ch=decoded.getChannelData(c);for(var i=0;i<len;i++)mono[i]+=ch[start+i]/decoded.numberOfChannels;}
+      var sum=0,peak=0,silent=0,clip=0;
+      for(var k=0;k<len;k++){var a=Math.abs(mono[k]);sum+=a*a;if(a>peak)peak=a;if(a<0.008)silent++;if(a>0.985)clip++;}
+      var rms=Math.sqrt(sum/len), silenceRatio=silent/len, clipRatio=clip/len, duration=len/sr;
+      var wav=wmdcEncodeMonoWav(mono,sr), stt=await wmdcPostQaTranscript(wav,item.word);
+      var expected=wmdcNormalizeQaText(item.word), transcript=wmdcNormalizeQaText(stt.transcript), textMatch=!!expected && (transcript===expected || transcript.indexOf(expected)!==-1);
+      var waveOk=rms>=0.012 && silenceRatio<0.88 && clipRatio<0.03 && duration>=0.25;
+      var finalCode=(same5&&textMatch&&waveOk)?'ok':((!transcript||!same5||rms<0.006)?'danger':'check');
+      WMDC_AUDIO_QA_ANALYSIS[item.decisionKey]={source:source,transcript:stt.transcript||'',confidence:Number(stt.confidence||0),same5:same5,rms:rms,peak:peak,silenceRatio:silenceRatio,clipRatio:clipRatio,duration:duration,textMatch:textMatch,waveOk:waveOk,finalCode:finalCode,samples:mono};
+      wmdcLog('[AUDIO QA ACTUAL] '+item.word+' / 인식='+String(stt.transcript||'')+' / 5회='+same5+' / 파형='+waveOk);
+      wmdcRenderAudioQaPanel(originalWords||[],WMDC_QA_VIEW_MODE||'all');
+    }catch(error){
+      WMDC_AUDIO_QA_ANALYSIS[item.decisionKey]={finalCode:'danger',error:error&&error.message?error.message:String(error)};
+      wmdcLog('[AUDIO QA ACTUAL ERROR] '+item.word+' / '+WMDC_AUDIO_QA_ANALYSIS[item.decisionKey].error);
+      wmdcRenderAudioQaPanel(originalWords||[],WMDC_QA_VIEW_MODE||'all');
+    }
+  }
+
+  function wmdcPlayActualStudyAudio(index){
+    var row=(originalWords||[])[Number(index)]; if(!row) return;
+    try{ if(typeof playWordSegment==='function'){ playWordSegment(row,1); wmdcLog('[AUDIO QA HUMAN] 실제 Study 음원 1회 재생: '+(row.word||row.Word||'')); return; } }catch(e){}
+    wmdcPlayAudioQaRow(index,'raw');
+  }
+
+  function wmdcSetHumanQa(index,value){
+    var item=WMDC_AUDIO_QA_ROWS[Number(index)]; if(!item)return;
+    WMDC_AUDIO_QA_HUMAN[item.decisionKey]=value;
+    wmdcLog('[AUDIO QA HUMAN] '+item.word+' / '+(value==='ok'?'사람 정상':'사람 오류'));
+    wmdcRenderAudioQaPanel(originalWords||[],WMDC_QA_VIEW_MODE||'all');
+  }
+
+  function wmdcRenderActualQaResult(item){
+    var r=WMDC_AUDIO_QA_ANALYSIS[item.decisionKey];
+    if(!r) return '<button class="wmdc-qa-mini-btn analyze" type="button" data-wmdc-qa-analyze="1" data-index="'+item.index+'">문자·파형검수</button>';
+    if(r.error) return '<div class="wmdc-qa-result danger">오류: '+wmdcEscapeHtml(r.error)+'</div><button class="wmdc-qa-mini-btn analyze" type="button" data-wmdc-qa-analyze="1" data-index="'+item.index+'">재검수</button>';
+    return '<div class="wmdc-qa-result '+r.finalCode+'">인식: '+wmdcEscapeHtml(r.transcript||'인식없음')+'<br>문자: '+(r.textMatch?'일치':'확인')+' / 5회: '+(r.same5?'동일':'불일치')+'<br>파형: '+(r.waveOk?'정상':'확인')+'</div><canvas class="wmdc-qa-wave" data-wmdc-wave-key="'+wmdcEscapeHtml(item.decisionKey)+'"></canvas>';
+  }
+
+  function wmdcRenderHumanQa(item){
+    var h=WMDC_AUDIO_QA_HUMAN[item.decisionKey]||'';
+    return '<div class="wmdc-qa-human-actions"><button class="wmdc-qa-mini-btn listen" type="button" data-wmdc-qa-actual-listen="1" data-index="'+item.index+'">실제음원 듣기</button><button class="wmdc-qa-mini-btn human-ok" type="button" data-wmdc-qa-human="ok" data-index="'+item.index+'">정상</button><button class="wmdc-qa-mini-btn human-error" type="button" data-wmdc-qa-human="error" data-index="'+item.index+'">오류</button></div><div class="wmdc-qa-decision">사람판정: '+(h==='ok'?'정상':h==='error'?'오류':'대기')+'</div>';
+  }
+
+  function wmdcBindActualQaButtons(){
+    document.querySelectorAll('#wmdc-audio-qa-panel [data-wmdc-qa-analyze]').forEach(function(btn){btn.onclick=function(){wmdcAnalyzeActualAudioQa(this.getAttribute('data-index'),this);};});
+    document.querySelectorAll('#wmdc-audio-qa-panel [data-wmdc-qa-actual-listen]').forEach(function(btn){btn.onclick=function(){wmdcPlayActualStudyAudio(this.getAttribute('data-index'));};});
+    document.querySelectorAll('#wmdc-audio-qa-panel [data-wmdc-qa-human]').forEach(function(btn){btn.onclick=function(){wmdcSetHumanQa(this.getAttribute('data-index'),this.getAttribute('data-wmdc-qa-human'));};});
+    document.querySelectorAll('#wmdc-audio-qa-panel [data-wmdc-wave-key]').forEach(function(c){var key=c.getAttribute('data-wmdc-wave-key'),r=WMDC_AUDIO_QA_ANALYSIS[key];if(r&&r.samples)wmdcDrawQaWave(c,r.samples);});
   }
 
   function wmdcEnsureQaAudio(){
@@ -10338,7 +11109,7 @@ renderStart();
     wmdcInitTopNavDocking();
     wmdcLog('[MINI BAR] 상단 네비 원위치 시작 후 화면 상단 고정 docking 적용 완료');
     wmdcLog('[MERGE] DEV 학습테스트=DB 미리보기 / 빠른 이동테스트=실제 Step 실행으로 분리 완료');
-    wmdcLog('[AUDIO QA] 9레벨 음원 자동검수 패널 연결 완료');
+    wmdcLog('[AUDIO QA] 음원 자동검수 패널 연결 완료');
     wmdcLog('[LEVEL5 AUDIO LOCK] 5레벨 전체 음원 현재값 최종 고정 활성화');
     wmdcLog('[LEVEL3 AUDIO LOCK] 3레벨 전체 음원 현재값 최종 고정 활성화');
     wmdcLog('[LEVEL4 AUDIO LOCK] 4레벨 전체 음원 현재값 최종 고정 활성화');
@@ -10361,7 +11132,10 @@ renderStart();
       wmdcFixAllAudioQaWords:wmdcFixAllAudioQaWords,
       wmdcSkipAudioQaWord:wmdcSkipAudioQaWord,
       wmdcCheckNormalizedSegments:wmdcCheckNormalizedSegments,
-      wmdcCopyAudioQaFixValues:wmdcCopyAudioQaFixValues
+      wmdcCopyAudioQaFixValues:wmdcCopyAudioQaFixValues,
+      wmdcAnalyzeActualAudioQa:wmdcAnalyzeActualAudioQa,
+      wmdcPlayActualStudyAudio:wmdcPlayActualStudyAudio,
+      wmdcSetHumanQa:wmdcSetHumanQa
     })
   });
   function wmVerifyDevAudioQaPrivateLock(){
@@ -12828,5 +13602,771 @@ renderStart();
   window.addEventListener('input',inputSync,true);
   document.addEventListener('DOMContentLoaded',function(){wmUpdateGutter5('current');wmUpdateGutter5('edit');});
   if(document.readyState!=='loading'){wmUpdateGutter5('current');wmUpdateGutter5('edit');}
+})();
+</script>
+
+<script>
+/* WMDC_BOTTOM_DEV_TEST_CONTROL_SYNC_V1: 상·하단 제어판 양방향 동일화 */
+(function(){
+  'use strict';
+
+  function byId(id){ return document.getElementById(id); }
+
+  var pairs = {
+    student:['wmdc-student','wmdc-bottom-student'],
+    level:['wmdc-level','wmdc-bottom-level'],
+    part:['wmdc-part','wmdc-bottom-part'],
+    set:['wmdc-set','wmdc-bottom-set'],
+    setId:['wmdc-set-id','wmdc-bottom-set-id']
+  };
+
+  function copyOptions(source,target){
+    if(!source || !target) return;
+    target.innerHTML = '';
+    Array.prototype.forEach.call(source.options || [], function(option){
+      target.appendChild(option.cloneNode(true));
+    });
+    target.value = source.value;
+  }
+
+  function syncBottomFromTop(){
+    copyOptions(byId(pairs.student[0]),byId(pairs.student[1]));
+    copyOptions(byId(pairs.level[0]),byId(pairs.level[1]));
+    copyOptions(byId(pairs.part[0]),byId(pairs.part[1]));
+    copyOptions(byId(pairs.set[0]),byId(pairs.set[1]));
+
+    var topSetId = byId(pairs.setId[0]);
+    var bottomSetId = byId(pairs.setId[1]);
+    if(topSetId && bottomSetId) bottomSetId.value = topSetId.value;
+  }
+
+  function dispatchTopChange(top){
+    if(!top) return;
+    top.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
+  function bindBottomToTop(bottomKey){
+    var top = byId(pairs[bottomKey][0]);
+    var bottom = byId(pairs[bottomKey][1]);
+    if(!top || !bottom) return;
+
+    bottom.addEventListener('change', function(){
+      top.value = bottom.value;
+      dispatchTopChange(top);
+      setTimeout(syncBottomFromTop,0);
+    });
+  }
+
+  function bindTopToBottom(topKey){
+    var top = byId(pairs[topKey][0]);
+    if(!top) return;
+    top.addEventListener('change', function(){
+      setTimeout(syncBottomFromTop,0);
+    });
+  }
+
+  function boot(){
+    syncBottomFromTop();
+
+    ['student','level','part','set'].forEach(bindBottomToTop);
+    ['student','level','part','set'].forEach(bindTopToBottom);
+
+    var runBottom = byId('wmdc-bottom-run-dev');
+    var runTop = byId('wmdc-run-dev');
+    if(runBottom && runTop){
+      runBottom.addEventListener('click', function(){
+        syncBottomFromTop();
+        runTop.click();
+      });
+    }
+
+    /* 이전/다음세트·현재세트 실행 등 기존 로직이 상단 값을 바꾼 뒤 하단도 즉시 갱신 */
+    var root = byId('wmdc-root');
+    if(root){
+      root.addEventListener('click', function(event){
+        var action = event.target && event.target.closest
+          ? event.target.closest('[data-wmdc-nav-action]')
+          : null;
+        if(action) setTimeout(syncBottomFromTop,0);
+      });
+    }
+
+    var topSetId = byId('wmdc-set-id');
+    if(topSetId && window.MutationObserver){
+      new MutationObserver(syncBottomFromTop).observe(topSetId,{
+        attributes:true,
+        attributeFilter:['value']
+      });
+    }
+
+    window.wmdcSyncBottomDevTestControl = syncBottomFromTop;
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{
+    boot();
+  }
+})();
+</script>
+
+
+<script>
+/* WMDC_185_AUDIO_FINAL_QA_V1
+   - WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS의 이번 추가분 185개만 대상으로 합니다.
+   - 현재 파일은 총 211 LOCK이며, 기존 선행 26개 + 이번 수정 185개 구조입니다.
+   - 실제 Study에 적용되는 WM_WORD_AUDIO_OVERRIDE_URLS의 독립 MP3 URL을 그대로 사용합니다.
+   - 이어듣기는 MP3 ended 이벤트를 기다리므로 발음 뒤 tail/잡음까지 파일 끝까지 청취합니다.
+   - 상단 전체 음원 자동검수는 향후 문제/신규 음원용으로 보존하며 이 모듈과 판정을 섞지 않습니다.
+*/
+(function(){
+  'use strict';
+
+  var LEGACY_LOCK_COUNT = 26;
+  var EXPECTED_FINAL_QA_COUNT = 185;
+  var keys = (typeof WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS !== 'undefined')
+    ? Array.prototype.slice.call(WM_WORD_AUDIO_OVERRIDE_LOCKED_KEYS, LEGACY_LOCK_COUNT)
+    : [];
+  var rows = keys.map(function(key, idx){
+    var splitAt = key.indexOf('|');
+    var setId = splitAt >= 0 ? key.slice(0, splitAt) : '';
+    var word = splitAt >= 0 ? key.slice(splitAt + 1) : key;
+    var url = (typeof wmGetWordAudioOverrideUrl === 'function')
+      ? wmGetWordAudioOverrideUrl(setId, word)
+      : ((typeof WM_WORD_AUDIO_OVERRIDE_URLS !== 'undefined' && WM_WORD_AUDIO_OVERRIDE_URLS[key]) || '');
+    return {index:idx, key:key, setId:setId, word:word, url:url};
+  });
+
+  var state = {
+    index:0,
+    repeatTarget:2,
+    repeatDone:0,
+    running:false,
+    paused:false,
+    audio:null,
+    decisions:{}
+  };
+
+  var storageKey = 'WMDC_185_AUDIO_FINAL_QA_DECISIONS_V1';
+
+  function byId(id){ return document.getElementById(id); }
+  function esc(v){
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function loadDecisions(){
+    try{
+      var saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      state.decisions = saved && typeof saved === 'object' ? saved : {};
+    }catch(_){
+      state.decisions = {};
+    }
+  }
+
+  function saveDecisions(){
+    try{ localStorage.setItem(storageKey, JSON.stringify(state.decisions)); }catch(_){}
+  }
+
+  function counts(){
+    var ok = 0, error = 0;
+    rows.forEach(function(row){
+      if(state.decisions[row.key] === '정상') ok++;
+      if(state.decisions[row.key] === '오류') error++;
+    });
+    return {ok:ok,error:error,done:ok+error};
+  }
+
+  function renderList(){
+    var box = byId('wmdc-185qa-list');
+    if(!box) return;
+    box.innerHTML = rows.map(function(row, idx){
+      var decision = state.decisions[row.key] || '미판정';
+      return '<div class="wmdc-185qa-row'+(idx===state.index?' current':'')+'" data-wmdc-185qa-row="'+idx+'">'
+        +'<span>'+(idx+1)+'</span>'
+        +'<span>'+esc(row.setId)+'</span>'
+        +'<span>'+esc(row.word)+'</span>'
+        +'<span>'+esc(decision)+'</span>'
+        +'</div>';
+    }).join('');
+    var current = box.querySelector('.current');
+    if(current && current.scrollIntoView){
+      current.scrollIntoView({block:'nearest'});
+    }
+  }
+
+  function render(){
+    var row = rows[state.index] || {};
+    var c = counts();
+    if(byId('wmdc-185qa-total')) byId('wmdc-185qa-total').textContent = '대상: '+rows.length;
+    if(byId('wmdc-185qa-progress')) byId('wmdc-185qa-progress').textContent = '판정: '+c.done+' / '+rows.length;
+    if(byId('wmdc-185qa-okcount')) byId('wmdc-185qa-okcount').textContent = '정상: '+c.ok;
+    if(byId('wmdc-185qa-errorcount')) byId('wmdc-185qa-errorcount').textContent = '오류: '+c.error;
+    if(byId('wmdc-185qa-index')) byId('wmdc-185qa-index').textContent = '현재: '+(state.index+1)+' / '+rows.length+' · 판정: '+(state.decisions[row.key] || '미판정');
+    if(byId('wmdc-185qa-word')) byId('wmdc-185qa-word').textContent = row.word || '대기';
+    if(byId('wmdc-185qa-set')) byId('wmdc-185qa-set').textContent = 'Set_ID: '+(row.setId || '-');
+    if(byId('wmdc-185qa-repeat')){
+      byId('wmdc-185qa-repeat').textContent = state.running
+        ? '재생: '+Math.min(state.repeatDone+1,state.repeatTarget)+' / '+state.repeatTarget+(state.paused?' · 일시정지':'')
+        : '재생: 대기';
+    }
+    if(byId('wmdc-185qa-url')) byId('wmdc-185qa-url').textContent = '실제 적용 MP3: '+(row.url || 'URL 없음');
+    renderList();
+  }
+
+  function stopAudio(){
+    state.running = false;
+    state.paused = false;
+    state.repeatDone = 0;
+    if(state.audio){
+      try{
+        state.audio.onended = null;
+        state.audio.onerror = null;
+        state.audio.pause();
+        state.audio.currentTime = 0;
+      }catch(_){}
+    }
+    state.audio = null;
+    render();
+  }
+
+  function playCurrentCycle(){
+    var row = rows[state.index];
+    if(!row || !row.url){
+      state.running = false;
+      render();
+      return;
+    }
+    if(!state.running) return;
+
+    var audio = new Audio(row.url);
+    state.audio = audio;
+    audio.preload = 'auto';
+
+    audio.onended = function(){
+      if(!state.running) return;
+      state.repeatDone++;
+      if(state.repeatDone < state.repeatTarget){
+        render();
+        playCurrentCycle();
+        return;
+      }
+      state.repeatDone = 0;
+      if(state.index >= rows.length - 1){
+        state.running = false;
+        state.audio = null;
+        render();
+        return;
+      }
+      state.index++;
+      render();
+      playCurrentCycle();
+    };
+
+    audio.onerror = function(){
+      state.running = false;
+      state.audio = null;
+      if(byId('wmdc-185qa-repeat')){
+        byId('wmdc-185qa-repeat').textContent = '재생오류: '+row.setId+' / '+row.word;
+      }
+    };
+
+    render();
+    var p = audio.play();
+    if(p && typeof p.catch === 'function'){
+      p.catch(function(){
+        state.running = false;
+        state.audio = null;
+        if(byId('wmdc-185qa-repeat')){
+          byId('wmdc-185qa-repeat').textContent = '브라우저 재생 차단/오류 - 버튼을 다시 눌러주세요.';
+        }
+      });
+    }
+  }
+
+  function startSequence(repeat){
+    stopAudio();
+    state.repeatTarget = repeat;
+    state.repeatDone = 0;
+    state.running = true;
+    state.paused = false;
+    render();
+    playCurrentCycle();
+  }
+
+  function move(delta){
+    stopAudio();
+    state.index = Math.max(0, Math.min(rows.length-1, state.index + delta));
+    render();
+  }
+
+  function decide(value){
+    var row = rows[state.index];
+    if(!row) return;
+    state.decisions[row.key] = value;
+    saveDecisions();
+    render();
+  }
+
+  function boot(){
+    loadDecisions();
+
+    if(rows.length !== EXPECTED_FINAL_QA_COUNT){
+      var card = byId('wmdc-185qa-card');
+      if(card){
+        card.insertAdjacentHTML('afterbegin',
+          '<div style="background:#fee2e2;color:#991b1b;padding:10px;border-radius:10px;margin-bottom:10px;font-weight:900;">'
+          +'검수대상 수 오류: 기대 185개 / 실제 '+rows.length+'개. 이어듣기 전 목록을 확인하세요.</div>');
+      }
+    }
+
+    var bindings = [
+      ['wmdc-185qa-play1',function(){startSequence(1);}],
+      ['wmdc-185qa-play2',function(){startSequence(2);}],
+      ['wmdc-185qa-play5',function(){startSequence(5);}],
+      ['wmdc-185qa-stop',stopAudio],
+      ['wmdc-185qa-prev',function(){move(-1);}],
+      ['wmdc-185qa-next',function(){move(1);}],
+      ['wmdc-185qa-human-ok',function(){decide('정상');}],
+      ['wmdc-185qa-human-error',function(){decide('오류');}],
+      ['wmdc-185qa-replay',function(){startSequence(1);}]
+    ];
+    bindings.forEach(function(pair){
+      var el = byId(pair[0]);
+      if(el) el.addEventListener('click',pair[1]);
+    });
+
+    var pause = byId('wmdc-185qa-pause');
+    if(pause){
+      pause.addEventListener('click',function(){
+        if(state.audio && state.running && !state.audio.paused){
+          state.audio.pause();
+          state.paused = true;
+          render();
+        }
+      });
+    }
+
+    var resume = byId('wmdc-185qa-resume');
+    if(resume){
+      resume.addEventListener('click',function(){
+        if(state.audio && state.running && state.paused){
+          state.paused = false;
+          render();
+          var p = state.audio.play();
+          if(p && typeof p.catch === 'function') p.catch(function(){});
+        }
+      });
+    }
+
+    var list = byId('wmdc-185qa-list');
+    if(list){
+      list.addEventListener('click',function(e){
+        var row = e.target.closest('[data-wmdc-185qa-row]');
+        if(!row) return;
+        stopAudio();
+        state.index = Number(row.getAttribute('data-wmdc-185qa-row')) || 0;
+        render();
+      });
+    }
+
+    render();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{
+    boot();
+  }
+})();
+</script>
+
+
+<script>
+/* WMDC_LEVEL_ACTUAL_AUDIO_CONTINUOUS_QA_V1
+   실제 적용음원 판정:
+   1) wmGetWordAudioOverrideUrl(Set_ID, word)가 있으면 독립 MP3 전체 재생
+   2) 없으면 getSetData 응답의 Audio_URL과 해당 단어 Start/End 재생
+   레벨의 마지막 세트까지 자동 진행하며 Study 상태/DB는 변경하지 않습니다.
+*/
+(function(){
+  'use strict';
+
+  var state = {
+    level:3, rows:[], sets:[], index:0, repeatTarget:1, repeatDone:0,
+    running:false, paused:false, loading:false, audio:null, segmentTimer:null
+  };
+
+  function byId(id){ return document.getElementById(id); }
+  function esc(v){
+    return String(v == null ? '' : v)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function levelSetIds(level){
+    var ids = [];
+    var maxPart = typeof getMaxPart === 'function' ? getMaxPart(level) : (level >= 10 ? 5 : (level >= 7 ? 4 : 3));
+    for(var part=1; part<=maxPart; part++){
+      var maxSet = typeof getMaxSet === 'function' ? getMaxSet(level, part) : 10;
+      for(var setNo=1; setNo<=maxSet; setNo++){
+        ids.push('WM'+level+'-'+part+'-'+setNo);
+      }
+    }
+    return ids;
+  }
+
+  function audioUrlFromData(data){
+    var raw = data && data.audio && (data.audio.Audio_URL || data.audio.audio_url);
+    return typeof fixDriveAudioUrl === 'function' ? fixDriveAudioUrl(raw) : String(raw || '');
+  }
+
+  function normalizeWordRow(raw){
+    return typeof normalizeDbWord === 'function' ? normalizeDbWord(raw) : raw;
+  }
+
+  async function fetchSet(setId){
+    var data = (typeof wmReadStudySetDataCache === 'function' && wmReadStudySetDataCache(setId))
+      || await wmFetchStudySetData(setId);
+    if(!data || !data.success || !Array.isArray(data.words)){
+      throw new Error((data && data.message) || (setId+' DB 응답 오류'));
+    }
+    var audioUrl = audioUrlFromData(data);
+    if(!audioUrl) throw new Error(setId+' Audio_URL 없음');
+
+    var words = data.words.map(normalizeWordRow).filter(function(w){ return w && w.word; });
+    return words.map(function(word, idx){
+      var overrideUrl = typeof wmGetWordAudioOverrideUrl === 'function'
+        ? wmGetWordAudioOverrideUrl(setId, word.word)
+        : '';
+      return {
+        setId:setId,
+        word:String(word.word || ''),
+        start:Number(word.start),
+        end:Number(word.end),
+        source:overrideUrl ? '수정 독립MP3' : '세트음원 구간',
+        url:overrideUrl || audioUrl,
+        fullFile:!!overrideUrl,
+        wordNo:idx + 1
+      };
+    });
+  }
+
+  async function loadLevel(){
+    stop();
+    state.loading = true;
+    state.rows = [];
+    state.sets = [];
+    state.index = 0;
+    state.level = Number((byId('wmdc-levelqa-level') || {}).value || 3);
+    var ids = levelSetIds(state.level);
+    setText('wmdc-levelqa-loadstate','목록: 0 / '+ids.length+'세트');
+    setText('wmdc-levelqa-total','대상: 불러오는 중');
+
+    try{
+      for(var i=0; i<ids.length; i++){
+        var setRows = await fetchSet(ids[i]);
+        state.sets.push({setId:ids[i], count:setRows.length});
+        Array.prototype.push.apply(state.rows,setRows);
+        setText('wmdc-levelqa-loadstate','목록: '+(i+1)+' / '+ids.length+'세트');
+        setText('wmdc-levelqa-total','대상: '+state.rows.length+'단어');
+      }
+      state.loading = false;
+      setText('wmdc-levelqa-loadstate','목록: Level '+state.level+' 완료');
+      render();
+    }catch(err){
+      state.loading = false;
+      setText('wmdc-levelqa-loadstate','불러오기 오류: '+(err && err.message ? err.message : String(err)));
+      render();
+    }
+  }
+
+  function setText(id, value){ var el=byId(id); if(el) el.textContent=value; }
+
+  function currentSetPosition(){
+    var row = state.rows[state.index];
+    if(!row) return {order:0,total:state.sets.length};
+    var order = 0;
+    for(var i=0;i<state.sets.length;i++){
+      if(state.sets[i].setId === row.setId){ order=i+1; break; }
+    }
+    return {order:order,total:state.sets.length};
+  }
+
+  function renderList(){
+    var box=byId('wmdc-levelqa-list');
+    if(!box) return;
+    var from=Math.max(0,state.index-30);
+    var to=Math.min(state.rows.length,state.index+31);
+    box.innerHTML=state.rows.slice(from,to).map(function(row,local){
+      var idx=from+local;
+      return '<div class="wmdc-levelqa-row'+(idx===state.index?' current':'')+'" data-wmdc-levelqa-row="'+idx+'">'
+        +'<span>'+(idx+1)+'</span><span>'+esc(row.setId)+'</span>'
+        +'<span>'+esc(row.word)+'</span><span>'+esc(row.source)+'</span></div>';
+    }).join('');
+    var current=box.querySelector('.current');
+    if(current&&current.scrollIntoView) current.scrollIntoView({block:'nearest'});
+  }
+
+  function render(){
+    var row=state.rows[state.index]||{};
+    var sp=currentSetPosition();
+    setText('wmdc-levelqa-total','대상: '+state.rows.length+'단어');
+    setText('wmdc-levelqa-progress','진행: '+(state.rows.length ? state.index+1 : 0)+' / '+state.rows.length);
+    setText('wmdc-levelqa-setprogress','세트: '+sp.order+' / '+sp.total);
+    setText('wmdc-levelqa-index',state.rows.length ? '현재: '+(state.index+1)+' / '+state.rows.length : '현재: -');
+    setText('wmdc-levelqa-word',row.word||'대기');
+    var sourceHtml = row.source ? ' <span class="wmdc-levelqa-source">'+esc(row.source)+'</span>' : '';
+    var meta=byId('wmdc-levelqa-meta');
+    if(meta) meta.innerHTML='Set_ID: '+esc(row.setId||'-')+' · 단어 '+(row.wordNo||'-')+sourceHtml;
+    setText('wmdc-levelqa-repeat',state.running
+      ? '재생: '+Math.min(state.repeatDone+1,state.repeatTarget)+' / '+state.repeatTarget+(state.paused?' · 일시정지':'')
+      : '재생: 대기');
+    setText('wmdc-levelqa-url','실제 적용 음원: '+(row.url||'-'));
+    renderList();
+  }
+
+  function clearSegmentTimer(){
+    if(state.segmentTimer){ clearInterval(state.segmentTimer); state.segmentTimer=null; }
+  }
+
+  function stop(){
+    state.running=false; state.paused=false; state.repeatDone=0;
+    clearSegmentTimer();
+    if(state.audio){
+      try{ state.audio.onended=null; state.audio.onerror=null; state.audio.pause(); state.audio.currentTime=0; }catch(_){}
+    }
+    state.audio=null;
+    render();
+  }
+
+  function finishOne(){
+    if(!state.running) return;
+    state.repeatDone++;
+    if(state.repeatDone < state.repeatTarget){
+      render();
+      playCurrentRound();
+      return;
+    }
+    state.repeatDone=0;
+    if(state.index >= state.rows.length-1){
+      state.running=false; state.audio=null; render(); return;
+    }
+    state.index++;
+    render();
+    playCurrentRound();
+  }
+
+  function playCurrentRound(){
+    var row=state.rows[state.index];
+    if(!state.running || !row || !row.url) return;
+
+    clearSegmentTimer();
+    var audio=new Audio(row.url);
+    state.audio=audio;
+    audio.preload='auto';
+    audio.playbackRate=1;
+
+    audio.onerror=function(){
+      state.running=false; state.audio=null; clearSegmentTimer();
+      setText('wmdc-levelqa-repeat','재생오류: '+row.setId+' / '+row.word);
+    };
+
+    if(row.fullFile){
+      audio.onended=finishOne;
+    }else{
+      audio.onloadedmetadata=function(){
+        if(!Number.isFinite(row.start)||!Number.isFinite(row.end)||row.end<=row.start){
+          state.running=false;
+          setText('wmdc-levelqa-repeat','구간오류: '+row.setId+' / '+row.word);
+          return;
+        }
+        try{ audio.currentTime=row.start; }catch(_){}
+      };
+      audio.ontimeupdate=function(){
+        if(!state.running||state.paused) return;
+        if(Number.isFinite(row.end) && audio.currentTime >= row.end){
+          audio.pause();
+          audio.ontimeupdate=null;
+          finishOne();
+        }
+      };
+      audio.onended=function(){
+        if(state.running) finishOne();
+      };
+    }
+
+    render();
+    var p=audio.play();
+    if(p&&typeof p.catch==='function'){
+      p.catch(function(){
+        state.running=false; state.audio=null;
+        setText('wmdc-levelqa-repeat','브라우저 재생 차단/오류 - 버튼을 다시 눌러주세요.');
+      });
+    }
+  }
+
+  function start(repeat){
+    if(!state.rows.length){
+      setText('wmdc-levelqa-loadstate','먼저 레벨 목록을 불러오세요.');
+      return;
+    }
+    stop();
+    state.repeatTarget=repeat; state.repeatDone=0; state.running=true; state.paused=false;
+    render(); playCurrentRound();
+  }
+
+  function move(delta){
+    stop();
+    state.index=Math.max(0,Math.min(state.rows.length-1,state.index+delta));
+    render();
+  }
+
+  function boot(){
+    var currentParts = typeof getSetParts === 'function' ? getSetParts(currentSetId) : null;
+    var select=byId('wmdc-levelqa-level');
+    if(select && currentParts) select.value=String(currentParts.level);
+
+    var binds=[
+      ['wmdc-levelqa-load',loadLevel],
+      ['wmdc-levelqa-play1',function(){start(1);}],
+      ['wmdc-levelqa-play2',function(){start(2);}],
+      ['wmdc-levelqa-play5',function(){start(5);}],
+      ['wmdc-levelqa-stop',stop],
+      ['wmdc-levelqa-prev',function(){move(-1);}],
+      ['wmdc-levelqa-next',function(){move(1);}]
+    ];
+    binds.forEach(function(pair){var el=byId(pair[0]);if(el)el.addEventListener('click',pair[1]);});
+
+    var pause=byId('wmdc-levelqa-pause');
+    if(pause) pause.addEventListener('click',function(){
+      if(state.audio&&state.running&&!state.audio.paused){
+        state.audio.pause();state.paused=true;render();
+      }
+    });
+    var resume=byId('wmdc-levelqa-resume');
+    if(resume) resume.addEventListener('click',function(){
+      if(state.audio&&state.running&&state.paused){
+        state.paused=false;render();
+        var p=state.audio.play();if(p&&typeof p.catch==='function')p.catch(function(){});
+      }
+    });
+    var list=byId('wmdc-levelqa-list');
+    if(list) list.addEventListener('click',function(e){
+      var row=e.target.closest('[data-wmdc-levelqa-row]');
+      if(!row)return;
+      stop();state.index=Number(row.getAttribute('data-wmdc-levelqa-row'))||0;render();
+    });
+    render();
+  }
+
+  var WMDC_LEVEL_QA_LOCK_API = Object.freeze({
+    loadLevel:loadLevel,
+    start:start,
+    stop:stop,
+    move:move,
+    render:render,
+    fetchSet:fetchSet,
+    levelSetIds:levelSetIds,
+    boot:boot
+  });
+  Object.defineProperty(window,'WMDC_LEVEL_QA_LOCK_API',{
+    value:WMDC_LEVEL_QA_LOCK_API,writable:false,configurable:false
+  });
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',WMDC_LEVEL_QA_LOCK_API.boot,{once:true});
+  }else{WMDC_LEVEL_QA_LOCK_API.boot();}
+})();
+</script>
+
+
+
+
+<script>
+/* WM_DEV_AUDIO_QA_FINAL_LOCK_V1_20260807 */
+(function(){
+  'use strict';
+  var VERSION='WM_DEV_AUDIO_QA_FINAL_LOCK_V1.0';
+  var DATE='2026-08-07';
+
+  var REGISTRY=Object.freeze({
+    LEVEL_CONTINUOUS:window.WMDC_LEVEL_QA_LOCK_API,
+    STUDY_AUDIO:Object.freeze({
+      playWordSegment:window.playWordSegment,
+      getOverride:window.wmGetWordAudioOverrideUrl,
+      verifyOverride:window.wmVerifyWordAudioOverrideLock
+    })
+  });
+
+  Object.defineProperty(window,'WM_DEV_AUDIO_QA_FINAL_LOCK',{
+    value:REGISTRY,writable:false,configurable:false
+  });
+
+  function descriptorLocked(name,expected){
+    var d=Object.getOwnPropertyDescriptor(window,name)||{};
+    return window[name]===expected && d.writable===false && d.configurable===false;
+  }
+
+  function domExists(ids){
+    return ids.every(function(id){return !!document.getElementById(id);});
+  }
+
+  function wmGetDevAudioQaFinalLockStatus(){
+    var r=window.WM_DEV_AUDIO_QA_FINAL_LOCK;
+    var rows={
+      registryFrozen:Object.isFrozen(r),
+      registryProtected:descriptorLocked('WM_DEV_AUDIO_QA_FINAL_LOCK',REGISTRY),
+      levelApiProtected:descriptorLocked('WMDC_LEVEL_QA_LOCK_API',REGISTRY.LEVEL_CONTINUOUS),
+      levelFunctions:Object.isFrozen(r.LEVEL_CONTINUOUS) &&
+        ['loadLevel','start','stop','move','render','fetchSet','levelSetIds','boot'].every(function(k){return typeof r.LEVEL_CONTINUOUS[k]==='function';}),
+      studyAudioExact:r.STUDY_AUDIO.playWordSegment===window.playWordSegment &&
+        r.STUDY_AUDIO.getOverride===window.wmGetWordAudioOverrideUrl &&
+        r.STUDY_AUDIO.verifyOverride===window.wmVerifyWordAudioOverrideLock,
+      override211:typeof window.wmVerifyWordAudioOverrideLock==='function' && window.wmVerifyWordAudioOverrideLock()===true,
+      final185Dom:domExists(['wmdc-185qa-card','wmdc-185qa-play1','wmdc-185qa-play2','wmdc-185qa-play5','wmdc-185qa-pause','wmdc-185qa-resume','wmdc-185qa-stop','wmdc-185qa-prev','wmdc-185qa-next','wmdc-185qa-human-ok','wmdc-185qa-human-error']),
+      final185Controls:[1,2,5].every(function(n){
+        var el=document.getElementById('wmdc-185qa-play'+n);
+        return !!el && el.tagName==='BUTTON';
+      }),
+      levelDom:domExists(['wmdc-levelqa-card','wmdc-levelqa-level','wmdc-levelqa-load','wmdc-levelqa-play1','wmdc-levelqa-play2','wmdc-levelqa-play5','wmdc-levelqa-pause','wmdc-levelqa-resume','wmdc-levelqa-stop','wmdc-levelqa-prev','wmdc-levelqa-next'])
+    };
+    rows.verified=Object.keys(rows).every(function(k){return k==='verified'||rows[k]===true;});
+    return rows;
+  }
+
+  function wmLogDevAudioQaFinalLockStatus(){
+    var s=wmGetDevAudioQaFinalLockStatus();
+    console.group('🔒 WORD MATE DEV AUDIO QA FINAL LOCK STATUS');
+    console.log('LOCK VERSION :',VERSION);
+    console.log('LOCK DATE    :',DATE);
+    console.table({
+      'Registry 동결':s.registryFrozen,
+      'Registry 덮어쓰기·삭제 차단':s.registryProtected,
+      '레벨 이어듣기 API 보호':s.levelApiProtected,
+      '레벨 실제 함수 참조':s.levelFunctions,
+      'Study 실제 음원함수 연결':s.studyAudioExact,
+      'Override 211개 검증':s.override211,
+      '185개 DOM·버튼':s.final185Dom,
+      '185개 1·2·5회 제어':s.final185Controls,
+      '레벨별 DOM·버튼':s.levelDom
+    });
+    console.log(s.verified ? '🔒 DEV AUDIO QA ALL LOCK VERIFIED' : '❌ DEV AUDIO QA LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window,'wmGetDevAudioQaFinalLockStatus',{
+    value:wmGetDevAudioQaFinalLockStatus,writable:false,configurable:false
+  });
+  Object.defineProperty(window,'wmLogDevAudioQaFinalLockStatus',{
+    value:wmLogDevAudioQaFinalLockStatus,writable:false,configurable:false
+  });
+
+  function boot(){setTimeout(window.wmLogDevAudioQaFinalLockStatus,0);}
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{boot();}
 })();
 </script>
