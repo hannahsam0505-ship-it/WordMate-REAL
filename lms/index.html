@@ -5793,6 +5793,46 @@ function extractRecordRowsFromResponse(data){
       }
     }
 
+    /* WM_STUDENT_ASSIGNMENT_LOCK_DATA_RESTORE_V1
+     * 학생관리 최소조회 후 최초배정·레벨완료조건 LOCK 판정에 필요한
+     * 현재진행_DB를 학생관리 렌더 전에 확보합니다. */
+    async function wmEnsureStudentAssignmentLockRows_(studentRows){
+      if(Array.isArray(WM_CURRENT_PROGRESS_ROWS) && WM_CURRENT_PROGRESS_ROWS.length) return WM_CURRENT_PROGRESS_ROWS;
+      const studentIds=(Array.isArray(studentRows)?studentRows:[])
+        .map(row=>String(row&&row['학생ID']||'').trim()).filter(Boolean);
+      try{
+        const params=new URLSearchParams();
+        params.set('mode','currentProgress');
+        params.set('initial','1');
+        params.set('limit',String(Math.max(25,studentIds.length||25)));
+        if(studentIds.length){
+          params.set('studentIds',studentIds.join(','));
+          params.set('matchMode','exactList');
+        }
+        params.set('ts',String(Date.now()));
+        const actor=String(wmLmsActorQuery()||'').replace(/^&/,'');
+        if(actor){
+          const actorParams=new URLSearchParams(actor);
+          actorParams.forEach((value,key)=>params.set(key,value));
+        }
+        const res=await fetch(WM_APPS_SCRIPT_URL+'?'+params.toString(),{method:'GET',cache:'no-store'});
+        const data=await res.json();
+        const rows=normalizeRows(data&&(data.currentProgress||data.currentProgressRows||data.rows||data.data)
+          ?(data.currentProgress||data.currentProgressRows||data.rows||data.data):data);
+        if(rows.length) WM_CURRENT_PROGRESS_ROWS=rows;
+      }catch(err){
+        console.warn('학생배정 LOCK 현재진행 조회 실패, 시트조회 fallback:',err);
+      }
+      if(!WM_CURRENT_PROGRESS_ROWS.length){
+        try{
+          WM_CURRENT_PROGRESS_ROWS=normalizeRows(await readSheetRows(['8.현재진행_DB','현재진행_DB','currentProgress','current_progress']));
+        }catch(err){
+          console.warn('학생배정 LOCK 현재진행 시트조회 실패:',err);
+        }
+      }
+      return WM_CURRENT_PROGRESS_ROWS;
+    }
+
     async function loadStudents() {
       if(WM_STUDENT_LOAD_PROMISE) return WM_STUDENT_LOAD_PROMISE;
       WM_STUDENT_LOAD_PROMISE=(async()=>{
@@ -5807,6 +5847,7 @@ function extractRecordRowsFromResponse(data){
           const res = await fetch(WM_APPS_SCRIPT_URL + '?mode=students&phase=list&initial=1&limit=25&fields='+encodeURIComponent(fields.join(','))+'&ts=' + Date.now() + wmLmsActorQuery(), {method:'GET', cache:'no-store'});
           const data = await res.json();
           WM_STUDENT_MANAGE_ROWS = normalizeRows(data && data.students ? data.students : []);
+          await wmEnsureStudentAssignmentLockRows_(WM_STUDENT_MANAGE_ROWS);
           renderStudentManageRows();
           setManageLoading('students', false);
           console.log('학생관리_DB 1차 최소조회 성공:', WM_STUDENT_MANAGE_ROWS);
@@ -8733,13 +8774,33 @@ function wmCurrentProgressForStudentRow(row){
 }
 
 /* ==========================================================
-   최초배정·레벨완료조건 비활성화 기준 (현재진행_DB 기준)
+🔒 WM_STUDENT_LEVEL_CONDITION_LOCK_FORMULA_V2
+최초배정·레벨완료조건 비활성화 공식 (8.현재진행_DB 기준)
 
-   1. 학생ID로 학생관리_DB 행과 현재진행_DB 행을 연결한다.
-   2. 완료Step에 값이 한 글자라도 있으면 최초배정을 즉시 비활성화한다.
-   3. 현재레벨의 시작세트(Set_ID = WM현재레벨-1-1)에서
-      완료Step이 생성되면 레벨완료조건을 비활성화한다.
-   4. 비활성화된 값은 화면과 저장 모두 기존 값을 유지한다.
+[공통 연결]
+
+1. 학생ID로 1.학생관리_DB 행과 8.현재진행_DB의 학생별 최신 행을 연결한다.
+
+[최초배정 LOCK]
+2. 완료Step 컬럼에 값이 한 글자라도 생성되면 최초배정을 즉시 비활성화한다.
+3. 이후 세트·레벨이 이동해도 최초배정은 다시 활성화하지 않는다.
+
+[레벨완료조건 LOCK]
+4. 현재레벨의 첫 세트(WM현재레벨-1-1)는 완료Step이 생성되는 순간 잠근다.
+5. 첫 세트를 통과한 뒤에는 현재레벨과 기록Set_ID의 레벨이 같은 동안 계속 잠근다.
+6. 해당 레벨의 마지막 세트에서 현재Step=TEST인 상태까지 잠금을 유지한다.
+7. 다음 레벨로 실제 전환되어 현재레벨과 기록Set_ID가 새 레벨을 가리키면,
+새 레벨 첫 세트의 완료Step 생성 여부부터 새 기준으로 다시 판정한다.
+
+[레벨별 마지막 세트]
+
+- 3레벨 WM3-3-2 / 4레벨 WM4-3-2 / 5레벨 WM5-3-3 / 6레벨 WM6-2-3
+- 7레벨 WM7-4-10 / 8레벨 WM8-4-10 / 9레벨 WM9-4-10
+- 10레벨 WM10-5-10 / 11레벨 WM11-5-10 / 12레벨 WM12-5-10 / 13레벨 WM13-5-10
+
+[보존]
+8. 비활성화된 최초배정·레벨완료조건은 화면과 저장 모두 기존 DB 값을 유지한다.
+9. 이 공식·판정 함수·레벨별 마지막세트 표·렌더·저장 연결은 LOCK 대상이다.
 ========================================================== */
 function wmInitialLevelLockState(row){
   const progress = wmCurrentProgressForStudentRow(row);
@@ -8759,20 +8820,45 @@ function wmStudentDateInputHtml(studentId,key,value){
   return '<input type="date" class="wm-student-date-input" id="wmMode_'+escapeHtml(key)+'_'+safeId+'" data-student-id="'+escapeHtml(studentId)+'" value="'+escapeHtml(wmStudentDateInputValue(value))+'" onkeydown="event.preventDefault()" onpaste="event.preventDefault()" />';
 }
 
+function wmLevelLastSetId(level){
+  const n=Number(level||0);
+  const lastSets={
+    3:'WM3-3-2',4:'WM4-3-2',5:'WM5-3-3',6:'WM6-2-3',
+    7:'WM7-4-10',8:'WM8-4-10',9:'WM9-4-10',
+    10:'WM10-5-10',11:'WM11-5-10',12:'WM12-5-10',13:'WM13-5-10'
+  };
+  return lastSets[n]||'';
+}
+
 function wmLevelConditionLockState(row){
-  const progress = wmCurrentProgressForStudentRow(row);
-  if(!progress) return {locked:false, reason:''};
-  const currentLevel = Number(String(wmProgressField(progress, ['현재레벨','현재 레벨','CurrentLevel','currentLevel']) || '').match(/\d+/)?.[0] || 0);
-  const setMatch = String(wmProgressField(progress, ['Set_ID','Set ID','SetID','setId']) || '').trim().match(/^WM(\d{1,2})-(\d+)-(\d+)$/i);
-  const completedStep = String(wmProgressField(progress, ['완료Step','완료 STEP','CompletedStep','completedStep']) || '').trim();
-  if(!currentLevel || !setMatch || !completedStep) return {locked:false, reason:''};
-  const setLevel = Number(setMatch[1]);
-  const unit = Number(setMatch[2]);
-  const setNo = Number(setMatch[3]);
-  if(setLevel === currentLevel && unit === 1 && setNo === 1){
-    return {locked:true, reason:'현재레벨의 시작세트에서 완료Step이 생성되어 레벨완료조건을 수정할 수 없습니다.'};
+  const progress=wmCurrentProgressForStudentRow(row);
+  if(!progress) return {locked:false,reason:''};
+
+  const currentLevel=Number(String(wmProgressField(progress,['현재레벨','현재 레벨','CurrentLevel','currentLevel'])||'').match(/\d+/)?.[0]||0);
+  const recordSetId=String(wmProgressField(progress,['기록Set_ID','기록 Set_ID','기록SetID','recordSetId','Set_ID','Set ID','SetID','setId'])||'').trim().toUpperCase();
+  const setMatch=recordSetId.match(/^WM(\d{1,2})-(\d+)-(\d+)$/i);
+  const completedStep=String(wmProgressField(progress,['완료Step','완료 STEP','CompletedStep','completedStep'])||'').trim();
+  const currentStep=String(wmProgressField(progress,['현재Step','현재 STEP','CurrentStep','currentStep'])||'').trim().toUpperCase();
+  if(!currentLevel||!setMatch) return {locked:false,reason:''};
+
+  const setLevel=Number(setMatch[1]);
+  const unit=Number(setMatch[2]);
+  const setNo=Number(setMatch[3]);
+  if(setLevel!==currentLevel) return {locked:false,reason:''};
+
+  const isFirstSet=unit===1&&setNo===1;
+  if(isFirstSet){
+    return completedStep
+      ? {locked:true,reason:'현재레벨 첫 세트의 완료Step이 생성되어 레벨완료조건을 수정할 수 없습니다.'}
+      : {locked:false,reason:''};
   }
-  return {locked:false, reason:''};
+
+  const lastSetId=wmLevelLastSetId(currentLevel);
+  if(recordSetId===lastSetId&&currentStep==='TEST'){
+    return {locked:true,reason:'현재레벨 마지막 세트의 TEST 단계까지 레벨완료조건이 유지됩니다.'};
+  }
+
+  return {locked:true,reason:'현재레벨 첫 세트를 통과하여 레벨완료조건을 수정할 수 없습니다.'};
 }
 
 async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
@@ -9842,143 +9928,183 @@ function wmLogLmsDevConnectionLockStatus(){
 document.addEventListener('DOMContentLoaded', wmLogLmsDevConnectionLockStatus);
 
 /* ============================================================
-   WM_STUDENT_ASSIGNMENT_LOCK_V1 / 실제 실행 연결 + F12 검증
+   🔒 WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2
+   최초배정·레벨완료조건 공식 + 실제 실행 연결 + F12 검증
+
+   - 기존 최초배정 LOCK과 레벨완료조건 LOCK을 하나로 통합한다.
+   - 동일 함수의 중복 defineProperty 등록을 제거한다.
+   - 공식·현재진행 연결·최초배정 판정·마지막세트 표·레벨완료조건 판정·렌더·저장을 보호한다.
    ============================================================ */
-const WM_STUDENT_ASSIGNMENT_LOCK_V1 = Object.freeze({
-  version: 'WM_STUDENT_ASSIGNMENT_LOCK_V1.0',
-  date: '2026-07-14',
-  FIRST_ASSIGNMENT: Object.freeze({
-    render: wmLearningAssignSelectHtml,
-    save: saveStudentLearningModeFromRow
+const WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2 = Object.freeze({
+  version:'WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2.0',
+  date:'2026-08-08',
+  CURRENT_PROGRESS:Object.freeze({
+    load:loadStudents,
+    field:wmProgressField,
+    findStudentProgress:wmCurrentProgressForStudentRow
   }),
-  CURRENT_SET: Object.freeze({
-    load: loadStudents,
-    display: wmCurrentSetDisplayValue
+  FIRST_ASSIGNMENT:Object.freeze({
+    lockState:wmInitialLevelLockState,
+    render:wmLearningAssignSelectHtml
   }),
-  NEXT_LEVEL_COMPLETE_CONDITION: Object.freeze({
-    render: wmModeSelectHtml,
-    saveFormula: wmNextLevelFromCurrentSet,
-    saveMessage: wmNextLevelSaveMessage,
-    confirm: confirmNextLevelCompleteCondition,
-    save: saveStudentLearningModeFromRow
+  LEVEL_LAST_SET_FORMULA:Object.freeze({
+    calculate:wmLevelLastSetId
+  }),
+  LEVEL_COMPLETE_CONDITION:Object.freeze({
+    lockState:wmLevelConditionLockState,
+    render:wmModeSelectHtml
+  }),
+  SAVE_PROTECTION:Object.freeze({
+    save:saveStudentLearningModeFromRow
   })
 });
 
-function wmInstallStudentAssignmentFunctionLocks(){
-  const names = [];
-  ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].forEach(function(moduleName){
-    const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
+function wmInstallStudentLevelConditionActualLocks(){
+  const moduleNames=[
+    'CURRENT_PROGRESS',
+    'FIRST_ASSIGNMENT',
+    'LEVEL_LAST_SET_FORMULA',
+    'LEVEL_COMPLETE_CONDITION',
+    'SAVE_PROTECTION'
+  ];
+  const names=[];
+
+  moduleNames.forEach(function(moduleName){
+    const module=WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2[moduleName];
     Object.keys(module).forEach(function(key){
-      const fn = module[key];
-      const name = fn && fn.name;
-      if(!name || names.includes(name)) return;
+      const fn=module[key];
+      const name=fn&&fn.name;
+      if(!name||names.includes(name)) return;
+
+      const descriptor=Object.getOwnPropertyDescriptor(window,name);
       try{
-        const descriptor = Object.getOwnPropertyDescriptor(window, name);
-        Object.defineProperty(window, name, {
-          value: fn,
-          writable: false,
-          configurable: false,
-          enumerable: descriptor ? descriptor.enumerable : true
+        Object.defineProperty(window,name,{
+          value:fn,
+          writable:false,
+          configurable:false,
+          enumerable:descriptor?descriptor.enumerable:true
         });
       }catch(error){
-        console.error('STUDENT ASSIGNMENT LOCK INSTALL ERROR', name, error);
+        console.error('STUDENT LEVEL CONDITION LOCK INSTALL ERROR',name,error);
       }
       names.push(name);
     });
   });
+
   return Object.freeze(names);
 }
 
-const WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS = wmInstallStudentAssignmentFunctionLocks();
+const WM_STUDENT_LEVEL_CONDITION_LOCKED_FUNCTIONS=
+  wmInstallStudentLevelConditionActualLocks();
 
-function wmLogStudentAssignmentLockStatus(){
-  const rows = ['FIRST_ASSIGNMENT','CURRENT_SET','NEXT_LEVEL_COMPLETE_CONDITION'].map(function(moduleName){
-    const module = WM_STUDENT_ASSIGNMENT_LOCK_V1[moduleName];
-    const functions = Object.keys(module);
-    const verified = Object.isFrozen(module) && functions.every(function(key){
-      const fn = module[key];
-      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
-      return window[fn.name] === fn
+function wmGetStudentLevelConditionActualLockStatus(){
+  const moduleNames=[
+    'CURRENT_PROGRESS',
+    'FIRST_ASSIGNMENT',
+    'LEVEL_LAST_SET_FORMULA',
+    'LEVEL_COMPLETE_CONDITION',
+    'SAVE_PROTECTION'
+  ];
+
+  const rows=moduleNames.map(function(moduleName){
+    const module=WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2[moduleName];
+    const functions=Object.keys(module);
+    const verified=Object.isFrozen(module)&&functions.every(function(key){
+      const fn=module[key];
+      const descriptor=Object.getOwnPropertyDescriptor(window,fn.name);
+      return window[fn.name]===fn
         && !!descriptor
-        && descriptor.writable === false
-        && descriptor.configurable === false;
+        && descriptor.writable===false
+        && descriptor.configurable===false;
     });
-    return {MODULE:moduleName, FUNCTIONS:functions.length, LOCKED:verified ? 'YES' : 'NO'};
+    return {
+      MODULE:moduleName,
+      FUNCTIONS:functions.length,
+      LOCKED:verified?'YES':'NO'
+    };
   });
-  const allVerified = Object.isFrozen(WM_STUDENT_ASSIGNMENT_LOCK_V1)
-    && Object.isFrozen(WM_STUDENT_ASSIGNMENT_LOCKED_FUNCTIONS)
-    && rows.every(function(row){ return row.LOCKED === 'YES'; });
-  console.group('🔒 WORD MATE STUDENT ASSIGNMENT LOCK STATUS');
-  console.info('LOCK VERSION :', WM_STUDENT_ASSIGNMENT_LOCK_V1.version);
-  console.info('LOCK DATE    :', WM_STUDENT_ASSIGNMENT_LOCK_V1.date);
-  console.table(rows);
-  console.info(allVerified ? '🔒 STUDENT ASSIGNMENT ALL LOCK VERIFIED' : '❌ STUDENT ASSIGNMENT LOCK VERIFY FAILED');
-  console.groupEnd();
-  return allVerified;
+
+  const registryDescriptor=
+    Object.getOwnPropertyDescriptor(window,'WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2');
+  const statusDescriptor=
+    Object.getOwnPropertyDescriptor(window,'wmLogStudentLevelConditionActualLockStatus');
+
+  const allVerified=
+    Object.isFrozen(WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2)
+    && Object.isFrozen(WM_STUDENT_LEVEL_CONDITION_LOCKED_FUNCTIONS)
+    && !!registryDescriptor
+    && registryDescriptor.writable===false
+    && registryDescriptor.configurable===false
+    && !!statusDescriptor
+    && statusDescriptor.writable===false
+    && statusDescriptor.configurable===false
+    && rows.every(function(row){return row.LOCKED==='YES';});
+
+  return {
+    version:WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2.version,
+    date:WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2.date,
+    registryFrozen:Object.isFrozen(WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2),
+    lockedFunctionsFrozen:Object.isFrozen(WM_STUDENT_LEVEL_CONDITION_LOCKED_FUNCTIONS),
+    rows:rows,
+    allVerified:allVerified
+  };
 }
 
-document.addEventListener('DOMContentLoaded', wmLogStudentAssignmentLockStatus);
+function wmLogStudentLevelConditionActualLockStatus(){
+  const status=wmGetStudentLevelConditionActualLockStatus();
+  console.group('🔒 WORD MATE LMS STUDENT LEVEL CONDITION LOCK STATUS');
+  console.info('LOCK VERSION :',status.version);
+  console.info('LOCK DATE    :',status.date);
+  console.table(status.rows);
+  console.info(status.registryFrozen?'✅ REGISTRY FROZEN':'❌ REGISTRY CHECK REQUIRED');
+  console.info(status.lockedFunctionsFrozen?'✅ LOCKED FUNCTION LIST FROZEN':'❌ FUNCTION LIST CHECK REQUIRED');
+  console.info(status.allVerified
+    ?'🔒 LMS STUDENT LEVEL CONDITION ALL LOCK VERIFIED'
+    :'❌ LMS STUDENT LEVEL CONDITION LOCK VERIFY FAILED');
+  console.groupEnd();
+  return status;
+}
 
-/* WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 / 실제 실행 연결 + F12 검증 */
-const WM_LEVEL_COMPLETE_CONDITION_LOCK_V1 = Object.freeze({
-  version: 'WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.0',
-  CURRENT_PROGRESS: Object.freeze({load:loadStudents}),
-  LOCK_CHECK: Object.freeze({lockState:wmLevelConditionLockState}),
-  DISABLED_RENDER: Object.freeze({render:wmModeSelectHtml}),
-  SAVE: Object.freeze({save:saveStudentLearningModeFromRow})
+/* Registry와 F12 검증 함수도 재할당·삭제 불가로 보호 */
+Object.defineProperty(window,'WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2',{
+  value:WM_STUDENT_LEVEL_CONDITION_ACTUAL_LOCK_V2,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+Object.defineProperty(window,'wmGetStudentLevelConditionActualLockStatus',{
+  value:wmGetStudentLevelConditionActualLockStatus,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+Object.defineProperty(window,'wmLogStudentLevelConditionActualLockStatus',{
+  value:wmLogStudentLevelConditionActualLockStatus,
+  writable:false,
+  configurable:false,
+  enumerable:true
+});
+Object.defineProperty(window,'WM_VERIFY_STUDENT_LEVEL_CONDITION_LOCK',{
+  value:wmLogStudentLevelConditionActualLockStatus,
+  writable:false,
+  configurable:false,
+  enumerable:true
 });
 
-function wmInstallLevelCompleteConditionFunctionLocks(){
-  const names = [];
-  ['CURRENT_PROGRESS','LOCK_CHECK','DISABLED_RENDER','SAVE'].forEach(function(moduleName){
-    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
-    Object.keys(module).forEach(function(key){
-      const fn = module[key];
-      const name = fn && fn.name;
-      if(!name || names.includes(name)) return;
-      try{
-        const descriptor = Object.getOwnPropertyDescriptor(window, name);
-        Object.defineProperty(window, name, {value:fn,writable:false,configurable:false,enumerable:descriptor ? descriptor.enumerable : true});
-      }catch(error){ console.error('LEVEL COMPLETE CONDITION LOCK INSTALL ERROR', name, error); }
-      names.push(name);
-    });
-  });
-  return Object.freeze(names);
-}
-
-const WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS = wmInstallLevelCompleteConditionFunctionLocks();
-
-async function wmLogLevelCompleteConditionLockStatus(){
-  console.info('🔒 LEVEL COMPLETE CONDITION LOCK VERIFY START');
-  const moduleNames = ['CURRENT_PROGRESS','LOCK_CHECK','DISABLED_RENDER','SAVE'];
-  const rows = moduleNames.map(function(moduleName){
-    const module = WM_LEVEL_COMPLETE_CONDITION_LOCK_V1[moduleName];
-    const functions = Object.keys(module);
-    const verified = Object.isFrozen(module) && functions.every(function(key){
-      const fn = module[key];
-      const descriptor = Object.getOwnPropertyDescriptor(window, fn.name);
-      return window[fn.name] === fn && !!descriptor && descriptor.writable === false && descriptor.configurable === false;
-    });
-    return {MODULE:moduleName,FUNCTIONS:functions.length,LOCKED:verified ? 'YES' : 'NO'};
-  });
-  let server = null;
-  try{ server = await wmFetchSettingApi('levelCompleteConditionLockStatus', {ts:Date.now()}); }
-  catch(error){ server = {allVerified:false,error:String(error && error.message ? error.message : error)}; }
-  const allVerified = Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCK_V1)
-    && Object.isFrozen(WM_LEVEL_COMPLETE_CONDITION_LOCKED_FUNCTIONS)
-    && rows.every(function(row){ return row.LOCKED === 'YES'; })
-    && !!(server && server.allVerified === true);
-  console.group('🔒 WORD MATE LEVEL COMPLETE CONDITION LOCK STATUS');
-  console.info('LOCK VERSION :', WM_LEVEL_COMPLETE_CONDITION_LOCK_V1.version);
-  console.table(rows);
-  console.info(server && server.allVerified === true ? 'SERVER : ✅ ACTUAL LOCK' : 'SERVER : ❌ CHECK REQUIRED');
-  console.info(allVerified ? '🔒 LEVEL COMPLETE CONDITION ALL LOCK VERIFIED' : '❌ LEVEL COMPLETE CONDITION LOCK VERIFY FAILED');
-  console.groupEnd();
-  return allVerified;
-}
-
-window.WM_VERIFY_LEVEL_COMPLETE_CONDITION_LOCK = wmLogLevelCompleteConditionLockStatus;
-wmLogLevelCompleteConditionLockStatus();
+/* 보호 등록 완료 후 F12 자동 검증 */
+(function(){
+  function boot(){
+    setTimeout(window.wmLogStudentLevelConditionActualLockStatus,0);
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load',function(){
+    window.wmLogStudentLevelConditionActualLockStatus();
+  },{once:true});
+})();
 
 /* WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1 / 확대 디자인 Registry + F12 검증 */
 const WM_REPORT_PREVIEW_EXPANDED_DESIGN_LOCK_V1 = Object.freeze({
