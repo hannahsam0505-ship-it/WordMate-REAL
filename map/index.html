@@ -2475,10 +2475,16 @@ async function wmVerifyLoginServerSpeedLockOnMap_(){
   }catch(err){}
 }
 
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', wmVerifyLoginServerSpeedLockOnMap_, {once:true});
-}else{
-  wmVerifyLoginServerSpeedLockOnMap_();
+/* WM_REAL_MAP_DIAGNOSTIC_AUTO_CALL_BLOCK_V1_20260812
+   speedLockStatus는 F12 검증용 호출입니다.
+   REAL 첫 화면에서 학습맵·세션 API와 동시에 실행하지 않고 TEST에서만 자동 확인합니다.
+   REAL에서는 필요할 때 wmVerifyLoginServerSpeedLockOnMap_()을 F12에서 수동 실행합니다. */
+if(WM_ENV === 'TEST'){
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wmVerifyLoginServerSpeedLockOnMap_, {once:true});
+  }else{
+    wmVerifyLoginServerSpeedLockOnMap_();
+  }
 }
 
 /* WM_CODEGS_ALL_LOCK_VERIFY_ON_MAP_20260713_V1
@@ -2530,10 +2536,15 @@ async function wmVerifyCodeGsAllLockOnMap_(){
   }catch(err){}
 }
 
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', wmVerifyCodeGsAllLockOnMap_, {once:true});
-}else{
-  wmVerifyCodeGsAllLockOnMap_();
+/* WM_REAL_MAP_DIAGNOSTIC_AUTO_CALL_BLOCK_V1_20260812
+   codeGsAllLockStatus도 F12 검증용이므로 REAL 진입 시 자동 서버 호출하지 않습니다.
+   실제 Map 조회 경로와 LOCK 함수 자체는 변경하지 않습니다. */
+if(WM_ENV === 'TEST'){
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', wmVerifyCodeGsAllLockOnMap_, {once:true});
+  }else{
+    wmVerifyCodeGsAllLockOnMap_();
+  }
 }
 
 function wmGetUrlParam(name){
