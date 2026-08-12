@@ -40,8 +40,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL: 'https://study.hsam05.com/map',
-    STUDY_URL: 'https://study.hsam05.com/study',
+    MAP_URL: 'https://word-mate-real.vercel.app/map',
+    STUDY_URL: 'https://word-mate-real.vercel.app/study',
     LMS_URL: 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -1001,7 +1001,7 @@ let wmStudySessionExpiredShown = false;
 let wmStudySessionCheckTimer = null;
 let wmStudySessionCheckPromise = null;
 let wmStudyLastValidSessionAt = 0;
-const WM_STUDY_SESSION_CACHE_MS = 120000;
+const WM_STUDY_SESSION_CACHE_MS = 10000;
 
 function wmStudyClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
@@ -1090,7 +1090,7 @@ function wmStudyStartSessionWatcher(){
   wmStudyCheckCurrentSession();
   wmStudySessionCheckTimer = setInterval(function(){
     wmStudyCheckCurrentSession({force:true});
-  }, 120000);
+  }, 5000);
 }
 
 function getSimpleDeviceInfo(){
@@ -2399,16 +2399,14 @@ function wmFetchStudySetData(setId){
     const callbackName = "wmSetFastCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
     let finished = false;
     let script = null;
-    function cleanup(removeCallback){
-      if(removeCallback !== false){
-        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
-      }
+    function cleanup(){
+      try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
       if(script && script.parentNode) script.parentNode.removeChild(script);
     }
     window[callbackName] = function(result){
       if(finished) return;
       finished = true;
-      cleanup(true);
+      cleanup();
       if(result && result.success) wmWriteStudySetDataCache(setId, result);
       delete WM_STUDY_SET_FETCH_PROMISES[key];
       resolve(result);
@@ -2418,17 +2416,9 @@ function wmFetchStudySetData(setId){
       + "&studentId=" + encodeURIComponent(WM_STUDENT_ID)
       + "&sessionToken=" + encodeURIComponent(WM_SESSION_TOKEN)
       + "&callback=" + encodeURIComponent(callbackName) + "&t=" + Date.now();
-    script.onerror = function(){ if(finished) return; finished=true; cleanup(true); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP load error")); };
+    script.onerror = function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP load error")); };
     document.body.appendChild(script);
-    setTimeout(function(){
-      if(finished) return;
-      finished=true;
-      window[callbackName]=function(){};
-      cleanup(false);
-      setTimeout(function(){ try{ delete window[callbackName]; }catch(e){ window[callbackName]=undefined; } },120000);
-      delete WM_STUDY_SET_FETCH_PROMISES[key];
-      reject(new Error("JSONP timeout"));
-    }, 30000);
+    setTimeout(function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 10000);
   });
   return WM_STUDY_SET_FETCH_PROMISES[key];
 }
@@ -2891,17 +2881,15 @@ async function wmLoadLearningProgress(){
       let finished = false;
       let script = null;
 
-      function cleanup(removeCallback){
-        if(removeCallback !== false){
-          try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
-        }
+      function cleanup(){
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
         if(script && script.parentNode){ script.parentNode.removeChild(script); }
       }
 
       window[callbackName] = function(response){
         if(finished) return;
         finished = true;
-        cleanup(true);
+        cleanup();
         resolve(response);
       };
 
@@ -2916,7 +2904,7 @@ async function wmLoadLearningProgress(){
       script.onerror = function(){
         if(finished) return;
         finished = true;
-        cleanup(true);
+        cleanup();
         reject(new Error("progress JSONP load error"));
       };
 
@@ -2925,11 +2913,9 @@ async function wmLoadLearningProgress(){
       setTimeout(function(){
         if(finished) return;
         finished = true;
-        window[callbackName]=function(){};
-        cleanup(false);
-        setTimeout(function(){ try{ delete window[callbackName]; }catch(e){ window[callbackName]=undefined; } },120000);
+        cleanup();
         reject(new Error("progress JSONP timeout"));
-      }, 30000);
+      }, 12000);
     });
 
     if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
@@ -3162,10 +3148,9 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  /* WM_REAL_STUDY_SAVE_DUPLICATE_SESSION_RECOVERY_V1_20260812
-     모든 Step 저장 직전에 별도 checkStudentSession을 호출하지 않습니다.
-     saveLearningRecordV2 서버가 같은 학생ID/세션토큰을 직접 검증하므로
-     저장 1건당 API 2건이 직렬 실행되던 중복과 대기 누적을 제거합니다. */
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return {ok:false, sessionExpired:true};
+
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
@@ -3596,21 +3581,18 @@ function renderStart(){
 
 async function startLearning(){
   renderDbLoading();
-  /* WM_REAL_STUDY_PARALLEL_BOOT_RECOVERY_V1_20260812
-     세션→세트→학습모드→진행기록을 30초 단위로 직렬 대기하던 흐름을 제거합니다.
-     서로 독립적인 필수 조회를 동시에 시작해 한 요청의 지연이 전체 합산되지 않게 합니다. */
+  const sessionPromise = wmStudyCheckCurrentSession();
+
+  /* WM_STUDY_PARALLEL_START_V1_20260711
+     세트·학습모드·현재진행 핵심 4개를 동시에 불러옵니다. */
   const needsDbLoad = !isDbReady || !originalWords.length;
-  const bootResults = await Promise.all([
-    wmStudyCheckCurrentSession(),
+  const parallelLoad = await Promise.all([
+    sessionPromise,
     needsDbLoad ? WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB() : Promise.resolve(true),
     wmPrepareStudyModeForCurrentSet(),
     wmLoadLearningProgress()
   ]);
-  const sessionOk = bootResults[0];
-  if(!sessionOk) return;
-  const dbOk = bootResults[1];
-  if(!dbOk) return;
-  const progress = bootResults[3];
+  if(!parallelLoad[0] || !parallelLoad[1]) return;
   wmStudyStartSessionWatcher();
 
   clearInterval(testTimer);
@@ -3620,6 +3602,7 @@ async function startLearning(){
   wmCurrentStepStartTime=learningStartTime;
   latestSavedPayload=null;
 
+  const progress = parallelLoad[3];
   const resumeStage = wmApplyResumeProgress(progress);
 
   stage=resumeStage;
@@ -4475,8 +4458,7 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    window[callbackName]=function(){};
-    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const serverModules = serverResult && serverResult.modules ? serverResult.modules : {};
@@ -4509,7 +4491,7 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   script.onerror = function(){finish(null);};
   script.src = API_URL + "?action=studyRuntimeExecutionLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},30000);
+  setTimeout(function(){finish(null);},12000);
 }
 
 /* WM ROUND RECORD RECOVERY DETAILED LOCK STATUS 20260727 */
@@ -4544,8 +4526,7 @@ function wmLogRoundRecordRecoveryLockStatus_(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    window[callbackName]=function(){};
-    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const functions = serverResult && serverResult.functions ? serverResult.functions : {};
@@ -4577,7 +4558,7 @@ function wmLogRoundRecordRecoveryLockStatus_(){
   script.onerror = function(){finish(null);};
   script.src = API_URL + "?action=roundRecordRecoveryLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},30000);
+  setTimeout(function(){finish(null);},12000);
 }
 
 window.wmLogLevelTransitionNoticeLockStatus = function(){
@@ -4600,8 +4581,7 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
   function finish(serverResult){
     if(finished) return;
     finished=true;
-    window[callbackName]=function(){};
-    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
+    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
     if(script.parentNode) script.parentNode.removeChild(script);
     const serverVerified=!!(serverResult && serverResult.verified);
     const rows=clientRows.concat([
@@ -4621,7 +4601,7 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
   script.onerror=function(){finish(null);};
   script.src=API_URL+"?action=levelTransitionNoticeLockStatus&callback="+encodeURIComponent(callbackName)+"&_="+Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},30000);
+  setTimeout(function(){finish(null);},12000);
 };
 
 function wmLogStudyLockStatus(){
@@ -4668,8 +4648,7 @@ function wmLogStudySpeedLockStatus(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    window[callbackName] = function(){};
-    setTimeout(function(){ try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; } },120000);
+    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
     if(script.parentNode) script.parentNode.removeChild(script);
     const serverVerified = !!(serverResult && serverResult.verified);
     const rows = clientRows.concat([
@@ -4691,7 +4670,7 @@ function wmLogStudySpeedLockStatus(){
   script.onerror = function(){ finish(null); };
   script.src = API_URL + "?action=studySpeedLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){ finish(null); }, 30000);
+  setTimeout(function(){ finish(null); }, 12000);
 }
 
 /* WM_CODEGS_ALL_LOCK_VERIFY_ON_STUDY_20260713_V1
@@ -4705,8 +4684,7 @@ function wmLogCodeGsAllLockStatusOnStudy_(){
   function finish(status){
     if(finished) return;
     finished = true;
-    window[callbackName] = function(){};
-    setTimeout(function(){ try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; } },120000);
+    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const modules = status && status.modules ? status.modules : {};
@@ -4731,7 +4709,7 @@ function wmLogCodeGsAllLockStatusOnStudy_(){
   script.onerror = function(){ finish(null); };
   script.src = API_URL + "?action=codeGsAllLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){ finish(null); }, 30000);
+  setTimeout(function(){ finish(null); }, 12000);
 }
 
 document.addEventListener("keydown",function(e){
@@ -4755,9 +4733,11 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
-/* WM_REAL_STUDY_REMOTE_LOCK_DIAGNOSTIC_OFF_V1_20260812
-   REAL 학습 중 서버 LOCK 진단 5건이 세션·Step·완료 저장과 충돌하므로
-   LOCK 자체는 유지하고 콘솔 확인용 원격 호출만 실행하지 않습니다. */
+wmLogStudyRuntimeExecutionLockStatus();
+wmLogStudySpeedLockStatus();
+wmLogCodeGsAllLockStatusOnStudy_();
+window.wmLogLevelTransitionNoticeLockStatus();
+wmLogRoundRecordRecoveryLockStatus_();
 renderStart();
 </script>
 
