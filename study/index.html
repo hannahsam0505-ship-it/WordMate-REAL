@@ -4468,7 +4468,8 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    window[callbackName]=function(){};
+    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const serverModules = serverResult && serverResult.modules ? serverResult.modules : {};
@@ -4501,7 +4502,7 @@ function wmLogStudyRuntimeExecutionLockStatus(){
   script.onerror = function(){finish(null);};
   script.src = API_URL + "?action=studyRuntimeExecutionLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},12000);
+  setTimeout(function(){finish(null);},30000);
 }
 
 /* WM ROUND RECORD RECOVERY DETAILED LOCK STATUS 20260727 */
@@ -4536,7 +4537,8 @@ function wmLogRoundRecordRecoveryLockStatus_(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    window[callbackName]=function(){};
+    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const functions = serverResult && serverResult.functions ? serverResult.functions : {};
@@ -4568,7 +4570,7 @@ function wmLogRoundRecordRecoveryLockStatus_(){
   script.onerror = function(){finish(null);};
   script.src = API_URL + "?action=roundRecordRecoveryLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},12000);
+  setTimeout(function(){finish(null);},30000);
 }
 
 window.wmLogLevelTransitionNoticeLockStatus = function(){
@@ -4591,7 +4593,8 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
   function finish(serverResult){
     if(finished) return;
     finished=true;
-    try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}
+    window[callbackName]=function(){};
+    setTimeout(function(){try{delete window[callbackName];}catch(error){window[callbackName]=undefined;}},120000);
     if(script.parentNode) script.parentNode.removeChild(script);
     const serverVerified=!!(serverResult && serverResult.verified);
     const rows=clientRows.concat([
@@ -4611,7 +4614,7 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
   script.onerror=function(){finish(null);};
   script.src=API_URL+"?action=levelTransitionNoticeLockStatus&callback="+encodeURIComponent(callbackName)+"&_="+Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){finish(null);},12000);
+  setTimeout(function(){finish(null);},30000);
 };
 
 function wmLogStudyLockStatus(){
@@ -4658,7 +4661,8 @@ function wmLogStudySpeedLockStatus(){
   function finish(serverResult){
     if(finished) return;
     finished = true;
-    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
+    window[callbackName] = function(){};
+    setTimeout(function(){ try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; } },120000);
     if(script.parentNode) script.parentNode.removeChild(script);
     const serverVerified = !!(serverResult && serverResult.verified);
     const rows = clientRows.concat([
@@ -4680,7 +4684,7 @@ function wmLogStudySpeedLockStatus(){
   script.onerror = function(){ finish(null); };
   script.src = API_URL + "?action=studySpeedLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){ finish(null); }, 12000);
+  setTimeout(function(){ finish(null); }, 30000);
 }
 
 /* WM_CODEGS_ALL_LOCK_VERIFY_ON_STUDY_20260713_V1
@@ -4694,7 +4698,8 @@ function wmLogCodeGsAllLockStatusOnStudy_(){
   function finish(status){
     if(finished) return;
     finished = true;
-    try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; }
+    window[callbackName] = function(){};
+    setTimeout(function(){ try{ delete window[callbackName]; }catch(error){ window[callbackName] = undefined; } },120000);
     if(script.parentNode) script.parentNode.removeChild(script);
 
     const modules = status && status.modules ? status.modules : {};
@@ -4719,7 +4724,7 @@ function wmLogCodeGsAllLockStatusOnStudy_(){
   script.onerror = function(){ finish(null); };
   script.src = API_URL + "?action=codeGsAllLockStatus&callback=" + encodeURIComponent(callbackName) + "&_=" + Date.now();
   document.head.appendChild(script);
-  setTimeout(function(){ finish(null); }, 12000);
+  setTimeout(function(){ finish(null); }, 30000);
 }
 
 document.addEventListener("keydown",function(e){
