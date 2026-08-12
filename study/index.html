@@ -4748,13 +4748,9 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
-/* WM_STUDY_REMOTE_LOCK_CHECK_STAGGER_V1_20260812
-   운영 필수 조회와 충돌하지 않도록 서버 LOCK 진단을 순차 지연 실행합니다. */
-setTimeout(wmLogStudyRuntimeExecutionLockStatus,20000);
-setTimeout(wmLogStudySpeedLockStatus,26000);
-setTimeout(wmLogCodeGsAllLockStatusOnStudy_,32000);
-setTimeout(window.wmLogLevelTransitionNoticeLockStatus,38000);
-setTimeout(wmLogRoundRecordRecoveryLockStatus_,44000);
+/* WM_REAL_STUDY_REMOTE_LOCK_DIAGNOSTIC_OFF_V1_20260812
+   REAL 학습 중 서버 LOCK 진단 5건이 세션·Step·완료 저장과 충돌하므로
+   LOCK 자체는 유지하고 콘솔 확인용 원격 호출만 실행하지 않습니다. */
 renderStart();
 </script>
 
