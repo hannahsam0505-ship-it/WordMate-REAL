@@ -3162,9 +3162,10 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  const sessionOk = await wmStudyCheckCurrentSession();
-  if(!sessionOk) return {ok:false, sessionExpired:true};
-
+  /* WM_REAL_STUDY_SAVE_DUPLICATE_SESSION_RECOVERY_V1_20260812
+     모든 Step 저장 직전에 별도 checkStudentSession을 호출하지 않습니다.
+     saveLearningRecordV2 서버가 같은 학생ID/세션토큰을 직접 검증하므로
+     저장 1건당 API 2건이 직렬 실행되던 중복과 대기 누적을 제거합니다. */
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
@@ -3595,15 +3596,21 @@ function renderStart(){
 
 async function startLearning(){
   renderDbLoading();
-  /* WM_STUDY_STABLE_SEQUENTIAL_START_V1_20260812
-     Google JSONP 응답 경합을 막기 위해 필수 요청을 순차 실행합니다. */
+  /* WM_REAL_STUDY_PARALLEL_BOOT_RECOVERY_V1_20260812
+     세션→세트→학습모드→진행기록을 30초 단위로 직렬 대기하던 흐름을 제거합니다.
+     서로 독립적인 필수 조회를 동시에 시작해 한 요청의 지연이 전체 합산되지 않게 합니다. */
   const needsDbLoad = !isDbReady || !originalWords.length;
-  const sessionOk = await wmStudyCheckCurrentSession();
+  const bootResults = await Promise.all([
+    wmStudyCheckCurrentSession(),
+    needsDbLoad ? WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB() : Promise.resolve(true),
+    wmPrepareStudyModeForCurrentSet(),
+    wmLoadLearningProgress()
+  ]);
+  const sessionOk = bootResults[0];
   if(!sessionOk) return;
-  const dbOk = needsDbLoad ? await WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB() : true;
+  const dbOk = bootResults[1];
   if(!dbOk) return;
-  await wmPrepareStudyModeForCurrentSet();
-  const progress = await wmLoadLearningProgress();
+  const progress = bootResults[3];
   wmStudyStartSessionWatcher();
 
   clearInterval(testTimer);

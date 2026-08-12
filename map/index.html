@@ -2996,10 +2996,13 @@ async function wmCheckCurrentSession(options){
 
 function wmStartSessionWatcher(){
   if(wmSessionCheckTimer) clearInterval(wmSessionCheckTimer);
-  wmCheckCurrentSession();
+  /* WM_REAL_MAP_SESSION_FLOOD_RECOVERY_V1_20260812
+     첫 세션 확인은 wmInitLearningMap에서 이미 실행합니다.
+     Map 체류 중 5초마다 Apps Script를 호출하던 중복 검사를 제거해
+     로그인/Map/Study/저장이 같은 실행 대기열에서 밀리는 현상을 차단합니다. */
   wmSessionCheckTimer = setInterval(function(){
     wmCheckCurrentSession();
-  }, 5000);
+  }, 120000);
 }
 
 function wmRenderInstantMapFromStudentCache_(){
@@ -3086,12 +3089,14 @@ function wmInitLearningMap(){
     return;
   }
 
-  wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
-    if(!valid) return;
-    wmRevealAuthenticatedMap_();
-    wmFetchLearningMap(wmCurrentStudent.학생ID);
-    wmStartSessionWatcher();
-  });
+  /* WM_REAL_MAP_FIRST_RENDER_RECOVERY_V1_20260812
+     화면 데이터 조회를 세션 API 뒤에 직렬로 세우지 않습니다.
+     저장된 학생ID/세션토큰이 있으면 Map 조회를 즉시 시작하고,
+     세션 무효 응답이 실제로 왔을 때만 로그인으로 이동합니다. */
+  wmRevealAuthenticatedMap_();
+  wmFetchLearningMap(wmCurrentStudent.학생ID);
+  wmCheckCurrentSession({ redirectOnInvalid:true });
+  wmStartSessionWatcher();
 }
 
 function wmShowMapLoadingState_(){
@@ -3663,10 +3668,10 @@ function wmHandleLearningMapResponse(data){
 function wmFetchLearningMap(studentId){
   wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
 
-  /* WM_SPEED_MAP_RECORDS_PARALLEL_V1_20260710
-     학습맵 현재진행_DB 조회와 하단 학습기록_DB 조회를 동시에 시작합니다.
-     기존처럼 맵 응답 완료 뒤 기록 조회를 시작하지 않아 하단 기록 대기시간을 줄입니다. */
-  wmLoadLearningRecordsDirectForMap_('parallel-initial-load');
+  /* WM_REAL_MAP_RECORDS_DEFER_RECOVERY_V1_20260812
+     첫 화면에서 현재진행_DB와 학습기록_DB 직접조회를 동시에 시작하지 않습니다.
+     현재진행_DB 최근30건JSON으로 먼저 렌더링하고 기록이 없을 때만
+     wmHandleLearningMapResponse가 학습기록_DB 보강 조회를 실행합니다. */
 
   /* WM_GET_LEARNING_MAP_CACHE_ONLY_V2
      현재진행_DB 안정화: Map은 getLearningMapCacheData만 호출합니다.
