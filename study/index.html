@@ -3148,9 +3148,9 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  const sessionOk = await wmStudyCheckCurrentSession();
-  if(!sessionOk) return {ok:false, sessionExpired:true};
-
+  /* WM_REAL_STUDY_SAVE_DUPLICATE_SESSION_RECOVERY_V1_20260812
+     saveLearningRecordV2 서버가 payload 세션을 직접 검증하므로
+     모든 Step 저장 직전의 별도 세션 API 호출을 제거합니다. */
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
