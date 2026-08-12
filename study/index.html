@@ -2771,6 +2771,12 @@ function queueStepSave(status){
     })
     .finally(function(){
       wmStepSaveInFlight = null;
+      /* WM_STEP_SAVE_DIRTY_AUTO_FLUSH_V1_20260812
+         이전 Step 저장 중 다음 Step이 완료되면 최신 snapshot이 dirty로 남습니다.
+         사용자가 종료 버튼을 누르지 않아도 마지막 완료 Step을 자동으로 한 번 더 통합 저장합니다. */
+      if(wmStepSaveDirty){
+        WM_STUDY_SPEED_LOCKS.STEP_SAVE.queueStepSave("step_completed");
+      }
     });
 
   wmStepSaveChain = wmStepSaveInFlight;
