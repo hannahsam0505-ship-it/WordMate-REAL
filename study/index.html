@@ -2399,8 +2399,12 @@ function wmFetchStudySetData(setId){
     const callbackName = "wmSetFastCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
     let finished = false;
     let script = null;
-    function cleanup(){
-      try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+    function cleanup(keepLateCallback){
+      if(keepLateCallback){
+        window[callbackName] = function(){};
+      }else{
+        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
+      }
       if(script && script.parentNode) script.parentNode.removeChild(script);
     }
     window[callbackName] = function(result){
@@ -2418,7 +2422,7 @@ function wmFetchStudySetData(setId){
       + "&callback=" + encodeURIComponent(callbackName) + "&t=" + Date.now();
     script.onerror = function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP load error")); };
     document.body.appendChild(script);
-    setTimeout(function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 10000);
+    setTimeout(function(){ if(finished) return; finished=true; cleanup(true); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 30000);
   });
   return WM_STUDY_SET_FETCH_PROMISES[key];
 }
@@ -4733,11 +4737,8 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
-wmLogStudyRuntimeExecutionLockStatus();
-wmLogStudySpeedLockStatus();
-wmLogCodeGsAllLockStatusOnStudy_();
-window.wmLogLevelTransitionNoticeLockStatus();
-wmLogRoundRecordRecoveryLockStatus_();
+/* WM_REAL_STUDY_REMOTE_LOCK_DIAGNOSTICS_OFF_V1_20260812
+   학습 시작을 지연시키던 원격 LOCK 진단 5건은 호출하지 않습니다. */
 renderStart();
 </script>
 

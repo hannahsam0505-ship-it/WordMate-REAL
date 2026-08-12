@@ -3613,6 +3613,11 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryRecentScore', wmCurrentProgressRecentScoreForMap_ ? wmCurrentProgressRecentScoreForMap_ + '점' : '-');
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+  /* WM_REAL_MAP_DETAIL_RECORD_AFTER_RENDER_V1_20260812
+     학습맵을 먼저 표시한 뒤 학습기록_DB 상세행을 1회 보강합니다. */
+  if(!wmBottomRecordsDetailedLoaded){
+    setTimeout(function(){ wmLoadLearningRecordsDirectForMap_('after-map-render'); }, 0);
+  }
   wmShowLearningModeBanner();
   return true;
 }
