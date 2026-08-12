@@ -147,8 +147,8 @@ const WM_ENV_CONFIG = {
   REAL: {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec',
     LOGIN_URL: 'https://hsam05.com/64',
-    MAP_URL   : 'https://study.hsam05.com/map',
-    STUDY_URL : 'https://study.hsam05.com/study',
+    MAP_URL   : 'https://word-mate-real.vercel.app/map',
+    STUDY_URL : 'https://word-mate-real.vercel.app/study',
     LMS_URL   : 'https://word-mate-real.vercel.app/lms'
   }
 };
@@ -819,7 +819,10 @@ body.wm-map-report-open{overflow:hidden}
   .wmr-grade-summary-row.total .wmr-grade-summary-label,.wmr-grade-summary-row.total .wmr-grade-summary-value{background:#e43c31;color:#fff;border-color:#f28f88}
   .wmr-auto-comment{border:1px solid #f5c168;border-radius:14px;padding:7px 12px;min-height:105px;background:#fffaf0;overflow:hidden}
   .wmr-auto-comment h3{margin:0 0 3px;font-size:15px;line-height:1.1;color:#ef8b00;text-align:center}
+  .wmr-auto-comment-body{display:grid;grid-template-columns:minmax(0,1fr) 105px;gap:8px;min-height:78px;align-items:stretch}
   .wmr-auto-comment p{margin:0;font-size:11px;line-height:1.25;letter-spacing:-.35px;color:#173b75;text-align:left;white-space:normal;overflow:hidden;max-height:69px;word-break:keep-all;overflow-wrap:normal}
+  .wmr-grade-guide{border:1px solid #e8b861;border-radius:7px;padding:4px 5px 3px;background:#fffdf6;color:#596579;font-size:7.2px;line-height:1.25;letter-spacing:-.25px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;transform:translateY(-13px)}
+  .wmr-grade-guide-note{display:flex;flex:1 1 auto;align-items:center;word-break:keep-all;overflow-wrap:break-word}
   .wmr-auto-comment-line{display:block;white-space:nowrap;overflow:hidden;text-overflow:clip;color:#173b75;font-weight:400;text-align:left}
   .wmr-auto-comment-emphasis{color:#173b75;font-weight:400}
   .wmr-auto-comment-key{color:#173b75;font-weight:950}
@@ -1015,7 +1018,7 @@ body.wm-map-report-open{overflow:hidden}
   }
 
   /* 7. 성적 결산표 + 자동코멘트 */
-  .wmr-auto-comment-created{margin-top:3px;text-align:right;font-size:9px;line-height:1.2;color:#64748b;font-weight:600;}
+  .wmr-auto-comment-created{margin-top:3px;text-align:center;font-size:7.2px;line-height:1.15;color:#64748b;font-weight:600;white-space:nowrap;}
 
   .wmr-sheet[data-wmr-template-lock="V1"] [data-wmr-section="7"].wmr-comments{
     display:grid !important;
@@ -1398,13 +1401,13 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     </div>
     <div class="wmr-auto-comment">
       <h3>해나샘영어 Teacher's Comment</h3>
-      <p data-wmr-auto-comment aria-label="5줄 학습결과 코멘트">
+      <div class="wmr-auto-comment-body"><p data-wmr-auto-comment aria-label="5줄 학습결과 코멘트">
         <span class="wmr-auto-comment-line">이영이 학생의 2026년 7월 5주 학습결과 보고서입니다.</span>
         <span class="wmr-auto-comment-line">이영이 학생의 학습약속은 출석 주 3회, 세트 3세트로</span>
         <span class="wmr-auto-comment-line">학습 결과는 <strong class="wmr-auto-comment-emphasis">출석점수 4점 · 학업집중도 10점 · 점수추이 10점</strong>입니다.</span>
         <span class="wmr-auto-comment-line">이에 따라 이번 주 성적은 <strong class="wmr-auto-comment-key">최종점수 23.1점</strong><span class="wmr-auto-comment-score-sub">(23.1/30)</span>, <strong class="wmr-auto-comment-key">등급은 1.8등급</strong>입니다.</span>
         <span class="wmr-auto-comment-line">다음 주에도 현재 학습 리듬을 유지하며 최고 등급에 도전해 보세요.</span>
-      </p>
+      </p><aside class="wmr-grade-guide" aria-label="성적등급 안내"><span class="wmr-grade-guide-note" data-wmr-grade-guide></span></aside></div>
       <span class="wmr-legacy-comment-bind" data-wmr-teacher-comment data-wm-bind="teacherComment"></span>
       <span class="wmr-legacy-comment-bind" data-wmr-message data-wm-bind="encouragementMessage"></span>
     </div>
@@ -5706,8 +5709,10 @@ async function wmMapReportBindGradeComment_(period){
     setText('[data-wmr-grade-trend]',gradeData['점수추이']!==undefined?gradeData['점수추이']+'점':'');
     const commentEl=sheet.querySelector('[data-wmr-auto-comment]');
     if(commentEl){
-      const lines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,5);
+      const allLines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean),guideLine=allLines.find(v=>/^\*/.test(v))||'',lines=allLines.filter(v=>!/^\*/.test(v)).slice(0,5);
       commentEl.innerHTML=lines.map(line=>'<span class="wmr-auto-comment-line">'+escapeHtml(line)+'</span>').join('');
+      const guideEl=sheet.querySelector('[data-wmr-grade-guide]');if(guideEl)guideEl.textContent=guideLine;
+      const issued=wmMapRecentCreated_(gradeData['발행일']),lastLine=commentEl.querySelector('.wmr-auto-comment-line:last-child');if(lastLine&&issued)lastLine.appendChild(document.createTextNode(' '+issued));
     }
     sheet.setAttribute('data-wmr-grade-db-connected','true');
   }catch(err){
@@ -5738,7 +5743,7 @@ function wmMapRecentSet_(sheet,selector,value){const el=sheet&&sheet.querySelect
 function wmMapRecentCells_(row,values){values.forEach(value=>{const td=document.createElement('td');td.textContent=value==null?'':String(value);row.appendChild(td);});}
 function wmMapRecentMinute_(value){const raw=String(value||'').trim(),m=raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2}))?/);return m?m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0')+(m[4]?' '+String(m[4]).padStart(2,'0')+':'+String(m[5]).padStart(2,'0'):''):raw;}
 function wmMapRecentPeriod_(start,end){const s=String(start||'').match(/^(\d{4})-(\d{2})-(\d{2})$/),e=String(end||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!s)return '-';const a=s[1].slice(-2)+'.'+s[2]+'.'+s[3];return !e||start===end?a:a+'-'+e[2]+'.'+e[3];}
-function wmMapRecentCreated_(value){const raw=String(value||'').trim(),m=raw.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})[ T](\d{1,2}):(\d{1,2})/);return m?m[1].slice(-2)+'.'+String(m[2]).padStart(2,'0')+'.'+String(m[3]).padStart(2,'0')+' '+String(m[4]).padStart(2,'0')+':'+String(m[5]).padStart(2,'0'):raw;}
+function wmMapRecentCreated_(value){const raw=String(value||'').trim(),d=raw.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/),m=raw.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})[ T](\d{1,2}):(\d{1,2})/);return d?d[1]+'.'+Number(d[2])+'.'+Number(d[3]):(m?m[1].slice(-2)+'.'+String(m[2]).padStart(2,'0')+'.'+String(m[3]).padStart(2,'0')+' '+String(m[4]).padStart(2,'0')+':'+String(m[5]).padStart(2,'0'):raw);}
 function wmMapBindRecentReport_(data){
   const template=document.getElementById('wmReportTemplate'),parser=document.createElement('div');if(!template)return '';parser.innerHTML=template.innerHTML;
   const sheet=parser.querySelector('.wmr-sheet');if(!sheet)return '';
@@ -5754,7 +5759,7 @@ function wmMapBindRecentReport_(data){
   const chart=sheet.querySelector('[data-wmr-score-chart]');if(chart){const scores=data.scoreTrend||[],points=Array.from({length:5},(_,i)=>{const week=i+1,item=scores.find(v=>Number(v&&v.week)===week)||{},has=Number(item.completedSets||0)>0,score=Number(item.averageScore);return !has||!Number.isFinite(score)?null:{week:week,score:Math.max(0,Math.min(100,score)),x:62+i*76,y:118-Math.max(0,Math.min(100,score))};}).filter(Boolean),grid=[0,20,40,60,80,100].map(v=>{const y=118-v;return '<line x1="42" y1="'+y+'" x2="374" y2="'+y+'"/><text x="32" y="'+(y+3)+'" text-anchor="end" font-size="9">'+v+'</text>';}).join(''),line=points.length?'<polyline fill="none" stroke="#0d55c8" stroke-width="2.5" points="'+points.map(p=>p.x+','+p.y).join(' ')+'"/>':'',dots=points.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#0d55c8"/><text x="'+p.x+'" y="'+Math.max(10,p.y-8)+'" text-anchor="middle" font-size="10">'+p.score+'</text>').join(''),labels=Array.from({length:5},(_,i)=>'<text x="'+(62+i*76)+'" y="137" text-anchor="middle" font-size="10">'+(i+1)+'주차</text>').join('');chart.innerHTML='<svg viewBox="0 0 390 145"><g stroke="#d9e4f3">'+grid+'</g><line x1="42" y1="18" x2="42" y2="118" stroke="#64748b"/><line x1="42" y1="118" x2="374" y2="118" stroke="#64748b"/>'+line+dots+labels+'</svg>';}
   const progress=Math.max(0,Math.min(100,Number(level.percentage||0))),donut=sheet.querySelector('[data-wmr-donut]');if(donut)donut.style.setProperty('--wmr-progress',progress+'%');wmMapRecentSet_(sheet,'[data-wmr-donut-level]',level.level||'');wmMapRecentSet_(sheet,'[data-wmr-progress]',progress+'%');
   const levelBody=sheet.querySelector('[data-wmr-level-table]');if(levelBody){levelBody.innerHTML='';[['레벨완료조건',condition+'회'],['레벨완료횟수',Math.max(0,Number(level.levelCompletionCount||0))+'회'],['현재최종회차',String(level.currentRoundStatus||round+'회차 진행 중')],['완료세트수',Math.max(0,Number(level.completedSets||0))+'/'+Math.max(0,Number(level.totalSets||0))],['남은세트수',Math.max(0,Number(level.remainingSets||0))+'/'+Math.max(0,Number(level.totalSets||0))]].forEach(values=>{const row=document.createElement('tr');wmMapRecentCells_(row,values);levelBody.appendChild(row);});}
-  const gradeWrap=data.grade||{},gradeData=gradeWrap.found&&gradeWrap.gradeComment?gradeWrap.gradeComment:null;if(gradeData){const grade=String(gradeData.Grade||''),gradeClass=String(gradeData.Class||''),attendance=String(gradeData['출석점수']||'').replace(/점/g,''),focus=String(gradeData['참여집중도']||'').replace(/점/g,''),trend=String(gradeData['점수추이']||'').replace(/점/g,'');wmMapRecentSet_(sheet,'[data-wmr-grade-attendance]',attendance?attendance+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-focus]',focus?focus+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-trend]',trend?trend+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-final]',grade&&gradeClass?grade+'.'+gradeClass+'등급':'');const comment=sheet.querySelector('[data-wmr-auto-comment]'),lines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,5);if(comment)comment.innerHTML=lines.map(line=>'<span class="wmr-auto-comment-line">'+escapeHtml(line).replace(/(\d+\.\d+등급)/g,'<strong class="wmr-auto-comment-key">$1</strong>')+'</span>').join('');let created=sheet.querySelector('[data-wmr-grade-created]');if(!created){const box=sheet.querySelector('.wmr-auto-comment');if(box){created=document.createElement('div');created.className='wmr-auto-comment-created';created.setAttribute('data-wmr-grade-created','');box.appendChild(created);}}if(created)created.textContent=wmMapRecentCreated_(gradeData['생성일시']);}
+  const gradeWrap=data.grade||{},gradeData=gradeWrap.found&&gradeWrap.gradeComment?gradeWrap.gradeComment:null;if(gradeData){const grade=String(gradeData.Grade||''),gradeClass=String(gradeData.Class||''),attendance=String(gradeData['출석점수']||'').replace(/점/g,''),focus=String(gradeData['참여집중도']||'').replace(/점/g,''),trend=String(gradeData['점수추이']||'').replace(/점/g,'');wmMapRecentSet_(sheet,'[data-wmr-grade-attendance]',attendance?attendance+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-focus]',focus?focus+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-trend]',trend?trend+'점':'');wmMapRecentSet_(sheet,'[data-wmr-grade-final]',grade&&gradeClass?grade+'.'+gradeClass+'등급':'');const comment=sheet.querySelector('[data-wmr-auto-comment]'),allLines=String(gradeData['자동코멘트']||'').split(/\r?\n/).map(v=>v.trim()).filter(Boolean),guideLine=allLines.find(v=>/^\*/.test(v))||'',lines=allLines.filter(v=>!/^\*/.test(v)).slice(0,5);if(comment){comment.innerHTML=lines.map(line=>'<span class="wmr-auto-comment-line">'+escapeHtml(line).replace(/(\d+\.\d+등급)/g,'<strong class="wmr-auto-comment-key">$1</strong>')+'</span>').join('');const issued=wmMapRecentCreated_(gradeData['발행일']),lastLine=comment.querySelector('.wmr-auto-comment-line:last-child');if(lastLine&&issued)lastLine.appendChild(document.createTextNode(' '+issued));}const guideEl=sheet.querySelector('[data-wmr-grade-guide]');if(guideEl)guideEl.textContent=guideLine;}
   sheet.setAttribute('data-wmr-map-lms-shared','true');return parser.innerHTML;
 }
 async function wmMapRecentMonths_(){const response=await fetch(wmGetApiBaseUrl()+'?mode=recentReportMonths&action=recentReportMonths&ts='+Date.now(),{cache:'no-store'}),data=await response.json();if(!response.ok||!data||data.success!==true||!Array.isArray(data.months)||data.months.length!==4)throw new Error(data&&data.message||'최근성적표 4개월 목록 오류');return data;}
