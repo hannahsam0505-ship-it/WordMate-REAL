@@ -797,7 +797,6 @@ const WM_STUDENT_PROFILE = getInitialStudentProfile();
 const BASE_TEST_TIME = 300;
 const WM_SAVE_API_URL = getSaveApiUrl();
 const WM_PROGRESS_API_URL = getProgressApiUrl();
-const WM_PROGRESS_SAVE_API_URL = getProgressSaveApiUrl();
 const WM_LMS_RETURN_URL = "";
 
 const WM_STUDENT_ID = getInitialStudentId();
@@ -991,10 +990,6 @@ function getProgressApiUrl(){
   /* WM_STUDY_PROGRESS_EXEC_URL_FIX_V2
      복귀 조회도 저장과 동일하게 실제 Apps Script /exec 상수(API_URL)를 기준으로 호출합니다. */
   return API_URL + "?action=getStudyProgressFast";
-}
-
-function getProgressSaveApiUrl(){
-  return API_URL + "?action=saveStudyProgressFast";
 }
 
 
@@ -2710,28 +2705,6 @@ function getCurrentStepElapsedSeconds(){
   return Math.max(0, Math.round((Date.now()-wmCurrentStepStartTime)/1000));
 }
 
-
-/* WM_STUDY_PROGRESS_4CELL_SAVE_V1_20260813
-   Step 종료 즉시 8.현재진행_DB의 Set_ID/완료Step/현재Step/기록Set_ID 4개만 순서대로 저장합니다. */
-let wmProgress4SaveChain = Promise.resolve({ok:true});
-function wmSaveCurrentProgress4Fast(status){
-  const saveSetId=(status === 'completed' && WM_COMPLETED_SAVE_SET_ID) ? WM_COMPLETED_SAVE_SET_ID : currentSetId;
-  const fields=wmBuildCurrentProgressDbFields(status || 'step_completed', saveSetId, getNextSetId(saveSetId));
-  if(!WM_PROGRESS_SAVE_API_URL || !WM_STUDENT_ID) return Promise.resolve({ok:true, localOnly:true, fields});
-  const snapshot={...fields};
-  wmProgress4SaveChain=wmProgress4SaveChain.then(()=>new Promise(resolve=>{
-    const callbackName='wmProgress4Save_'+Date.now()+'_'+Math.floor(Math.random()*10000);
-    let done=false; const script=document.createElement('script');
-    const finish=result=>{ if(done) return; done=true; try{delete window[callbackName];}catch(e){window[callbackName]=undefined;} if(script.parentNode) script.parentNode.removeChild(script); resolve(result || {ok:false}); };
-    window[callbackName]=response=>{ if(response && (response.sessionExpired===true || response.sessionValid===false || response.valid===false)) wmStudyShowSessionExpiredModal(); finish({ok:!!(response && response.success), response, fields:snapshot}); };
-    script.src=WM_PROGRESS_SAVE_API_URL+'&callback='+encodeURIComponent(callbackName)+'&studentId='+encodeURIComponent(WM_STUDENT_ID)+'&sessionToken='+encodeURIComponent(WM_SESSION_TOKEN)+'&Set_ID='+encodeURIComponent(snapshot.Set_ID || '')+'&완료Step='+encodeURIComponent(snapshot.완료Step || '')+'&현재Step='+encodeURIComponent(snapshot.현재Step || '')+'&기록Set_ID='+encodeURIComponent(snapshot.기록Set_ID || '')+'&t='+Date.now();
-    script.onerror=()=>finish({ok:false,error:'progress 4cell save load error',fields:snapshot});
-    document.body.appendChild(script); setTimeout(()=>finish({ok:false,error:'progress 4cell save timeout',fields:snapshot}),8000);
-  }));
-  return wmProgress4SaveChain;
-}
-function wmWaitForProgress4Saves(){ return wmProgress4SaveChain.catch(error=>({ok:false,error:String(error)})); }
-
 function markStepCompleted(stepId, stepTitle){
   if(completedSteps.some(step=>step.stepId===stepId)){
     return Promise.resolve({ok:true, duplicate:true});
@@ -2749,7 +2722,6 @@ function markStepCompleted(stepId, stepTitle){
     elapsedSeconds:stepElapsedSeconds
   });
   wmCurrentStepStartTime = Date.now();
-  wmSaveCurrentProgress4Fast("step_completed");
   /* WM_FINAL_TEST_SINGLE_SAVE_SPEED_V1_20260711
      마지막 TEST 완료는 곧바로 renderFinalResult()의 completed 저장으로 이어집니다.
      TEST 완료 payload는 completed 저장에 이미 포함되므로 step_completed 중복 서버 저장을 생략합니다. */
@@ -2802,7 +2774,6 @@ function queueStepSave(status){
 }
 
 async function wmWaitForStepSaves(){
-  await wmWaitForProgress4Saves();
   let result = await wmStepSaveChain.catch(function(error){
     wmStepSaveLastError = {ok:false, error:String(error)};
     return wmStepSaveLastError;
@@ -3177,9 +3148,9 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  /* WM_REAL_STUDY_SAVE_DUPLICATE_SESSION_RECOVERY_V1_20260812
-     saveLearningRecordV2 서버가 payload 세션을 직접 검증하므로
-     모든 Step 저장 직전의 별도 세션 API 호출을 제거합니다. */
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return {ok:false, sessionExpired:true};
+
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
@@ -3632,14 +3603,6 @@ async function startLearning(){
   latestSavedPayload=null;
 
   const progress = parallelLoad[3];
-  const progressRecordSetId = String(progress && (progress.recordSetId || progress.기록Set_ID) || '').trim().toUpperCase();
-  if(progressRecordSetId && progressRecordSetId !== String(currentSetId || '').trim().toUpperCase()){
-    currentSetId = progressRecordSetId;
-    currentSetName = makeSetName(currentSetId);
-    isDbReady = false; originalWords = []; currentWords = [];
-    const correctedSetLoaded = await WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB();
-    if(!correctedSetLoaded) return;
-  }
   const resumeStage = wmApplyResumeProgress(progress);
 
   stage=resumeStage;
