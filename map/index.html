@@ -3612,13 +3612,14 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
 
-  /* WM_MAP_RECORDS_EMPTY_ONLY_FALLBACK_20260813_V2
+  /* WM_MAP_BOTTOM_RECORDS_DETAIL_FALLBACK_20260813_V3
      맵 핵심 화면은 현재진행_DB로 먼저 즉시 표시합니다.
-     최근30건JSON이 비어 있을 때만 하단 학습기록을 2.학습기록_DB에서 백그라운드 1회 보강합니다.
-     초기 진입과 동시에 직접조회하지 않으므로 맵 표시를 막지 않습니다. */
-  if(!wmLearningRecords.length){
+     최근30건JSON의 유무와 관계없이 2.학습기록_DB 상세행이 아직 확인되지 않았으면
+     맵 렌더 후 백그라운드 1회 직접조회하여 하단 학습기록을 보강합니다.
+     맵 표시 자체는 기다리지 않습니다. */
+  if(!wmBottomRecordsDetailedLoaded){
     window.setTimeout(function(){
-      wmLoadLearningRecordsDirectForMap_('current-progress-records-empty');
+      wmLoadLearningRecordsDirectForMap_('current-progress-detail-fallback');
     }, 0);
   }
 
