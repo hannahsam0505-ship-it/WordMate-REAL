@@ -2399,12 +2399,8 @@ function wmFetchStudySetData(setId){
     const callbackName = "wmSetFastCallback_" + Date.now() + "_" + Math.random().toString(36).slice(2);
     let finished = false;
     let script = null;
-    function cleanup(keepLateCallback){
-      if(keepLateCallback){
-        window[callbackName] = function(){};
-      }else{
-        try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
-      }
+    function cleanup(){
+      try{ delete window[callbackName]; }catch(e){ window[callbackName] = undefined; }
       if(script && script.parentNode) script.parentNode.removeChild(script);
     }
     window[callbackName] = function(result){
@@ -2422,7 +2418,7 @@ function wmFetchStudySetData(setId){
       + "&callback=" + encodeURIComponent(callbackName) + "&t=" + Date.now();
     script.onerror = function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP load error")); };
     document.body.appendChild(script);
-    setTimeout(function(){ if(finished) return; finished=true; cleanup(true); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 30000);
+    setTimeout(function(){ if(finished) return; finished=true; cleanup(); delete WM_STUDY_SET_FETCH_PROMISES[key]; reject(new Error("JSONP timeout")); }, 10000);
   });
   return WM_STUDY_SET_FETCH_PROMISES[key];
 }
@@ -2753,18 +2749,9 @@ function queueStepSave(status){
     return wmStepSaveInFlight;
   }
 
-  /* WM_STEP_SAVE_CHAIN_DRAIN_V1_20260812
-     한 저장이 진행되는 동안 새 Step이 완료되면 dirty 최신 snapshot을 같은 Promise 체인 안에서
-     이어 저장합니다. 체인이 끝났다는 것은 최신 Step까지 서버 응답을 받은 상태를 뜻합니다. */
+  wmStepSaveDirty = false;
   wmStepSaveInFlight = Promise.resolve()
-    .then(async function(){
-      let result = null;
-      do{
-        wmStepSaveDirty = false;
-        result = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed");
-      }while(wmStepSaveDirty);
-      return result;
-    })
+    .then(function(){ return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed"); })
     .then(function(result){
       if(result && result.ok === false){
         wmStepSaveLastError = result;
@@ -3161,9 +3148,9 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  /* WM_REAL_STUDY_SAVE_DUPLICATE_SESSION_RECOVERY_V1_20260812
-     saveLearningRecordV2 서버가 payload 세션을 직접 검증하므로
-     모든 Step 저장 직전의 별도 세션 API 호출을 제거합니다. */
+  const sessionOk = await wmStudyCheckCurrentSession();
+  if(!sessionOk) return {ok:false, sessionExpired:true};
+
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
@@ -4746,8 +4733,11 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
-/* WM_REAL_STUDY_REMOTE_LOCK_DIAGNOSTICS_OFF_V1_20260812
-   학습 시작을 지연시키던 원격 LOCK 진단 5건은 호출하지 않습니다. */
+wmLogStudyRuntimeExecutionLockStatus();
+wmLogStudySpeedLockStatus();
+wmLogCodeGsAllLockStatusOnStudy_();
+window.wmLogLevelTransitionNoticeLockStatus();
+wmLogRoundRecordRecoveryLockStatus_();
 renderStart();
 </script>
 
