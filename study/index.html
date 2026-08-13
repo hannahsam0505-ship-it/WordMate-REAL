@@ -1001,7 +1001,9 @@ let wmStudySessionExpiredShown = false;
 let wmStudySessionCheckTimer = null;
 let wmStudySessionCheckPromise = null;
 let wmStudyLastValidSessionAt = 0;
-const WM_STUDY_SESSION_CACHE_MS = 10000;
+/* WM_STUDY_SESSION_TRAFFIC_REDUCTION_20260813_V1
+   최초 세션검사는 그대로 즉시 실행하고, 학습 중 반복 확인/저장 전 재확인만 30초 캐시로 완화합니다. */
+const WM_STUDY_SESSION_CACHE_MS = 30000;
 
 function wmStudyClearLoginStorage(){
   try{ sessionStorage.removeItem('WM_SESSION_TOKEN'); }catch(err){}
@@ -1090,7 +1092,7 @@ function wmStudyStartSessionWatcher(){
   wmStudyCheckCurrentSession();
   wmStudySessionCheckTimer = setInterval(function(){
     wmStudyCheckCurrentSession({force:true});
-  }, 5000);
+  }, 30000);
 }
 
 function getSimpleDeviceInfo(){
