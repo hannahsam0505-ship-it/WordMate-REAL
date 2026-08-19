@@ -52,15 +52,23 @@ if(!WM_CONFIG || !WM_CONFIG.APPS_SCRIPT_URL || !WM_CONFIG.LOGIN_URL || !WM_CONFI
 }
 
 const API_URL = WM_CONFIG.APPS_SCRIPT_URL;
+window.WORDMATE_APPS_SCRIPT_URL = API_URL;
 const WM_LOGIN_URL = WM_CONFIG.LOGIN_URL;
 const WM_MAP_URL = WM_CONFIG.MAP_URL;
 const WM_STUDY_URL = WM_CONFIG.STUDY_URL;
 const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
+/* WM_STUDY_DEV_LIVE_REVIEW_MODE_V1
+   일반 학생 진입에는 적용되지 않습니다.
+   DEV가 현재 Study 원본을 직접 실행할 때만 세션·저장·전체화면·학습맵 이동을 차단합니다. */
+const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
+
 /* WM_STUDY_DIRECT_ENTRY_GUARD_V1
    로그인 → 학습맵 → Study 경로로 들어온 경우만 허용합니다.
    주소창 직접 /study 진입은 Study 화면·세션검사·서버 호출 전에 로그인으로 이동합니다. */
 (function wmAuthorizeStudyEntryBeforeBoot_(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
+
   let entry = '';
   try{
     entry = String(new URLSearchParams(window.location.search || '').get('wmEntry') || '').trim().toLowerCase();
@@ -294,7 +302,31 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 8. 학습 몰입형 Fullscreen 및 직접입력 유도 기능 적용
 -->
 
-<div id="wordmate-app"></div>
+<!-- WM_STUDY_LEVEL_BANNER_SHELL_V1: 공통 곤색 배너 + 레벨별 상단 테두리 + 실제 학습화면 통합 프레임 -->
+<main id="wm-study-shell" class="wm-study-shell wm-level-elementary">
+  <header id="wm-study-banner" class="wm-study-banner" aria-label="현재 학습 세트">
+    <div class="wm-study-system-title">English Learning System</div>
+    <div class="wm-study-brand-title">영어잡는 Word Mate</div>
+    <div class="wm-study-meta" aria-label="학습 과정 정보">
+      <span id="wm-study-set-chip" class="wm-study-meta-chip wm-study-set-chip">Basic 6-1-1</span>
+      <span id="wm-study-grade-chip" class="wm-study-meta-chip">초6과정</span>
+      <span id="wm-study-word-chip" class="wm-study-meta-chip">10단어</span>
+    </div>
+  </header>
+
+  <section class="wm-study-content">
+    <nav id="wm-main-progress" class="wm-main-progress" aria-label="학습단계">
+      <span class="wm-main-step" data-step="flash">Flash Card</span>
+      <span class="wm-main-step" data-step="choose-ek">Choose EK</span>
+      <span class="wm-main-step" data-step="choose-ke">Choose KE</span>
+      <span class="wm-main-step" data-step="memory">Memory</span>
+      <span class="wm-main-step" data-step="review">Review</span>
+      <span id="wm-main-test-step" class="wm-main-step" data-step="test">TEST(4종)</span>
+    </nav>
+    <nav id="wm-test-progress" class="wm-test-progress" aria-label="시험 진행단계" hidden></nav>
+    <div id="wordmate-app"></div>
+  </section>
+</main>
 
 <audio id="wordAudio" preload="auto" playsinline></audio>
 
@@ -542,6 +574,52 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
   .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
 
+  .wm-wrong-words-btn{
+    width:auto;
+    min-width:260px;
+    margin:0 auto 18px;
+    padding:10px 18px;
+    border:1px solid #2563eb;
+    border-radius:999px;
+    background:#fff;
+    color:#1d4ed8;
+    font-size:15px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .wm-wrong-words-modal{
+    position:fixed;
+    inset:0;
+    z-index:10020;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(15,23,42,.52);
+    box-sizing:border-box;
+  }
+  .wm-wrong-words-modal.is-open{display:flex;}
+  .wm-wrong-words-box{
+    width:100%;
+    max-width:760px;
+    max-height:86vh;
+    overflow:auto;
+    padding:24px;
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 18px 50px rgba(15,23,42,.28);
+    box-sizing:border-box;
+  }
+  .wm-wrong-words-title{margin:0 0 18px;font-size:22px;font-weight:900;color:#111827;text-align:center;}
+  .wm-wrong-words-section{margin-top:18px;}
+  .wm-wrong-words-section-title{margin:0 0 8px;font-size:17px;font-weight:900;color:#1d4ed8;text-align:left;}
+  .wm-wrong-words-table-wrap{overflow-x:auto;}
+  .wm-wrong-words-table{width:100%;border-collapse:collapse;min-width:560px;font-size:14px;}
+  .wm-wrong-words-table th,.wm-wrong-words-table td{padding:10px 9px;border:1px solid #dbe3ef;text-align:center;vertical-align:middle;}
+  .wm-wrong-words-table th{background:#eff6ff;color:#172554;font-weight:900;}
+  .wm-wrong-words-empty{padding:14px;border:1px solid #dbe3ef;border-radius:10px;color:#64748b;text-align:center;}
+  .wm-wrong-words-close{display:block;width:150px;margin:22px auto 0;padding:12px;border:0;border-radius:12px;background:#2563eb;color:#fff;font-size:15px;font-weight:900;cursor:pointer;}
+
   .wm-level-transition-card{
     width:100%;
     max-width:720px;
@@ -581,6 +659,9 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   @media(max-width:480px){
     .final-title{font-size:20px;}
     .final-score-box{font-size:20px;}
+    .wm-wrong-words-btn{min-width:0;width:100%;font-size:14px;}
+    .wm-wrong-words-box{padding:18px 14px;}
+    .wm-wrong-words-title{font-size:19px;}
     .wm-level-transition-card{padding:28px 18px 24px;}
     .wm-level-transition-title{font-size:20px;margin-bottom:20px;}
     .wm-level-transition-message{font-size:15px;line-height:1.75;}
@@ -764,6 +845,488 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   }
 
 
+  /* =========================================================
+     WM_STUDY_LEVEL_BANNER_SHELL_V1
+     곤색 공통배너 안에 실제 학습화면을 배치하고,
+     레벨군 색상은 상단 테두리와 세트 강조에만 사용합니다.
+     추가 API·DB조회·타이머·이미지 로딩 없이 현재 Set_ID만 사용합니다.
+  ========================================================= */
+  .wm-study-shell{
+    --wm-level-accent:#f59e0b;
+    --wm-level-accent-text:#08285f;
+    width:calc(100% - 32px);
+    max-width:980px;
+    margin:30px auto;
+    overflow:hidden;
+    border-top:6px solid var(--wm-level-accent);
+    border-radius:24px;
+    background:#eaf4ff;
+    box-shadow:0 10px 28px rgba(15,43,92,.12);
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+  }
+  .wm-study-shell.wm-level-elementary{--wm-level-accent:#f59e0b;--wm-level-accent-text:#08285f;}
+  .wm-study-shell.wm-level-middle{--wm-level-accent:#38bdf8;--wm-level-accent-text:#08285f;}
+  .wm-study-shell.wm-level-high{--wm-level-accent:#22c55e;--wm-level-accent-text:#062b1b;}
+  .wm-study-shell.wm-level-csat{--wm-level-accent:#a78bfa;--wm-level-accent-text:#ffffff;}
+
+  .wm-study-banner{
+    padding:22px 24px 21px;
+    background:#0c2b63;
+    color:#fff;
+    text-align:center;
+    box-sizing:border-box;
+  }
+  .wm-study-system-title{
+    color:#ffd438;
+    font-size:21px;
+    font-weight:900;
+    line-height:1.2;
+    letter-spacing:.01em;
+  }
+  .wm-study-brand-title{
+    margin-top:7px;
+    color:#fff;
+    font-size:28px;
+    font-weight:900;
+    line-height:1.2;
+    letter-spacing:-.025em;
+  }
+  .wm-study-meta{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    margin-top:13px;
+    white-space:nowrap;
+  }
+  .wm-study-meta-chip{
+    display:inline-flex;
+    min-height:34px;
+    padding:7px 14px;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--wm-level-accent);
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:15px;
+    font-weight:900;
+    line-height:1;
+    box-sizing:border-box;
+  }
+  .wm-study-set-chip{
+    min-height:40px;
+    padding:8px 20px;
+    border-color:var(--wm-level-accent);
+    background:var(--wm-level-accent);
+    color:var(--wm-level-accent-text);
+    font-size:20px;
+    letter-spacing:.015em;
+    box-shadow:0 4px 12px rgba(0,0,0,.16);
+  }
+
+  .wm-study-content{
+    padding:16px 24px 24px;
+    background:#eaf4ff;
+    box-sizing:border-box;
+  }
+  .wm-main-progress,
+  .wm-test-progress{
+    width:100%;
+    max-width:820px;
+    margin:0 auto;
+    border:1px solid var(--wm-level-accent);
+    border-radius:999px;
+    background:#fff;
+    box-sizing:border-box;
+  }
+  .wm-main-progress{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    min-height:46px;
+    padding:6px 13px;
+  }
+  .wm-main-progress[hidden]{display:none;}
+  .wm-main-step{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:28px;
+    padding:5px 9px;
+    border-radius:999px;
+    color:#08285f;
+    font-size:13px;
+    font-weight:900;
+    line-height:1.15;
+    white-space:nowrap;
+    box-sizing:border-box;
+  }
+  .wm-main-step:not(:last-child){margin-right:9px;}
+  .wm-main-step:not(:last-child)::after{
+    content:"→";
+    position:absolute;
+    left:calc(100% + 7px);
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--wm-level-accent);
+    font-weight:900;
+  }
+  .wm-main-step.is-complete{
+    color:#475569;
+    background:#f1f5f9;
+  }
+  .wm-main-step.is-complete::before{
+    content:"✓";
+    margin-right:4px;
+    color:#16a34a;
+    font-weight:900;
+  }
+  .wm-main-step.is-active{
+    background:var(--wm-level-accent);
+    color:var(--wm-level-accent-text);
+    box-shadow:0 2px 8px rgba(15,43,92,.14);
+  }
+
+  .wm-test-progress{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:7px;
+    padding:7px;
+    border-radius:16px;
+  }
+  .wm-test-progress[hidden]{display:none;}
+  .wm-test-progress.is-count-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .wm-test-progress.is-count-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .wm-test-step{
+    display:flex;
+    min-height:38px;
+    padding:7px 8px;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #dbe3ee;
+    border-radius:10px;
+    background:#f8fafc;
+    color:#64748b;
+    font-size:13px;
+    font-weight:900;
+    line-height:1.2;
+    text-align:center;
+    box-sizing:border-box;
+  }
+  .wm-test-step.is-complete{
+    border-color:#bbf7d0;
+    background:#f0fdf4;
+    color:#15803d;
+  }
+  .wm-test-step.is-complete::before{content:"✓";margin-right:5px;}
+  .wm-test-step.is-active{
+    border-color:var(--wm-level-accent);
+    background:var(--wm-level-accent);
+    color:var(--wm-level-accent-text);
+    box-shadow:0 2px 8px rgba(15,43,92,.12);
+  }
+
+  .wm-study-shell #wordmate-app{
+    max-width:760px;
+    margin:16px auto 0;
+  }
+  .wm-study-shell .wm-card{
+    padding:22px 26px;
+  }
+  .wm-study-shell .wm-title{
+    margin-bottom:12px;
+  }
+  .wm-study-shell .wm-learning-guide{
+    margin-bottom:10px;
+  }
+  .wm-study-shell .word-progress,
+  .wm-study-shell .memory-progress{
+    margin-top:7px;
+    margin-bottom:11px;
+  }
+  .wm-study-shell .wm-word{
+    margin-top:10px;
+    margin-bottom:7px;
+  }
+  .wm-study-shell .wm-meaning{
+    margin-top:12px;
+    margin-bottom:12px;
+  }
+  .wm-study-shell .wm-btn{
+    margin-top:9px;
+  }
+  .wm-study-shell .wm-option{
+    margin-top:8px;
+  }
+  .wm-study-shell .test-question{
+    padding:12px 14px;
+    margin-top:10px;
+  }
+  .wm-study-shell .test-option{
+    margin:6px 0;
+  }
+  .wm-study-shell .test-input{
+    margin-top:12px;
+  }
+  .wm-test-screen-title .wm-test-title-order,
+  .wm-test-screen-title .wm-test-title-name{
+    display:block;
+  }
+  .wm-test-screen-title .wm-test-title-order{
+    color:var(--wm-level-accent);
+    font-size:18px;
+    line-height:1.2;
+    margin-bottom:4px;
+  }
+  .wm-test-screen-title .wm-test-title-name{
+    color:#111;
+    font-size:25px;
+    line-height:1.25;
+  }
+
+  @media(max-width:640px){
+    .wm-study-shell{
+      width:calc(100% - 16px);
+      margin:14px auto;
+      border-top-width:5px;
+      border-radius:18px;
+    }
+    .wm-study-banner{padding:17px 10px 16px;}
+    .wm-study-system-title{font-size:18px;}
+    .wm-study-brand-title{margin-top:5px;font-size:24px;}
+    .wm-study-meta{gap:5px;margin-top:10px;}
+    .wm-study-meta-chip{
+      min-height:30px;
+      padding:6px 9px;
+      font-size:13px;
+    }
+    .wm-study-set-chip{
+      min-height:34px;
+      padding:7px 12px;
+      font-size:16px;
+    }
+    .wm-study-content{padding:10px 9px 14px;}
+    .wm-main-progress{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:5px;
+      padding:6px;
+      border-radius:15px;
+    }
+    .wm-main-step{
+      min-height:31px;
+      padding:5px 4px;
+      font-size:12px;
+      white-space:normal;
+      text-align:center;
+    }
+    .wm-main-step:not(:last-child){margin-right:0;}
+    .wm-main-step:not(:last-child)::after{content:none;}
+    .wm-test-progress,
+    .wm-test-progress.is-count-3{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:5px;
+      padding:6px;
+    }
+    .wm-test-progress.is-count-2{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .wm-test-step{min-height:36px;padding:6px 4px;font-size:12px;}
+    .wm-study-shell #wordmate-app{margin-top:10px;}
+    .wm-study-shell .wm-card{padding:19px 15px;}
+    .wm-study-shell .wm-title{margin-bottom:9px;}
+    .wm-study-shell .wm-learning-guide{margin-bottom:7px;}
+    .wm-study-shell .word-progress,
+    .wm-study-shell .memory-progress{margin-top:6px;margin-bottom:8px;}
+    .wm-study-shell .wm-word{margin-top:8px;margin-bottom:5px;}
+    .wm-study-shell .wm-meaning{margin-top:9px;margin-bottom:9px;}
+    .wm-study-shell .wm-btn{margin-top:7px;}
+    .wm-study-shell .wm-option{margin-top:6px;}
+    .wm-study-shell .test-question{padding:10px 11px;margin-top:8px;}
+    .wm-study-shell .test-option{margin:5px 0;}
+    .wm-study-shell .test-input{margin-top:9px;}
+  }
+
+
+  /* =========================================================
+     WM_STUDY_STEP1_5_SIZE_UNIFY_V2
+     Step 3 현재 화면(PC 카드 581px)을 Step 1~5 공통 기준으로 유지합니다.
+     Step 2는 다시듣기를 영어단어 옆으로 이동해 Step 3과 5지선다 끝선을 맞춥니다.
+     Step 1/5는 동일 배치, Step 4는 4단계 모두 입력/확인 위치를 고정합니다.
+     TEST 화면은 적용 대상에서 제외합니다.
+  ========================================================= */
+  /* WM_STUDY_FIXED_LEARNING_FRAME_V1
+     Step 2 실제 학습카드(PC 586px)를 4번 흰색 학습창의 단일 기준으로 고정합니다.
+     시작/로딩/Step1~5/저장 화면은 같은 고정 프레임 안에서 내용만 교체합니다.
+     글씨·스피너 크기는 변경하지 않습니다. */
+  .wm-study-shell .wm-study-step-card,
+  .wm-study-shell .wm-study-state-card{
+    height:586px;
+    min-height:586px;
+    max-height:586px;
+    box-sizing:border-box;
+  }
+  .wm-study-shell .wm-study-state-card{
+    display:flex;
+    flex-direction:column;
+  }
+  .wm-study-shell .wm-study-state-body{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-evenly;
+    width:100%;
+    padding:12px 0 8px;
+    box-sizing:border-box;
+  }
+  .wm-study-shell .wm-study-state-body .wm-meaning,
+  .wm-study-shell .wm-study-state-body .wm-small{
+    margin-top:0;
+    margin-bottom:0;
+  }
+  .wm-study-shell .wm-study-final-save-card{
+    justify-content:space-between;
+  }
+  .wm-study-shell .wm-study-start-card{
+    justify-content:space-between;
+  }
+  .wm-study-shell .wm-study-start-card > div:not(.wm-title){
+    margin-top:0 !important;
+  }
+
+  /* Step 1 / Step 5 : 제목만 다르고 내부 배치는 동일 */
+  .wm-study-shell .wm-step1-card,
+  .wm-study-shell .wm-step5-card{
+    display:flex;
+    flex-direction:column;
+  }
+  .wm-study-shell .wm-step1-card .word-progress,
+  .wm-study-shell .wm-step5-card .word-progress{margin-bottom:16px;}
+  .wm-study-shell .wm-step1-card .audio-btn,
+  .wm-study-shell .wm-step5-card .audio-btn{margin-top:12px;margin-bottom:10px;}
+  .wm-study-shell .wm-step1-card .wm-word,
+  .wm-study-shell .wm-step5-card .wm-word{margin-top:12px;margin-bottom:8px;}
+  .wm-study-shell .wm-step1-card .wm-pos,
+  .wm-study-shell .wm-step5-card .wm-pos{margin-bottom:12px;}
+  .wm-study-shell .wm-step1-card .wm-meaning,
+  .wm-study-shell .wm-step5-card .wm-meaning{margin-top:14px;margin-bottom:18px;}
+  .wm-study-shell .wm-step1-card > .wm-btn:last-child,
+  .wm-study-shell .wm-step5-card > .wm-btn:last-child{margin-top:auto;}
+
+  /* Step 2 : Step 3과 같은 5지선다 세로 기준. 다시듣기는 단어 옆으로 배치 */
+  .wm-study-shell .wm-step2-card .wm-step2-word-row{
+    position:relative;
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:8px 0 0;
+    padding:0 128px;
+    box-sizing:border-box;
+  }
+  .wm-study-shell .wm-step2-card .wm-step2-word-row .wm-word{
+    margin:0;
+    font-size:36px;
+    line-height:1.15;
+  }
+  .wm-study-shell .wm-step2-card .wm-step2-word-row .audio-btn{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    min-width:104px;
+    padding:7px 12px;
+    margin:0;
+    font-size:14px;
+  }
+  .wm-study-shell .wm-step2-card .wm-pos{margin-bottom:12px;}
+  .wm-study-shell .wm-step2-card .wm-option{padding:14px;margin-top:8px;}
+
+  /* Step 4 : 4단계 모두 하단 입력/확인 위치 고정 */
+  .wm-study-shell .wm-step4-card{
+    display:flex;
+    flex-direction:column;
+  }
+  .wm-study-shell .wm-step4-card .wm-title{margin-bottom:7px;}
+  .wm-study-shell .wm-step4-card .wm-learning-guide{margin-bottom:5px;font-size:18px;line-height:1.3;}
+  .wm-study-shell .wm-step4-card .wm-learning-guide + div{margin:4px 28px 7px !important;}
+  .wm-study-shell .wm-step4-card .wm-learning-guide + div > div:first-child{margin-bottom:4px !important;font-size:15px !important;}
+  .wm-study-shell .wm-step4-card .wm-learning-guide + div > div:nth-child(2){height:10px !important;}
+  .wm-study-shell .wm-step4-card .wm-memory-count{font-size:17px;margin:5px 0;}
+  .wm-study-shell .wm-step4-card .memory-progress{margin:4px auto 6px;}
+  .wm-study-shell .wm-step4-card .memory-stage-guide{margin:0 auto 7px;gap:5px;}
+  .wm-study-shell .wm-step4-card .stage-chip{padding:3px 7px;}
+  .wm-study-shell .wm-step4-card .audio-btn{padding:7px 16px;margin:5px auto 4px;}
+  .wm-study-shell .wm-step4-card .wm-silhouette{
+    min-height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:36px;
+    line-height:1.1;
+    margin:4px 0 2px;
+  }
+  .wm-study-shell .wm-step4-card .wm-pos{min-height:18px;margin-bottom:4px;}
+  .wm-study-shell .wm-step4-card .wm-meaning{min-height:34px;font-size:25px;margin:4px 0;}
+  .wm-study-shell .wm-step4-card .memory-input{
+    padding:10px;
+    font-size:20px;
+    margin-top:auto;
+  }
+  .wm-study-shell .wm-step4-card .wm-alert{
+    min-height:18px;
+    font-size:14px;
+    line-height:18px;
+    margin-top:4px;
+  }
+  .wm-study-shell .wm-step4-card > .wm-btn:last-child{padding:11px;margin-top:6px;}
+
+  /* 7~13레벨 20단어 : 동일 카드 폭 안에서 진행 동그라미만 재배치 */
+  .wm-study-shell.wm-wordcount-20 .word-progress{
+    width:100%;
+    max-width:610px;
+    grid-template-columns:repeat(20,minmax(0,1fr));
+    gap:4px;
+  }
+  .wm-study-shell.wm-wordcount-20 .word-progress .word-dot{
+    width:100%;
+    height:auto;
+    aspect-ratio:1/1;
+    font-size:11px;
+  }
+
+  @media(max-width:640px){
+    .wm-study-shell .wm-study-step-card,
+    .wm-study-shell .wm-study-state-card{height:612px;min-height:612px;max-height:612px;}
+    .wm-study-shell.wm-wordcount-20 .wm-study-step-card,
+    .wm-study-shell.wm-wordcount-20 .wm-study-state-card{height:640px;min-height:640px;max-height:640px;}
+    .wm-study-shell .wm-step2-card .wm-step2-word-row{padding:0 92px 0 0;}
+    .wm-study-shell .wm-step2-card .wm-step2-word-row .audio-btn{right:0;min-width:86px;padding:6px 9px;font-size:12px;}
+    .wm-study-shell.wm-wordcount-20 .word-progress{
+      max-width:100%;
+      grid-template-columns:repeat(10,24px);
+      gap:4px;
+    }
+    .wm-study-shell.wm-wordcount-20 .word-progress .word-dot{
+      width:24px;
+      height:24px;
+      aspect-ratio:auto;
+      font-size:10px;
+    }
+  }
+
+  @media(max-width:470px){
+    .wm-study-shell .wm-study-step-card,
+    .wm-study-shell .wm-study-state-card{height:631px;min-height:631px;max-height:631px;}
+    .wm-study-shell.wm-wordcount-20 .wm-study-step-card,
+    .wm-study-shell.wm-wordcount-20 .wm-study-state-card{height:657px;min-height:657px;max-height:657px;}
+  }
+
+
 @keyframes wmSpin{
   to{transform:rotate(360deg);}
 }
@@ -892,12 +1455,12 @@ function getInitialLearningMode(){
 function getInitialStudentId(){
   const injected = "__WM_STUDENT_ID__";
   if(injected && injected.indexOf("__WM_") !== 0){
-    return String(injected || "").trim().toUpperCase();
+    return String(injected || "").trim();
   }
 
   try{
     const params = new URLSearchParams(window.location.search || "");
-    const value = String(params.get("studentId") || params.get("studentID") || params.get("sid") || "").trim().toUpperCase();
+    const value = String(params.get("studentId") || params.get("studentID") || params.get("sid") || "").trim();
     if(value) return value;
   }catch(err){}
 
@@ -912,7 +1475,7 @@ function getInitialStudentId(){
     if(raw){
       const parsed = JSON.parse(raw);
       const data = parsed && parsed.student ? parsed.student : parsed;
-      const value = String(data.학생ID || data.studentId || data.studentID || data.id || "").trim().toUpperCase();
+      const value = String(data.학생ID || data.studentId || data.studentID || data.id || "").trim();
       if(value) return value;
     }
   }catch(err){}
@@ -980,10 +1543,10 @@ function getInitialStudentProfile(){
 }
 
 function getSaveApiUrl(){
-  /* WM_STUDY_SAVE_EXEC_URL_FIX_V2
-     HtmlService iframe 안의 window.location.href는 /exec가 아닐 수 있으므로
-     저장 API는 반드시 서버 배포 /exec 상수(API_URL)를 기준으로 호출합니다. */
-  return API_URL + "?action=saveLearningRecordV2";
+  /* WM_STUDY_CHECKPOINT_COMPLETE_FAST_V1_20260819
+     Step 완료와 세트 완료는 이미 저장된 진행값을 다시 재계산하지 않고
+     현재 Step/세트 완료 확정에 필요한 최소 필드만 저장합니다. */
+  return API_URL + "?action=saveStudyCheckpointFast";
 }
 
 function getProgressApiUrl(){
@@ -1039,6 +1602,8 @@ function wmStudyShowSessionExpiredModal(){
 
 async function wmStudyCheckCurrentSession(options){
   options = options || {};
+  if(WM_DEV_LIVE_REVIEW_MODE) return true;
+
   /* WM_STUDY_SESSION_GUARD_STRICT_FIX_V2_20260611
      학생ID 또는 sessionToken이 없으면 세션검사를 통과시키지 않습니다.
      이전 코드의 return true 때문에 토큰 누락 상태에서 자동로그아웃이 무력화될 수 있었습니다. */
@@ -1086,8 +1651,9 @@ async function wmStudyCheckCurrentSession(options){
 }
 
 function wmStudyStartSessionWatcher(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   if(wmStudySessionCheckTimer) clearInterval(wmStudySessionCheckTimer);
-  wmStudyCheckCurrentSession();
+  /* 학습 시작 직전 progress 응답에서 세션을 이미 검증하므로 즉시 중복검사를 생략합니다. */
   wmStudySessionCheckTimer = setInterval(function(){
     wmStudyCheckCurrentSession({force:true});
   }, 5000);
@@ -1128,7 +1694,7 @@ let step2Wrong = [], step3Wrong = [], memoryWrong = [];
 let isStep2Review = false, isStep3Review = false, isMemoryReview = false;
 let memoryPhase = 0, memoryCount = 0, memoryLocked = false, afterMemoryAction = null;
 let testIndex = 0, testWords = [], testTimer = null, timeLeft = BASE_TEST_TIME, isRetest = false;
-let firstTestScores = [], firstWrongWords = [], currentTestResults = [], currentTestWrongs = [];
+let firstTestScores = [], firstEngKoWriteWrongWords = [], firstKoEngWriteWrongWords = [], currentTestResults = [], currentTestWrongs = [];
 let wmFirstTestTotalSeconds = 0;
 let wmActiveFirstTestStartTime = 0;
 let activeTestQuestionIndex = null;
@@ -1169,9 +1735,100 @@ function makeSetName(setId){
 }
 
 function wmSetBadgeHtml(){
-  const parts = getSetParts(currentSetId);
-  const label = parts ? `WM Basic ${parts.level}-${parts.part}-${parts.set}` : `WM ${makeSetName(currentSetId)}`;
-  return `<div class="wm-set-badge">${label}</div>`;
+  /* 세트 정보는 공통 상단 배너에서 한 번만 표시합니다. */
+  return "";
+}
+
+function wmGetStudyLevelBannerInfo(setId){
+  const parts = getSetParts(setId) || {level:5,part:1,set:1};
+  const level = Number(parts.level || 5);
+  let groupClass = "wm-level-elementary";
+  let course = `초${level}과정`;
+
+  if(level >= 7 && level <= 9){
+    groupClass = "wm-level-middle";
+    course = `중${level - 6}과정`;
+  }else if(level >= 10 && level <= 12){
+    groupClass = "wm-level-high";
+    course = `고${level - 9}과정`;
+  }else if(level >= 13){
+    groupClass = "wm-level-csat";
+    course = "수능과정";
+  }
+
+  return {
+    groupClass,
+    setName:`Basic ${parts.level}-${parts.part}-${parts.set}`,
+    course,
+    wordCount:level <= 6 ? 10 : 20
+  };
+}
+
+function wmGetTestShortLabel(test){
+  if(test && test.type === "choice" && test.direction === "eng-ko") return "영한 객관식";
+  if(test && test.type === "choice" && test.direction === "ko-eng") return "한영 객관식";
+  if(test && test.type === "write" && test.direction === "eng-ko") return "영한 주관식";
+  if(test && test.type === "write" && test.direction === "ko-eng") return "한영 주관식";
+  return "TEST";
+}
+
+function wmGetTestScreenTitle(test){
+  const tests = getTestList();
+  const order = Math.min(Number(testIndex || 0) + 1, Math.max(1, tests.length));
+  return `<span class="wm-test-screen-title"><span class="wm-test-title-order">TEST ${order}/${tests.length}</span><span class="wm-test-title-name">${wmGetTestShortLabel(test)}</span></span>`;
+}
+
+function wmSyncStudyShell(){
+  const shell = document.getElementById("wm-study-shell");
+  if(!shell) return;
+
+  const info = wmGetStudyLevelBannerInfo(currentSetId);
+  shell.classList.remove("wm-level-elementary","wm-level-middle","wm-level-high","wm-level-csat");
+  shell.classList.add(info.groupClass);
+  shell.classList.toggle("wm-wordcount-20", info.wordCount > 10);
+
+  const setChip = document.getElementById("wm-study-set-chip");
+  const gradeChip = document.getElementById("wm-study-grade-chip");
+  const wordChip = document.getElementById("wm-study-word-chip");
+  if(setChip) setChip.textContent = info.setName;
+  if(gradeChip) gradeChip.textContent = info.course;
+  if(wordChip) wordChip.textContent = `${info.wordCount}단어`;
+
+  const tests = getTestList();
+  const mainProgress = document.getElementById("wm-main-progress");
+  const testProgress = document.getElementById("wm-test-progress");
+  const mainTestStep = document.getElementById("wm-main-test-step");
+  if(mainTestStep) mainTestStep.textContent = `TEST(${tests.length}종)`;
+
+  const testLearningActive = stage === 5 || stage === 7 || stage === 9 || (stage === 4 && afterMemoryAction === "testRetake");
+  if(mainProgress) mainProgress.hidden = testLearningActive;
+
+  const stageKeys = ["flash","choose-ek","choose-ke","memory","review","test"];
+  const stageKeyByNumber = {1:"flash",2:"choose-ek",3:"choose-ke",4:"memory",5:"test",6:"review",7:"test",9:"test"};
+  const activeKey = stageKeyByNumber[stage] || "";
+  const activePosition = stageKeys.indexOf(activeKey);
+
+  document.querySelectorAll("#wm-main-progress .wm-main-step").forEach(function(stepEl){
+    const key = String(stepEl.getAttribute("data-step") || "");
+    const position = stageKeys.indexOf(key);
+    stepEl.classList.remove("is-active","is-complete");
+    if(stage === 8 || (activePosition >= 0 && position < activePosition)) stepEl.classList.add("is-complete");
+    if(activeKey && key === activeKey) stepEl.classList.add("is-active");
+  });
+
+  if(!testProgress) return;
+  testProgress.hidden = !testLearningActive;
+  testProgress.className = `wm-test-progress is-count-${tests.length}`;
+  if(!testLearningActive){
+    testProgress.innerHTML = "";
+    return;
+  }
+
+  const circled = ["①","②","③","④"];
+  testProgress.innerHTML = tests.map(function(test,i){
+    const stateClass = i < testIndex ? " is-complete" : (i === testIndex ? " is-active" : "");
+    return `<span class="wm-test-step${stateClass}">${circled[i] || (i + 1)} ${wmGetTestShortLabel(test)}</span>`;
+  }).join("");
 }
 
 function wmGetLevelPartSetCounts(level){
@@ -1269,6 +1926,7 @@ function wmStudyModeCacheKey(setId){
 }
 
 function wmReadCachedStudyMode(setId){
+  if(WM_DEV_LIVE_REVIEW_MODE) return null;
   try{
     const raw = localStorage.getItem(wmStudyModeCacheKey(setId)) || '';
     if(!raw) return null;
@@ -1280,12 +1938,14 @@ function wmReadCachedStudyMode(setId){
 }
 
 function wmCacheStudyMode(setId, mode){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   try{
     localStorage.setItem(wmStudyModeCacheKey(setId), JSON.stringify(wmNormalizeStudyMode(mode)));
   }catch(err){}
 }
 
 function wmClearCachedStudyMode(setId){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   try{
     localStorage.removeItem(wmStudyModeCacheKey(setId));
   }catch(err){}
@@ -2345,15 +3005,15 @@ function normalizeDbWord(item, index){
 
 function renderDbLoading(){
   app.innerHTML = `
-    <div class="wm-card">
+    <div class="wm-card wm-study-state-card">
       ${wmSetBadgeHtml()}
       <div class="wm-title">
         영어잡는 Word Mate<br>
         ${currentSetName}
       </div>
 
-      <div style="padding:30px 0 24px;text-align:center;">
-        <div class="wm-meaning" style="font-size:25px;margin:4px 0 24px;">
+      <div class="wm-study-state-body" style="text-align:center;">
+        <div class="wm-meaning" style="font-size:25px;">
           학습 데이터를 불러오는 중입니다.
         </div>
 
@@ -2363,7 +3023,7 @@ function renderDbLoading(){
           border:6px solid #e5e7eb;
           border-top-color:#2563eb;
           border-radius:50%;
-          margin:0 auto 22px;
+          margin:0 auto;
           animation:wmSpin .8s linear infinite;
         "></div>
 
@@ -2529,11 +3189,22 @@ function makePermutations(arr){
 }
 
 function isMeaningCorrect(input, meaning){
-  const correctParts = splitMeaningParts(meaning);
-  const answerSet = new Set(correctParts);
-  const userParts = splitUserMeaningParts(input);
+  const rawMeaning = String(meaning == null ? "" : meaning).trim();
   const normalizedInput = normalizeText(input);
   if(!normalizedInput) return false;
+
+  /* WM_STEP6_ENG_KO_OPTIONAL_PARENTHESIS_V1
+     영한주관식에서 괄호 안 설명은 선택사항입니다.
+     괄호 포함 전체답도 정답, 괄호 설명을 뺀 핵심뜻만 써도 정답으로 처리합니다. */
+  if(normalizeText(rawMeaning) === normalizedInput) return true;
+
+  const gradingMeaning = rawMeaning
+    .replace(/\([^)]*\)|（[^）]*）/g, " " )
+    .replace(/\s+/g, " " )
+    .trim() || rawMeaning;
+  const correctParts = splitMeaningParts(gradingMeaning);
+  const answerSet = new Set(correctParts);
+  const userParts = splitUserMeaningParts(input);
   if(answerSet.has(normalizedInput)) return true;
   if(userParts.length > 0 && userParts.every(part => answerSet.has(part))) return true;
   const subsets = makeSubsets(correctParts);
@@ -2741,10 +3412,10 @@ function queueStepSave(status){
     return Promise.resolve({ok:true, localOnly:true});
   }
 
-  /* WM_STEP_SAVE_BACKGROUND_QUEUE_V1_20260615
-     Step 완료 기록은 즉시 큐에 넣고 백그라운드에서 순서대로 저장합니다.
-     일반 Step 이동은 저장 완료를 기다리지 않아 화면이 멈춘 것처럼 보이지 않게 합니다.
-     단, 나가기/다음학습/최종이동 시점에는 wmWaitForStepSaves()로 저장 완료를 보장합니다. */
+  /* WM_STEP_CUMULATIVE_SAVE_DRAIN_V1_20260819
+     화면은 즉시 다음 Step으로 이동하고, 저장 중 추가 완료된 Step은 dirty로 모읍니다.
+     현재 저장이 끝나는 즉시 가장 최신 누적 snapshot 1건을 자동 이어 저장해
+     Step1~5 누적시간이 마지막 완료처리 전에 학습기록 행에 모두 남도록 합니다. */
   if(wmStepSaveInFlight){
     return wmStepSaveInFlight;
   }
@@ -2767,6 +3438,9 @@ function queueStepSave(status){
     })
     .finally(function(){
       wmStepSaveInFlight = null;
+      if(wmStepSaveDirty){
+        queueStepSave(status || "step_completed");
+      }
     });
 
   wmStepSaveChain = wmStepSaveInFlight;
@@ -2774,16 +3448,16 @@ function queueStepSave(status){
 }
 
 async function wmWaitForStepSaves(){
-  let result = await wmStepSaveChain.catch(function(error){
-    wmStepSaveLastError = {ok:false, error:String(error)};
-    return wmStepSaveLastError;
-  });
-
-  /* 진행 중 저장 사이에 완료된 Step은 오래된 저장 여러 건을 다시 기다리지 않고
-     가장 최신 전체 snapshot 한 건으로 통합 저장합니다. */
-  if(wmStepSaveDirty){
-    wmStepSaveDirty = false;
-    result = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
+  let result = {ok:true};
+  while(wmStepSaveInFlight || wmStepSaveDirty){
+    if(!wmStepSaveInFlight && wmStepSaveDirty){
+      queueStepSave("step_completed");
+    }
+    const activeSave = wmStepSaveInFlight || wmStepSaveChain;
+    result = await Promise.resolve(activeSave).catch(function(error){
+      wmStepSaveLastError = {ok:false, error:String(error)};
+      return wmStepSaveLastError;
+    });
   }
 
   if(wmIsSaveSuccess(result)){
@@ -2794,12 +3468,14 @@ async function wmWaitForStepSaves(){
 }
 
 function renderStepSaveWaiting(stepTitle){
-  app.innerHTML = `<div class="wm-card">
+  app.innerHTML = `<div class="wm-card wm-study-state-card">
     ${wmSetBadgeHtml()}
     <div class="wm-title">학습기록 저장 중</div>
-    <div class="wm-meaning" style="font-size:20px;line-height:1.8;margin-bottom:18px;">${stepTitle} 완료 기록을 저장하고 있습니다.</div>
-    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 다음 Step으로 이동합니다.<br>잠시만 기다려 주세요.</div>
-    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+    <div class="wm-study-state-body">
+      <div class="wm-meaning" style="font-size:20px;line-height:1.8;">${stepTitle} 완료 기록을 저장하고 있습니다.</div>
+      <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:0 auto;animation:wmSpin .8s linear infinite;"></div>
+      <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 다음 Step으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    </div>
   </div>`;
   afterScreenRender();
 }
@@ -2863,6 +3539,8 @@ function wmNormalizeCompletedStepsFromProgress(progress){
 }
 
 async function wmLoadLearningProgress(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return null;
+
   /* WM_STUDY_RESUME_FORCE_RELOAD_V1
      복귀 적용 공식: 학습 시작 버튼을 누를 때마다 getLearningProgress를 다시 호출합니다.
      이유: Step 저장은 정상인데, 같은 Study 화면에서 나갔다가 다시 시작할 때
@@ -2919,11 +3597,15 @@ async function wmLoadLearningProgress(){
     });
 
     if(result && (result.sessionExpired === true || result.sessionValid === false || result.valid === false)){
+      wmStudyLastValidSessionAt = 0;
       wmStudyShowSessionExpiredModal();
-      return null;
+      return result;
     }
 
     if(result && result.success){
+      if(result.sessionValid === true || result.valid === true){
+        wmStudyLastValidSessionAt = Date.now();
+      }
       wmResumeProgress = result;
       return result;
     }
@@ -3104,7 +3786,7 @@ function buildLearningPayload(status){
     finalScore:getFinalOfficialScoreText(),
     finalTestScore:getFinalOfficialTestScore(),
     scorePolicy:'LAST_TEST_SCORE',
-    wrongWords:firstWrongWords.map(w=>({word:w.word, meaning:w.meaning, pos:w.pos})),
+    wrongWords:wmBuildFirstSubjectiveWrongWordsPayload(),
     elapsedSeconds:getElapsedSeconds(),
     completedAt:new Date().toISOString()
   };
@@ -3113,6 +3795,7 @@ function buildLearningPayload(status){
 function saveProgressSnapshot(status){
   const payload=buildLearningPayload(status);
   latestSavedPayload=payload;
+  if(WM_DEV_LIVE_REVIEW_MODE) return payload;
   try{
     localStorage.setItem(`wordmate_${currentSetName}_latest_record`, JSON.stringify(payload));
     localStorage.setItem(`wordmate_${STUDENT_NAME}_last_progress`, JSON.stringify({
@@ -3148,9 +3831,14 @@ function wmNormalizeOfficialNextSetId(setId){
 }
 
 async function saveLearningRecord(status="completed"){
-  const sessionOk = await wmStudyCheckCurrentSession();
-  if(!sessionOk) return {ok:false, sessionExpired:true};
+  if(WM_DEV_LIVE_REVIEW_MODE){
+    const payload = buildLearningPayload(status);
+    latestSavedPayload = payload;
+    return {ok:true, reviewMode:true, saveBlocked:true, payload};
+  }
 
+  /* 세션 검증은 saveStudyCheckpointFast 서버 요청 안에서 1회만 수행합니다.
+     저장 직전 별도 세션 왕복을 제거해 Step/세트 완료 지연을 만들지 않습니다. */
   const payload=saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
@@ -3231,12 +3919,14 @@ async function wmEnsureFinalSave_(){
 }
 
 function returnToLmsIfReady(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   if(WM_LMS_RETURN_URL){
     window.location.href=WM_LMS_RETURN_URL;
   }
 }
 
 function requestLearningFullscreen(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   const el=document.documentElement;
   if(document.fullscreenElement) return;
   if(el.requestFullscreen){
@@ -3477,6 +4167,7 @@ function wmStudyRestoreMapLoginStorage(){
 }
 
 function wmStudyReturnToMap(){
+  if(WM_DEV_LIVE_REVIEW_MODE) return;
   const mapUrl = wmBuildReturnToMapUrl();
   wmStudyRestoreMapLoginStorage();
 
@@ -3491,12 +4182,14 @@ async function leaveLearning(){
   const modal=document.getElementById("wmExitModal");
   if(modal) modal.style.display="none";
 
-  app.innerHTML = `<div class="wm-card">
+  app.innerHTML = `<div class="wm-card wm-study-state-card">
     ${wmSetBadgeHtml()}
     <div class="wm-title">학습기록 저장 확인 중</div>
-    <div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 기록을 확인하고 있습니다.</div>
-    <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 학습맵으로 이동합니다.<br>잠시만 기다려 주세요.</div>
-    <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:22px auto 0;animation:wmSpin .8s linear infinite;"></div>
+    <div class="wm-study-state-body">
+      <div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 기록을 확인하고 있습니다.</div>
+      <div style="width:42px;height:42px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:0 auto;animation:wmSpin .8s linear infinite;"></div>
+      <div class="wm-small" style="font-size:15px;color:#555;line-height:1.7;">저장이 끝나면 학습맵으로 이동합니다.<br>잠시만 기다려 주세요.</div>
+    </div>
   </div>`;
   afterScreenRender();
 
@@ -3505,7 +4198,7 @@ async function leaveLearning(){
   if(result && result.ok === false){
     const finalResult = await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
     if(!wmIsSaveSuccess(finalResult)){
-      app.innerHTML = `<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
+      app.innerHTML = `<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
       afterScreenRender();
       return;
     }
@@ -3526,7 +4219,17 @@ function protectDirectTypingInputs(){
   });
 }
 
+function wmApplyStudyStepSizeClass(){
+  const card = app && app.querySelector ? app.querySelector(".wm-card") : null;
+  if(!card) return;
+  const stepClass = {1:"wm-step1-card",2:"wm-step2-card",3:"wm-step3-card",4:"wm-step4-card",6:"wm-step5-card"}[stage];
+  if(!stepClass) return;
+  card.classList.add("wm-study-step-card", stepClass);
+}
+
 function afterScreenRender(){
+  wmSyncStudyShell();
+  wmApplyStudyStepSizeClass();
   ensureExitControls();
   protectDirectTypingInputs();
 }
@@ -3548,7 +4251,7 @@ function render(){
 
 function renderStart(){
   app.innerHTML = `
-    <div class="wm-card">
+    <div class="wm-card wm-study-state-card wm-study-start-card">
       ${wmSetBadgeHtml()}
       <div class="wm-title">
         영어잡는 Word Mate<br>
@@ -3576,23 +4279,43 @@ function renderStart(){
 
       <button id="wmStartBtn" class="wm-btn" onclick="startLearning()">학습 시작</button>
     </div>`;
+  wmSyncStudyShell();
   setTimeout(wmWarmCurrentStudySet, 50);
 }
 
 async function startLearning(){
   renderDbLoading();
-  const sessionPromise = wmStudyCheckCurrentSession();
 
-  /* WM_STUDY_PARALLEL_START_V1_20260711
-     세트·학습모드·현재진행 핵심 4개를 동시에 불러옵니다. */
+  /* WM_STUDY_CORE_TWO_REQUEST_START_V1_20260818
+     세트 데이터와 현재진행을 병렬 조회합니다.
+     현재진행 응답이 세션검증과 현재 세트 학습모드를 함께 반환하므로
+     별도 세션조회·학습모드조회는 정상 경로에서 중복 실행하지 않습니다. */
   const needsDbLoad = !isDbReady || !originalWords.length;
   const parallelLoad = await Promise.all([
-    sessionPromise,
     needsDbLoad ? WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB() : Promise.resolve(true),
-    wmPrepareStudyModeForCurrentSet(),
     wmLoadLearningProgress()
   ]);
-  if(!parallelLoad[0] || !parallelLoad[1]) return;
+  if(!parallelLoad[0]) return;
+
+  const progress = parallelLoad[1];
+  if(progress && (progress.sessionExpired === true || progress.sessionValid === false || progress.valid === false)){
+    return;
+  }
+
+  if(progress && progress.success && progress.learningMode){
+    WM_ACTIVE_STUDY_MODE = wmNormalizeStudyMode(progress.learningMode);
+    WM_ACTIVE_STUDY_MODE_SET_ID = currentSetId;
+    try{
+      const modeParams = new URLSearchParams(window.location.search || '');
+      WM_ACTIVE_LEARNING_ASSIGN = String(modeParams.get('learningAssign') || modeParams.get('wmLearningAssign') || modeParams.get('level') || '').trim();
+    }catch(err){}
+    wmCacheStudyMode(currentSetId, WM_ACTIVE_STUDY_MODE);
+  }else{
+    const sessionValid = await wmStudyCheckCurrentSession();
+    if(!sessionValid) return;
+    await wmPrepareStudyModeForCurrentSet();
+  }
+
   wmStudyStartSessionWatcher();
 
   clearInterval(testTimer);
@@ -3602,7 +4325,6 @@ async function startLearning(){
   wmCurrentStepStartTime=learningStartTime;
   latestSavedPayload=null;
 
-  const progress = parallelLoad[3];
   const resumeStage = wmApplyResumeProgress(progress);
 
   stage=resumeStage;
@@ -3622,7 +4344,8 @@ async function startLearning(){
   testWords=[];
   isRetest=false;
   firstTestScores=[];
-  firstWrongWords=[];
+  firstEngKoWriteWrongWords=[];
+  firstKoEngWriteWrongWords=[];
   currentTestResults=[];
   currentTestWrongs=[];
   activeTestQuestionIndex=null;
@@ -3655,7 +4378,7 @@ function renderStep2(){
   const item=currentWords[index];
   const options=makeChoiceOptions(item.meaning, originalWords.map(w=>w.meaning), 5);
   const title=isStep2Review?wrongRetryTitle("Step 2 Choose meaning",currentWords.length):"Step 2 Choose meaning";
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word">${item.word}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-step2-word-row"><div class="wm-word">${item.word}</div><button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button></div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
   setTimeout(()=>playWordSegment(item, 5), 300);
 }
 
@@ -3827,11 +4550,11 @@ function nextMemory(){
 }
 
 function renderBeforeTest(){
-  app.innerHTML=`<div class="wm-card">
+  app.innerHTML=`<div class="wm-card wm-test-intro-card">
     ${wmSetBadgeHtml()}
-    <div class="wm-title" style="font-size:23px;font-weight:500;margin-bottom:50px;color:#000;">이제 시험을 시작합니다.</div>
-    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">${getActiveTestGuideText()}</div>
-    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">시험이 진행됩니다.</div>
+    <div class="wm-title" style="font-size:23px;font-weight:500;margin-bottom:20px;color:#000;">이제 시험을 시작합니다.</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:1.7;margin-bottom:12px;">${getActiveTestGuideText()}</div>
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:20px;">시험이 진행됩니다.</div>
     <button class="wm-btn" onclick="startTest()">Start Test</button>
   </div>`;
 }
@@ -3858,17 +4581,17 @@ function nextOneMoreFlashCard(){
 }
 
 function renderStartTestOnly(){
-  app.innerHTML=`<div class="wm-card">
+  app.innerHTML=`<div class="wm-card wm-test-intro-card">
     ${wmSetBadgeHtml()}
-    <div class="wm-title" style="font-size:23px;font-weight:500;color:#000;margin-bottom:40px;">
+    <div class="wm-title" style="font-size:23px;font-weight:500;color:#000;margin-bottom:20px;">
       이제 시험을 시작합니다.
     </div>
 
-    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:2;margin-bottom:20px;">
+    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:1.7;margin-bottom:12px;">
       ${getActiveTestGuideText()}
     </div>
 
-    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:40px;">
+    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:20px;">
       시험이 진행됩니다.
     </div>
 
@@ -3894,7 +4617,7 @@ function renderTest(){
   timeLeft=getTestTime(testWords.length);
   activeTestQuestionIndex=null;
   const guideMessage = testGuide(test);
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea">${testWords.map((item,i)=>renderTestQuestion(test,item,i)).join("")}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea">${testWords.map((item,i)=>renderTestQuestion(test,item,i)).join("")}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
   activateTestQuestionEvents();
   addWritingEnterMove();
   wmActiveFirstTestStartTime = isRetest ? 0 : Date.now();
@@ -4015,7 +4738,7 @@ function submitTest(){
     if(isCorrect) correctCount++;
     else{
       wrongs.push(item);
-      if(!firstWrongWords.some(w=>w.word===item.word)) firstWrongWords.push(item);
+      if(!isRetest && test.type==="write") wmAddFirstSubjectiveWrongWord(test,item);
     }
   });
   currentTestWrongs=wrongs;
@@ -4027,7 +4750,7 @@ function submitTest(){
 
 function renderTestResult(test,score,total,wrongs){
   const percent=Math.round((score/total)*100);
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${test.title}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list">${currentTestResults.map((r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`).join("")}</div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list">${currentTestResults.map((r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`).join("")}</div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
   afterScreenRender();
 }
 
@@ -4074,6 +4797,66 @@ function goNextTest(){
   render();
 }
 
+function wmWrongWordItem(item){
+  return {
+    word:String(item && item.word || "").trim(),
+    meaning:String(item && item.meaning || "").trim(),
+    pos:String(item && item.pos || "").trim()
+  };
+}
+
+function wmAddFirstSubjectiveWrongWord(test,item){
+  if(!test || test.type!=="write" || !item) return;
+  const target=test.direction==="eng-ko" ? firstEngKoWriteWrongWords : firstKoEngWriteWrongWords;
+  const word=String(item.word || "").trim().toLowerCase();
+  if(!word || target.some(saved=>String(saved.word || "").trim().toLowerCase()===word)) return;
+  target.push(wmWrongWordItem(item));
+}
+
+function wmBuildFirstSubjectiveWrongWordsPayload(){
+  return {
+    version:"WM_WRONG_WORDS_V1",
+    engKoWrite:firstEngKoWriteWrongWords.map(wmWrongWordItem),
+    koEngWrite:firstKoEngWriteWrongWords.map(wmWrongWordItem)
+  };
+}
+
+function wmWrongWordsLabel(prefix){
+  return `${prefix}(영한 ${firstEngKoWriteWrongWords.length}·한영 ${firstKoEngWriteWrongWords.length})`;
+}
+
+function wmWrongWordEscapeHtml(value){
+  return String(value===undefined || value===null ? "" : value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
+function wmStudyWrongWordRowsHtml(words){
+  if(!Array.isArray(words) || !words.length) return '<div class="wm-wrong-words-empty">틀린단어가 없습니다.</div>';
+  return `<div class="wm-wrong-words-table-wrap"><table class="wm-wrong-words-table"><thead><tr><th>세트</th><th>영어</th><th>품사</th><th>한글</th></tr></thead><tbody>${words.map(item=>`<tr><td>${wmWrongWordEscapeHtml(currentSetName)}</td><td>${wmWrongWordEscapeHtml(item.word)}</td><td>${wmWrongWordEscapeHtml(item.pos)}</td><td>${wmWrongWordEscapeHtml(item.meaning)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function openStudyWrongWordsModal(){
+  let modal=document.getElementById("wmStudyWrongWordsModal");
+  if(!modal){
+    modal=document.createElement("div");
+    modal.id="wmStudyWrongWordsModal";
+    modal.className="wm-wrong-words-modal";
+    modal.onclick=function(event){if(event.target===modal) closeStudyWrongWordsModal();};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`<div class="wm-wrong-words-box" role="dialog" aria-modal="true" aria-label="틀린단어"><div class="wm-wrong-words-title">${wmWrongWordEscapeHtml(wmWrongWordsLabel("틀린단어"))}</div><section class="wm-wrong-words-section"><h3 class="wm-wrong-words-section-title">영한</h3>${wmStudyWrongWordRowsHtml(firstEngKoWriteWrongWords)}</section><section class="wm-wrong-words-section"><h3 class="wm-wrong-words-section-title">한영</h3>${wmStudyWrongWordRowsHtml(firstKoEngWriteWrongWords)}</section><button type="button" class="wm-wrong-words-close" onclick="closeStudyWrongWordsModal()">닫기</button></div>`;
+  modal.classList.add("is-open");
+}
+
+function closeStudyWrongWordsModal(){
+  const modal=document.getElementById("wmStudyWrongWordsModal");
+  if(modal) modal.classList.remove("is-open");
+}
+
 function renderFinalResult(){
   stopWordAudio();
   const scoreText=firstTestScores.length ? firstTestScores.map(t=>`${t.percent}점`).join(" / ") : "점수 기록이 없습니다.";
@@ -4081,27 +4864,29 @@ function renderFinalResult(){
   WM_COMPLETED_SAVE_SET_NAME = currentSetName;
   const nextSetId = getNextSetId(currentSetId);
   const nextSetName = makeSetName(nextSetId);
-  app.innerHTML=`<div class="wm-card">
+  app.innerHTML=`<div class="wm-card wm-study-state-card wm-study-final-save-card">
       <div class="final-title">영어잡는 Word Mate<br>${currentSetName}<br>학습을 모두 마쳤습니다</div>
       <div class="final-score-box">${scoreText}</div>
 
       <div class="final-save-row">
         <div class="final-save-text">
           <div>날짜 : ${todayString()} &nbsp;&nbsp;&nbsp; 이름 : ${STUDENT_NAME}</div>
-          <div id="saveStatus">학습기록이 저장 중입니다.</div>
-          <div id="saveHelp" style="font-size:14px;line-height:1.55;color:#555;font-weight:500;margin-top:6px;">학습이 저장될 때까지 기다려주세요.<br>이탈 시 저장이 되지 않을 수 있습니다.</div>
+          <div id="saveStatus">학습 완료 처리 중입니다.</div>
+          
         </div>
-        <div id="saveIcon" class="final-save-icon final-save-spinner" aria-label="학습기록 저장 중"></div>
+        <div id="saveIcon" class="final-save-icon final-save-spinner" aria-label="학습 완료 처리 중"></div>
       </div>
 
       <div class="button-row">
-        <button class="wm-btn" onclick="restart()">재학습하기</button>
         <button class="wm-btn" onclick="goNextLearning()">다음학습하기</button>
         <button class="wm-btn" onclick="goFinalExit()">나가기</button>
       </div>
       <div class="wm-small" style="margin-top:14px;">다음 학습: ${nextSetName}</div>
     </div>`;
-  finalSavePromise = wmWaitForStepSaves().then(function(result){
+  /* WM_FINAL_COMPLETE_AFTER_CUMULATIVE_V1_20260819
+     Step1~5 누적저장은 백그라운드에서 계속 진행합니다.
+     마지막에는 누적 큐가 비었는지만 확인한 뒤 Test 결과 + 현재 세트 완료만 확정합니다. */
+  finalSavePromise = wmWaitForStepSaves().then(function(){
     return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
   }).then(result=>{
     const officialResponse=wmGetOfficialSaveResponse(result);
@@ -4111,13 +4896,13 @@ function renderFinalResult(){
     const saveIcon=document.getElementById("saveIcon");
     if(saveStatus){
       const saveOk = wmIsSaveSuccess(result);
-      saveStatus.textContent=saveOk ? "학습기록 저장이 완료되었습니다." : "학습기록 저장에 실패했습니다. 화면을 닫지 말고 관리자에게 알려주세요.";
+      saveStatus.textContent=saveOk ? "학습이 완료되었습니다." : "학습 완료를 확인하고 있습니다.";
     }
     if(saveIcon){
       const saveOk = wmIsSaveSuccess(result);
-      saveIcon.className = saveOk ? "final-save-icon final-save-check" : "final-save-icon final-save-check";
-      saveIcon.textContent = saveOk ? "✅" : "⚠️";
-      saveIcon.setAttribute("aria-label", saveOk ? "학습기록 저장 완료" : "학습기록 저장 실패");
+      saveIcon.className = saveOk ? "final-save-icon final-save-check" : "final-save-icon final-save-spinner";
+      saveIcon.textContent = saveOk ? "✅" : "";
+      saveIcon.setAttribute("aria-label", saveOk ? "학습 완료" : "학습 완료 확인 중");
     }
     if(wmIsSaveSuccess(result) && wmIsLevelTransitionResponse(officialResponse)){
       renderLevelTransitionNotice(officialResponse);
@@ -4175,17 +4960,17 @@ async function goFinalExit(){
 
   const saveStatus=document.getElementById("saveStatus");
   const saveIcon=document.getElementById("saveIcon");
-  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveStatus) saveStatus.textContent="학습 완료를 확인하고 있습니다.";
   if(saveIcon){
     saveIcon.className="final-save-icon final-save-spinner";
     saveIcon.textContent="";
-    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+    saveIcon.setAttribute("aria-label", "학습 완료 확인 중");
   }
 
   const saveResult = await wmEnsureFinalSave_();
   if(!wmIsSaveSuccess(saveResult)){
     const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
-    if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
+    if(saveStatus) saveStatus.textContent="학습 완료를 확인하고 있습니다.";
     return;
   }
 
@@ -4204,17 +4989,17 @@ async function goNextLearning(){
 
   const saveStatus=document.getElementById("saveStatus");
   const saveIcon=document.getElementById("saveIcon");
-  if(saveStatus) saveStatus.textContent="학습기록 저장을 확인하고 있습니다.";
+  if(saveStatus) saveStatus.textContent="학습 완료를 확인하고 있습니다.";
   if(saveIcon){
     saveIcon.className="final-save-icon final-save-spinner";
     saveIcon.textContent="";
-    saveIcon.setAttribute("aria-label", "학습기록 저장 확인 중");
+    saveIcon.setAttribute("aria-label", "학습 완료 확인 중");
   }
 
   const saveResult = await wmEnsureFinalSave_();
   if(!wmIsSaveSuccess(saveResult)){
     const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
-    if(saveStatus) saveStatus.textContent="학습기록 저장 확인 실패: "+saveError;
+    if(saveStatus) saveStatus.textContent="학습 완료를 확인하고 있습니다.";
     return;
   }
 
@@ -4733,11 +5518,16 @@ document.addEventListener("keydown",function(e){
 });
 
 wmLogStudyLockStatus();
-wmLogStudyRuntimeExecutionLockStatus();
-wmLogStudySpeedLockStatus();
-wmLogCodeGsAllLockStatusOnStudy_();
-window.wmLogLevelTransitionNoticeLockStatus();
-wmLogRoundRecordRecoveryLockStatus_();
+/* WM_STUDY_SERVER_LOCK_VERIFY_DEFER_V1_20260818
+   서버 LOCK 검증 5건은 그대로 유지하되 초기 세트 prefetch/학습진입 요청과 경쟁하지 않도록 8초 뒤 1회 실행합니다. */
+function wmRunDeferredStudyServerLockChecks_(){
+  wmLogStudyRuntimeExecutionLockStatus();
+  wmLogStudySpeedLockStatus();
+  wmLogCodeGsAllLockStatusOnStudy_();
+  window.wmLogLevelTransitionNoticeLockStatus();
+  wmLogRoundRecordRecoveryLockStatus_();
+}
+window.setTimeout(wmRunDeferredStudyServerLockChecks_, 8000);
 renderStart();
 </script>
 
