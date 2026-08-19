@@ -4196,9 +4196,12 @@ async function leaveLearning(){
   const result = await wmWaitForStepSaves();
 
   if(result && result.ok === false){
-    const finalResult = await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
-    if(!wmIsSaveSuccess(finalResult)){
-      app.innerHTML = `<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">저장 응답 확인이 지연되었습니다.<br>이미 저장되었을 수 있으니 학습맵으로 돌아가 확인합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
+    /* WM_STUDY_EXIT_STEP_RETRY_NO_FALSE_COMPLETE_V1_20260819
+       중간 Step 저장 실패를 세트 완료(completed)로 바꾸지 않습니다.
+       같은 누적 Step 상태를 step_completed로 1회만 재저장합니다. */
+    const retryResult = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
+    if(!wmIsSaveSuccess(retryResult)){
+      app.innerHTML = `<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 저장 응답을 확인하지 못했습니다.<br>세트 완료 처리 없이 현재 학습 위치를 보호합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
       afterScreenRender();
       return;
     }
@@ -4297,12 +4300,29 @@ async function startLearning(){
   ]);
   if(!parallelLoad[0]) return;
 
-  const progress = parallelLoad[1];
+  let progress = parallelLoad[1];
   if(progress && (progress.sessionExpired === true || progress.sessionValid === false || progress.valid === false)){
     return;
   }
 
-  if(progress && progress.success && progress.learningMode){
+  /* WM_STUDY_RESUME_RETRY_NO_STEP1_FALLBACK_V1_20260819
+     정상 경로는 기존 2개 병렬호출을 유지합니다.
+     현재진행 조회만 탈락한 경우에만 세트 조회 종료 후 1회 순차 재조회하고,
+     재조회도 실패하면 STEP1로 임의 진입하지 않습니다. */
+  if(!progress || !progress.success){
+    progress = await wmLoadLearningProgress();
+    if(progress && (progress.sessionExpired === true || progress.sessionValid === false || progress.valid === false)){
+      return;
+    }
+  }
+
+  if(!progress || !progress.success){
+    app.innerHTML = `<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습 위치 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">현재 학습 Step을 확인하지 못했습니다.<br>STEP1로 초기화하지 않고 다시 조회합니다.</div><button class="wm-btn" onclick="startLearning()">다시 시도</button></div>`;
+    afterScreenRender();
+    return;
+  }
+
+  if(progress.learningMode){
     WM_ACTIVE_STUDY_MODE = wmNormalizeStudyMode(progress.learningMode);
     WM_ACTIVE_STUDY_MODE_SET_ID = currentSetId;
     try{
