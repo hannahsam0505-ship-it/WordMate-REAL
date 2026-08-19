@@ -4793,7 +4793,7 @@ async function wmLogout(){
     }
 
     wmClearLoginStorage();
-    window.top.location.href = WM_TEST_LOGIN_PAGE_URL;
+    window.top.location.replace(WM_LOGIN_URL);
   }catch(err){
     wmLogoutInProgress = false;
     wmStartSessionWatcher();
