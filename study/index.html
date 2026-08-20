@@ -3918,6 +3918,15 @@ async function wmEnsureFinalSave_(){
   return result;
 }
 
+async function wmSaveFinalCompletionWithAutoRetry_(){
+  /* WM_FINAL_CURRENT_PROGRESS_CORE4_AUTO_RETRY_20260820_V1
+     TEST 완료 저장이 일시 실패하면 정상 경로에서는 추가 호출 없이 끝내고,
+     실패한 경우에만 1회 자동 재시도하여 현재진행_DB 핵심값과 다음세트를 확정합니다. */
+  let result = await WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+  if(wmIsSaveSuccess(result)) return result;
+  return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+}
+
 function returnToLmsIfReady(){
   if(WM_DEV_LIVE_REVIEW_MODE) return;
   if(WM_LMS_RETURN_URL){
@@ -4907,7 +4916,7 @@ function renderFinalResult(){
      Step1~5 누적저장은 백그라운드에서 계속 진행합니다.
      마지막에는 누적 큐가 비었는지만 확인한 뒤 Test 결과 + 현재 세트 완료만 확정합니다. */
   finalSavePromise = wmWaitForStepSaves().then(function(){
-    return WM_STUDY_SPEED_LOCKS.FINAL_SAVE.saveLearningRecord("completed");
+    return wmSaveFinalCompletionWithAutoRetry_();
   }).then(result=>{
     const officialResponse=wmGetOfficialSaveResponse(result);
     WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
@@ -5001,11 +5010,6 @@ async function goFinalExit(){
 async function goNextLearning(){
   stopWordAudio();
   clearInterval(testTimer);
-  const nextSetId = WM_OFFICIAL_NEXT_SET_ID || getNextSetId(currentSetId);
-  if(!nextSetId){
-    alert("다음 학습 세트 정보를 확인할 수 없습니다.");
-    return;
-  }
 
   const saveStatus=document.getElementById("saveStatus");
   const saveIcon=document.getElementById("saveIcon");
@@ -5020,6 +5024,13 @@ async function goNextLearning(){
   if(!wmIsSaveSuccess(saveResult)){
     const saveError=String((saveResult && (saveResult.error || (saveResult.response && (saveResult.response.error || saveResult.response.message)))) || "응답 확인 실패");
     if(saveStatus) saveStatus.textContent="학습 완료를 확인하고 있습니다.";
+    return;
+  }
+
+  const confirmedResponse = wmGetOfficialSaveResponse(saveResult);
+  const nextSetId = wmNormalizeOfficialNextSetId(confirmedResponse.nextOfficialSetId || WM_OFFICIAL_NEXT_SET_ID);
+  if(!nextSetId){
+    alert("현재진행_DB의 다음 학습 세트 정보를 확인할 수 없습니다.");
     return;
   }
 

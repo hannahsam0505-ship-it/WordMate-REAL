@@ -1751,8 +1751,8 @@ const WM_LEVEL_CONFIG = {
   13: [10, 10, 10, 10, 10]
 };
 
-let currentLevelNumber = 4;
-let totalSets = 22;
+let currentLevelNumber = 0;
+let totalSets = 0;
 let setData = [];
 let wmLearningRecords = [];
 let wmCurrentStudent = null;
@@ -2062,10 +2062,6 @@ function wmReadStudentFromRootData(){
     student.학습배정 = student.학습배정 + '레벨';
   }
 
-  if(!student.학습배정){
-    student.학습배정 = '4레벨';
-  }
-
   if(student.학생ID || student.학생이름){
     return student;
   }
@@ -2090,6 +2086,7 @@ function wmNormalizeStudentObject(data){
     S4실루엣단계: String(data.S4실루엣단계 !== undefined ? data.S4실루엣단계 : (learningMode.S4실루엣단계 !== undefined ? learningMode.S4실루엣단계 : (data.s4 || data.silhouetteStep || ''))).trim(),
     S6테스트모드: String(data.S6테스트모드 !== undefined ? data.S6테스트모드 : (learningMode.S6테스트모드 !== undefined ? learningMode.S6테스트모드 : (data.s6 || data.testMode || ''))).trim(),
     레벨완료조건: String(data.레벨완료조건 !== undefined ? data.레벨완료조건 : (learningMode.레벨완료조건 !== undefined ? learningMode.레벨완료조건 : (data.levelCompleteCondition || ''))).trim(),
+    현재레벨: String(data.현재레벨 !== undefined ? data.현재레벨 : (data.currentLevel !== undefined ? data.currentLevel : '')).trim(),
     레벨완료횟수: String(data.레벨완료횟수 !== undefined ? data.레벨완료횟수 : (data.levelCompleteCount !== undefined ? data.levelCompleteCount : '')).trim(),
     순차완주세트: String(data.순차완주세트 !== undefined ? data.순차완주세트 : (data.sequentialCompleteSet !== undefined ? data.sequentialCompleteSet : '')).trim(),
     순차완주회차: String(data.순차완주회차 !== undefined ? data.순차완주회차 : (data.sequentialCompleteRound !== undefined ? data.sequentialCompleteRound : '')).trim(),
@@ -2101,10 +2098,6 @@ function wmNormalizeStudentObject(data){
 
   if(/^[0-9]+$/.test(student.학습배정)){
     student.학습배정 = student.학습배정 + '레벨';
-  }
-
-  if(!student.학습배정){
-    student.학습배정 = '4레벨';
   }
 
   if(student.학생ID || student.학생이름){
@@ -2184,7 +2177,7 @@ function wmResolveStudentInfo(){
     학년: urlGrade || rootStudent.학년 || serverStudent.학년 || storedStudent.학년 || '',
     Class: urlClass || rootStudent.Class || serverStudent.Class || storedStudent.Class || '',
     교사명: urlTeacher || rootStudent.교사명 || serverStudent.교사명 || storedStudent.교사명 || '',
-    학습배정: urlLevel || rootStudent.학습배정 || serverStudent.학습배정 || storedStudent.학습배정 || '4레벨',
+    학습배정: urlLevel || rootStudent.학습배정 || serverStudent.학습배정 || storedStudent.학습배정 || '',
     S4실루엣단계: rootStudent.S4실루엣단계 || serverStudent.S4실루엣단계 || storedStudent.S4실루엣단계 || '',
     S6테스트모드: rootStudent.S6테스트모드 || serverStudent.S6테스트모드 || storedStudent.S6테스트모드 || '',
     레벨완료조건: rootStudent.레벨완료조건 || serverStudent.레벨완료조건 || storedStudent.레벨완료조건 || '',
@@ -2200,8 +2193,9 @@ function wmResolveStudentInfo(){
   return student || {
     학생ID: '',
     학생이름: '',
-    학습배정: '4레벨',
-    현재세트: ''
+    학습배정: '',
+    현재세트: '',
+    현재레벨: ''
   };
 }
 
@@ -2383,13 +2377,10 @@ function wmRenderInstantMapFromStudentCache_(){
   /* WM_MAP_INSTANT_CURRENTSET_RENDER_V1
      현재진행_DB 응답 전이라도 URL/currentSet 캐시로 세트 버튼을 먼저 생성해 1분 로딩 화면을 제거합니다. */
   const student = wmCurrentStudent || {};
-  const currentSet = wmNormalizeCurrentSetIdForMap_(student.현재세트 || '');
-  let level = currentSet ? wmExtractLevelNumberFromSetId_(currentSet) : 0;
-  if(!level){
-    const match = String(student.학습배정 || '').match(/(3|4|5|6|7|8|9|10|11|12|13)/);
-    level = match ? Number(match[1]) : currentLevelNumber;
-  }
-  if(!level || !WM_LEVEL_CONFIG[level]) return false;
+  const currentProgress = wmCurrentProgressDisplayOverride || {};
+  const currentSet = wmNormalizeCurrentSetIdForMap_(currentProgress.기록Set_ID || currentProgress.currentSet || '');
+  const level = Number(currentProgress.currentLevel || 0);
+  if(!currentSet || !level || !WM_LEVEL_CONFIG[level]) return false;
 
   currentLevelNumber = level;
   totalSets = wmBuildLevelSetData(currentLevelNumber).length;
@@ -2471,7 +2462,11 @@ function wmRenderMapFrameSkeleton_(){
   const map = document.getElementById('setMap');
   if(!map || wmMapDataReady) return;
 
-  const partConfig = WM_LEVEL_CONFIG[currentLevelNumber] || WM_LEVEL_CONFIG[4];
+  const partConfig = WM_LEVEL_CONFIG[currentLevelNumber];
+  if(!partConfig){
+    map.innerHTML = '<div class="wm-map-inline-loading" role="status" aria-label="현재진행_DB를 불러오는 중"></div>';
+    return;
+  }
   const rows = [];
   for(let part=partConfig.length; part>=1; part--){
     const maxSet = partConfig[part - 1];
@@ -2735,19 +2730,11 @@ function wmNormalizeCurrentProgressCache_(data){
     data && data.records30
   ));
 
-  const currentSet = wmNormalizeCurrentSetIdForMap_(wmPickFirstValue_(
-    cache.기록Set_ID,
-    cache.현재세트,
-    cache.Set_ID,
-    cache.setId,
-    cache.currentSet,
-    cache.set_id
-  ));
-
-  let currentLevel = Number(String(wmPickFirstValue_(cache.현재레벨, cache.currentLevel, cache.level, 0)).replace(/[^0-9]/g, '')) || 0;
-  if(!currentLevel && currentSet){
-    currentLevel = wmExtractLevelNumberFromSetId_(currentSet);
-  }
+  /* WM_MAP_CURRENT_PROGRESS_CORE4_ONLY_20260820_V1
+     최초 현재세트는 8.현재진행_DB 기록Set_ID, 현재레벨은 현재레벨 컬럼만 사용합니다.
+     학생관리_DB/URL/과거 Set_ID로 레벨·세트를 추정하지 않습니다. */
+  const currentSet = wmNormalizeCurrentSetIdForMap_(cache.기록Set_ID);
+  const currentLevel = Number(String(cache.현재레벨 || '').replace(/[^0-9]/g, '')) || 0;
 
   const officialProgress = (data && data.officialLevelProgress) || {};
   const learningProgress = (data && data.currentLearningProgress) || {};
@@ -2768,6 +2755,10 @@ function wmNormalizeCurrentProgressCache_(data){
 
   return {
     raw: cache,
+    sourceSetId: wmNormalizeCurrentSetIdForMap_(cache.Set_ID),
+    completedStep: String(cache.완료Step || '').trim().toUpperCase(),
+    currentStep: String(cache.현재Step || '').trim().toUpperCase(),
+    recordSetId: currentSet,
     currentSet: currentSet,
     currentLevel: currentLevel,
     totalSetCount: Number.isFinite(totalSetCount) ? totalSetCount : 0,
@@ -2896,7 +2887,7 @@ function wmNormalizeLearningRecordForBottomTable_(record, data){
 }
 
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
-  if(!cacheData) return false;
+  if(!cacheData || !cacheData.sourceSetId || !cacheData.currentStep || !cacheData.currentSet || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
 
   const profileSource = Object.assign({}, cacheData.raw || {}, (data && (data.studentProfile || data.profile)) || {});
   wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, profileSource);
@@ -2908,8 +2899,8 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   }
 
   if(cacheData.currentLevel && WM_LEVEL_CONFIG[cacheData.currentLevel]){
-    wmCurrentStudent.학습배정 = cacheData.currentLevel + '레벨';
-    wmStudentProfile.학습배정 = cacheData.currentLevel + '레벨';
+    wmCurrentStudent.현재레벨 = cacheData.currentLevel + '레벨';
+    wmStudentProfile.현재레벨 = cacheData.currentLevel + '레벨';
     currentLevelNumber = cacheData.currentLevel;
   }
 
@@ -2931,6 +2922,11 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   };
 
   wmCurrentProgressDisplayOverride = {
+    Set_ID: cacheData.sourceSetId,
+    완료Step: cacheData.completedStep,
+    현재Step: cacheData.currentStep,
+    기록Set_ID: cacheData.recordSetId,
+    currentLevel: cacheData.currentLevel,
     currentSet: cacheData.currentSet,
     setProgress: cacheData.setProgress,
     levelProgress: cacheData.levelProgress,
@@ -3039,6 +3035,13 @@ function wmHandleLearningMapResponse(data){
     if(data.recordsDeferred === true && !wmBottomRecordsDetailedLoaded){
       window.setTimeout(function(){ wmLoadLearningRecordsDirectForMap_('post-core-map'); }, 0);
     }
+    return;
+  }
+
+  if(data.hasCurrentProgress === true){
+    wmStopMapLoadingState_();
+    wmShowMapUnavailable_('현재진행_DB의 현재레벨 또는 기록Set_ID를 확인할 수 없습니다.');
+    renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     return;
   }
 
@@ -3163,13 +3166,8 @@ function wmGetOfficialStudySetIdForMap_(){
   const serverProgress = wmCurrentProgressDisplayOverride || {};
 
   const candidates = [
-    serverProgress.currentSet,
     serverProgress.기록Set_ID,
-    serverProgress.recordSetId,
-    serverProgress.Set_ID,
-    serverProgress.setId,
-    wmCurrentStudent && wmCurrentStudent.현재세트,
-    wmStudentProfile && wmStudentProfile.현재세트
+    serverProgress.currentSet
   ];
 
   for(let i = 0; i < candidates.length; i++){
@@ -3204,19 +3202,15 @@ function wmExtractLevelNumberFromSetId_(setId){
 
 function wmApplyStudentLearningMap(student, options){
   const s = student || {};
-  const levelText = String(s.학습배정 || '').trim();
-  const parsedAssignLevel = parseInt(levelText.replace(/[^0-9]/g, ''), 10);
-  const parsedCurrentSetLevel = wmExtractLevelNumberFromSetId_(s.현재세트 || s.currentSet || s.setId || s.set_id || '');
+  const currentLevelText = String(s.현재레벨 || '').trim();
+  const displayLevel = parseInt(currentLevelText.replace(/[^0-9]/g, ''), 10);
 
-  /* WM_MAP_CURRENT_LEVEL_FROM_CURRENT_SET_FIX_V1
-     레벨업 직후 학생관리_DB의 학습배정/학습모드는 직전 최종 설정을 유지하더라도,
-     학습맵에 표시할 현재 레벨은 현재세트(예: 5-1-1)를 우선합니다.
-     이렇게 해야 4레벨 완료 후 5-1-1로 넘어간 학생에게 4레벨 맵이 다시 표시되지 않습니다. */
-  const displayLevel = WM_LEVEL_CONFIG[parsedCurrentSetLevel]
-    ? parsedCurrentSetLevel
-    : (WM_LEVEL_CONFIG[parsedAssignLevel] ? parsedAssignLevel : 4);
-
-  currentLevelNumber = displayLevel;
+  /* WM_MAP_CURRENT_LEVEL_CURRENT_PROGRESS_ONLY_20260820_V1
+     현재 레벨은 8.현재진행_DB의 현재레벨만 사용합니다.
+     학습배정·URL·현재세트에서 임의 추정하거나 4레벨을 기본값으로 사용하지 않습니다. */
+  if(WM_LEVEL_CONFIG[displayLevel]){
+    currentLevelNumber = displayLevel;
+  }
 
   setText('studentName', s.학생이름 || '-');
   setText('studentId', s.학생ID || '-');
@@ -3224,10 +3218,16 @@ function wmApplyStudentLearningMap(student, options){
   setText('studentGrade', s.학년 || '-');
   setText('studentClass', s.Class || s['반'] || '-');
   setText('studentTeacher', s.교사명 || '-');
-  setText('studentCurrentSet', s.현재세트 || s.currentSet || s.setId || s.set_id || '-');
-  wmUpdateStudentLevelHeaderLabel_();
-  setText('currentLevelLabel', currentLevelNumber + ' LEVEL');
-  setText('progressLevelLabel', currentLevelNumber + ' LEVEL 진행률');
+  setText('studentCurrentSet', WM_LEVEL_CONFIG[currentLevelNumber] ? (s.현재세트 || s.currentSet || s.setId || s.set_id || '-') : '-');
+  if(WM_LEVEL_CONFIG[currentLevelNumber]){
+    wmUpdateStudentLevelHeaderLabel_();
+    setText('currentLevelLabel', currentLevelNumber + ' LEVEL');
+    setText('progressLevelLabel', currentLevelNumber + ' LEVEL 진행률');
+  }else{
+    setText('studentLevel', '-');
+    setText('currentLevelLabel', '-');
+    setText('progressLevelLabel', 'LEVEL 진행률');
+  }
 
   if(options && options.skipMapRender){
     return;
@@ -3240,8 +3240,9 @@ function wmApplyStudentLearningMap(student, options){
 }
 
 function wmBuildLevelSetData(levelNumber){
-  const partConfig = WM_LEVEL_CONFIG[levelNumber] || WM_LEVEL_CONFIG[4];
+  const partConfig = WM_LEVEL_CONFIG[levelNumber];
   const data = [];
+  if(!partConfig) return data;
 
   for(let part=1; part<=partConfig.length; part++){
     const maxSet = partConfig[part - 1];
@@ -3971,7 +3972,7 @@ function wmApplyLearningMapStatus(mapData){
       };
     }
 
-    if(isOfficialCurrent || (!officialCurrentSet && !currentAssigned)){
+    if(isOfficialCurrent){
       currentAssigned = true;
       return {
         set:item.set,
@@ -4020,7 +4021,11 @@ function renderSetMap(){
 
   wmApplyCurrentProgressDisplayOverrideToSetData_();
 
-  const partConfig = WM_LEVEL_CONFIG[currentLevelNumber] || WM_LEVEL_CONFIG[4];
+  const partConfig = WM_LEVEL_CONFIG[currentLevelNumber];
+  if(!partConfig){
+    wmShowMapUnavailable_('현재진행_DB 현재레벨 확인 전에는 학습맵을 활성화하지 않습니다.');
+    return;
+  }
   const rows = [];
 
   for(let part=partConfig.length; part>=1; part--){
