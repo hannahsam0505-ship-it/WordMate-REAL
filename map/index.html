@@ -2428,6 +2428,57 @@ function wmRenderInstantMapFromStudentCache_(){
   return true;
 }
 
+
+function wmReadStudyReturnCurrentProgress_(){
+  /* WM_MAP_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V1_20260821
+     Study 완료 응답에서 받은 현재진행_DB 1행을 복귀 Map의 첫 화면에 즉시 사용합니다.
+     학생ID가 다르거나 오래된 값이면 사용하지 않고 기존 서버 조회로 돌아갑니다. */
+  let raw = '';
+  try{ raw = sessionStorage.getItem('WM_CURRENT_PROGRESS_RETURN_V1') || ''; }catch(err){}
+  if(!raw) return null;
+
+  let envelope = null;
+  try{ envelope = JSON.parse(raw); }catch(err){ envelope = null; }
+  try{ sessionStorage.removeItem('WM_CURRENT_PROGRESS_RETURN_V1'); }catch(err){}
+
+  if(!envelope || typeof envelope !== 'object') return null;
+  const studentId = String(envelope.studentId || '').trim();
+  const currentStudentId = String(wmCurrentStudent && wmCurrentStudent.학생ID || '').trim();
+  const age = Date.now() - Number(envelope.savedAt || 0);
+  if(!studentId || !currentStudentId || studentId !== currentStudentId) return null;
+  if(!Number.isFinite(age) || age < 0 || age > 120000) return null;
+
+  const row = envelope.currentProgress;
+  if(!row || typeof row !== 'object') return null;
+  const rowStudentId = String(row.학생ID || row.studentId || '').trim();
+  if(rowStudentId && rowStudentId !== currentStudentId) return null;
+  return row;
+}
+
+function wmRenderStudyReturnCurrentProgress_(){
+  const source = String(window.history && window.history.state && window.history.state.wmMapEntrySource || '').trim().toLowerCase();
+  if(source !== 'study') return false;
+
+  const row = wmReadStudyReturnCurrentProgress_();
+  if(!row) return false;
+
+  wmHandleLearningMapResponse({
+    success:true,
+    sessionValid:true,
+    valid:true,
+    source:'STUDY_RETURN_CURRENT_PROGRESS_DIRECT',
+    currentProgressCache:row,
+    currentProgress:row,
+    currentProgressRow:row,
+    progressCache:row,
+    mapCache:row,
+    studentProfile:row,
+    recordsDeferred:true,
+    records:[]
+  });
+  return true;
+}
+
 function wmInitLearningMap(){
   wmMapDataReady = false;
 
@@ -2453,6 +2504,11 @@ function wmInitLearningMap(){
 
   if(!wmCurrentStudent.학생ID || !wmGetCurrentSessionToken()){
     wmRedirectToLogin_();
+    return;
+  }
+
+  /* Study가 방금 완료 API에서 받은 현재진행_DB 행이 있으면 서버 재조회 없이 즉시 렌더합니다. */
+  if(wmRenderStudyReturnCurrentProgress_()){
     return;
   }
 

@@ -3824,6 +3824,36 @@ function wmGetOfficialSaveResponse(result){
   return result;
 }
 
+function wmCacheCurrentProgressForMapReturn_(result){
+  /* WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V1_20260821
+     완료 API가 이미 확정해 반환한 현재진행_DB 1행을 같은 origin의 Map에 전달합니다.
+     Map 복귀 직후 DB 재조회 없이 이 행을 바로 렌더링하고 상세기록만 뒤에서 불러옵니다. */
+  if(WM_DEV_LIVE_REVIEW_MODE) return false;
+  const response = wmGetOfficialSaveResponse(result);
+  const row = response && (
+    response.currentProgress ||
+    response.currentProgressCache ||
+    response.currentProgressRow
+  );
+  if(!row || typeof row !== "object") return false;
+
+  const rowStudentId = String(row.학생ID || row.studentId || "").trim();
+  if(!rowStudentId || rowStudentId !== String(WM_STUDENT_ID || "").trim()) return false;
+
+  const envelope = {
+    version:"WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V1",
+    studentId:rowStudentId,
+    savedAt:Date.now(),
+    currentProgress:row
+  };
+  try{
+    sessionStorage.setItem("WM_CURRENT_PROGRESS_RETURN_V1", JSON.stringify(envelope));
+    return true;
+  }catch(err){
+    return false;
+  }
+}
+
 function wmNormalizeOfficialNextSetId(setId){
   const text=String(setId || "").trim().toUpperCase();
   if(!text) return "";
@@ -4207,6 +4237,7 @@ async function leaveLearning(){
     }
   }
 
+  wmCacheCurrentProgressForMapReturn_(saveResult);
   exitLearningFullscreen();
   wmStudyReturnToMap();
 }
@@ -4912,6 +4943,7 @@ function renderFinalResult(){
     const officialResponse=wmGetOfficialSaveResponse(result);
     WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
     WM_OFFICIAL_NEXT_SET_ID=wmNormalizeOfficialNextSetId(officialResponse.nextOfficialSetId);
+    if(wmIsSaveSuccess(result)) wmCacheCurrentProgressForMapReturn_(result);
     const saveStatus=document.getElementById("saveStatus");
     const saveIcon=document.getElementById("saveIcon");
     if(saveStatus){
