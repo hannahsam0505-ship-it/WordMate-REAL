@@ -4223,21 +4223,21 @@ async function leaveLearning(){
   </div>`;
   afterScreenRender();
 
-  const result = await wmWaitForStepSaves();
+  let result = await wmWaitForStepSaves();
 
   if(result && result.ok === false){
     /* WM_STUDY_EXIT_STEP_RETRY_NO_FALSE_COMPLETE_V1_20260819
        중간 Step 저장 실패를 세트 완료(completed)로 바꾸지 않습니다.
        같은 누적 Step 상태를 step_completed로 1회만 재저장합니다. */
-    const retryResult = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
-    if(!wmIsSaveSuccess(retryResult)){
+    result = await WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord("step_completed");
+    if(!wmIsSaveSuccess(result)){
       app.innerHTML = `<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">완료된 Step 저장 응답을 확인하지 못했습니다.<br>세트 완료 처리 없이 현재 학습 위치를 보호합니다.</div><button class="wm-btn" onclick="wmStudyReturnToMap()">학습맵으로 이동</button></div>`;
       afterScreenRender();
       return;
     }
   }
 
-  wmCacheCurrentProgressForMapReturn_(saveResult);
+  wmCacheCurrentProgressForMapReturn_(result);
   exitLearningFullscreen();
   wmStudyReturnToMap();
 }
