@@ -92,7 +92,7 @@ const WM_LOCKS = {
   StudyRecordDB_V1_LOCK:true,
   ReportDB_V2_LOCK:true, /* 성적표조회 조회·렌더·페이지·스크롤·상세보기 부분 LOCK */
   CurrentProgressDB_V1_LOCK:true,
-  CurrentProgressDB_V2_LOCK:true, /* 30컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
+  CurrentProgressDB_V2_LOCK:true, /* 33컬럼·행고정·상단가로바·25줄페이지·페이지버튼 LOCK */
   LMS_Login_V1_LOCK:true, /* 교사 로그인 게이트·로그인/로그아웃·인증흐름 LOCK */
   LMS_DEV_Connection_LOCK:true, /* LMS→DEV 동일 관리자 재로그인·권한·이동 LOCK */
   TeacherLogin_V2_LOCK:true, /* 7.설정센터_DB 로그인·교사ID 대소문자·권한 UI LOCK */
@@ -2486,7 +2486,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>일련번호</th><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="31">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
+      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>일련번호</th><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>1회차점수</th><th>2회차점수</th><th>3회차점수</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="34">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
     </section>
     <section class="wm-panel" id="panel-counsel">
       <h2 class="wm-panel-title">상담카페</h2>
@@ -9838,10 +9838,10 @@ function wmRenderGenericDbRows(tbodyId, rows, columns, colspan){
 }
 
 /* WM_CURRENT_PROGRESS_DB_V2_LOCK
- * LOCK 범위: 현재진행_DB 30컬럼, 행고정, 상단 가로바, 25줄 페이지, 이전/다음 버튼.
+ * LOCK 범위: 현재진행_DB 33컬럼, 행고정, 상단 가로바, 25줄 페이지, 이전/다음 버튼.
  * 실행 연결: 조회/렌더/페이지 이동 시 CurrentProgressDB_V2_LOCK 상태를 콘솔에 표시합니다.
  */
-const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
+const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "1회차점수", "2회차점수", "3회차점수", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
 const WM_DEPLOY_MANAGE_HEADERS = ["변경ID", "버전ID", "구분(REAL/TEST)", "배포일시", "문제발생", "원인분석", "수정방향", "핵심수정", "대상파일", "연동파일", "수정위치/함수", "검색어(다수가능)", "변경전코드", "변경후코드", "변경전줄수", "변경후줄수", "줄수변화", "REAL 고정", "TEST 고정", "REAL 변수", "TEST 변수", "REAL 고정 수정", "TEST 고정 수정", "REAL 변수 수정", "TEST 변수 수정", "TEST적용상태", "TEST검증상태", "REAL적용상태", "REAL검증상태", "현재/직전버전", "기타버전", "파일동일성%", "상이확인", "성공/실패", "실패원인", "롤백여부", "롤백버전", "작업자", "작업구분", "비고"];
 
 function getCurrentProgressFilteredRows(rows){
@@ -9890,7 +9890,7 @@ async function loadCurrentProgressRows(){
   wmLockStatusMessage('CurrentProgressDB_V2_LOCK','현재진행_DB 조회/표시 구조');
   const tbody = document.getElementById('currentProgressTbody');
   setManageLoading('currentProgress', true);
-  if(tbody) tbody.innerHTML = '<tr><td colspan="31">8.현재진행_DB 조회 중입니다.</td></tr>';
+  if(tbody) tbody.innerHTML = '<tr><td colspan="34">8.현재진행_DB 조회 중입니다.</td></tr>';
 
   try{
     let rows = [];
@@ -9912,7 +9912,7 @@ async function loadCurrentProgressRows(){
     setManageLoading('currentProgress', false);
     return WM_CURRENT_PROGRESS_ROWS;
   }catch(err){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="31">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="34">8.현재진행_DB 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
     setManageLoading('currentProgress', false);
     return [];
   }
@@ -9951,7 +9951,7 @@ function renderCurrentProgressRows(){
   if(WM_CURRENT_PROGRESS_PAGE < 1) WM_CURRENT_PROGRESS_PAGE = 1;
 
   if(!totalRows){
-    if(tbody) tbody.innerHTML = '<tr><td colspan="31">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="34">표시할 현재진행_DB 데이터가 없습니다.</td></tr>';
   }else{
     const start = (WM_CURRENT_PROGRESS_PAGE - 1) * WM_CURRENT_PROGRESS_PAGE_SIZE;
     const pageRows = rows.slice(start, start + WM_CURRENT_PROGRESS_PAGE_SIZE);
