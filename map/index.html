@@ -2747,7 +2747,12 @@ function wmNormalizeCurrentProgressCache_(data){
   /* WM_MAP_CURRENT_PROGRESS_CORE4_ONLY_20260820_V1
      최초 현재세트는 8.현재진행_DB 기록Set_ID, 현재레벨은 현재레벨 컬럼만 사용합니다.
      학생관리_DB/URL/과거 Set_ID로 레벨·세트를 추정하지 않습니다. */
-  const currentSet = wmNormalizeCurrentSetIdForMap_(cache.기록Set_ID);
+  const sourceSetId = wmNormalizeCurrentSetIdForMap_(cache.Set_ID);
+  const recordSetId = wmNormalizeCurrentSetIdForMap_(cache.기록Set_ID);
+  /* WM_MAP_NEW_STUDENT_CURRENT_PROGRESS_DIRECT_V1_20260820
+     신규학생도 현재진행_DB 현재레벨만 확인되면 즉시 해당 레벨 블럭을 렌더링합니다.
+     현재 블럭 위치는 기록Set_ID를 우선하고, 값이 아직 비어 있으면 같은 현재진행 행의 Set_ID만 사용합니다. */
+  const currentSet = recordSetId || sourceSetId;
   const currentLevel = Number(String(cache.현재레벨 || '').replace(/[^0-9]/g, '')) || 0;
 
   const officialProgress = (data && data.officialLevelProgress) || {};
@@ -2769,7 +2774,7 @@ function wmNormalizeCurrentProgressCache_(data){
 
   return {
     raw: cache,
-    sourceSetId: wmNormalizeCurrentSetIdForMap_(cache.Set_ID),
+    sourceSetId: sourceSetId,
     completedStep: String(cache.완료Step || '').trim().toUpperCase(),
     currentStep: String(cache.현재Step || '').trim().toUpperCase(),
     recordSetId: currentSet,
@@ -2901,7 +2906,9 @@ function wmNormalizeLearningRecordForBottomTable_(record, data){
 }
 
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
-  if(!cacheData || !cacheData.sourceSetId || !cacheData.currentStep || !cacheData.currentSet || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
+  /* 신규학생은 Set_ID/현재Step/기록Set_ID가 아직 비어 있어도
+     현재진행_DB 현재레벨이 확인되면 해당 레벨 맵 전체를 즉시 표시합니다. */
+  if(!cacheData || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
 
   const profileSource = Object.assign({}, (data && (data.studentProfile || data.profile)) || {}, cacheData.raw || {});
   wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, profileSource);
@@ -2984,6 +2991,8 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
   const validTotalSetCount = sequence.length;
+  const currentProgressTotalSetCount = Math.max(0, Math.floor(Number(cacheData.totalSetCount || 0) || 0));
+  const displayTotalSetCount = currentProgressTotalSetCount || validTotalSetCount;
   const safeLevelProgress = Math.max(0, Math.min(100, Math.floor(cacheData.levelProgress || 0)));
   const safeSetProgress = Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0)));
   const currentPlainSet = String(cacheData.currentSet || '').trim();
@@ -2993,15 +3002,15 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
     renderSetMap();
   }
 
-  totalSets = validTotalSetCount || totalSets;
+  totalSets = displayTotalSetCount || totalSets;
   setText('levelPercent', safeLevelProgress + '%');
   setText('mainProgressText', safeLevelProgress + '%');
   const fill = document.getElementById('progressFill');
   if(fill) fill.style.width = safeLevelProgress + '%';
   wmRenderRecordLevelHistoryBoard_(wmLearningRecords, (wmLastLearningMapData && wmLastLearningMapData.setStatusMap) || {}, currentLevelNumber);
 
-  setText('summaryTotalSet', validTotalSetCount + ' SET');
-  setText('summaryCompleteSet', String(Math.max(0, Math.min(validTotalSetCount, Math.floor(cacheData.completedSetCount || 0)))) + ' SET');
+  setText('summaryTotalSet', displayTotalSetCount + ' SET');
+  setText('summaryCompleteSet', String(Math.max(0, Math.min(displayTotalSetCount, Math.floor(cacheData.completedSetCount || 0)))) + ' SET');
   setText('summaryProgress', safeLevelProgress + '%');
   wmCurrentProgressRecentScoreForMap_ = cacheData.recentScore || '';
   setText('summaryRecentScore', wmCurrentProgressRecentScoreForMap_ ? wmCurrentProgressRecentScoreForMap_ + '점' : '-');
@@ -3054,7 +3063,7 @@ function wmHandleLearningMapResponse(data){
 
   if(data.hasCurrentProgress === true){
     wmStopMapLoadingState_();
-    wmShowMapUnavailable_('현재진행_DB의 현재레벨 또는 기록Set_ID를 확인할 수 없습니다.');
+    wmShowMapUnavailable_('현재진행_DB의 현재레벨을 확인할 수 없습니다.');
     renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
     return;
   }
@@ -4471,18 +4480,21 @@ function wmRenderCurrentProgressGuide_(){
   };
 
   box.classList.add('wm-mode-banner-box');
+  /* WM_MAP_CURRENT_PROGRESS_GUIDE_ONLY_V1_20260820
+     하단 학습조건 6가지는 학생관리/캐시 기본값으로 보정하지 않고
+     현재진행_DB에 저장된 값을 그대로 표시합니다. */
   box.innerHTML = '<div class="wm-learning-mode-banner">'
-    + '<span>S4실루엣단계 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계, profile.S4실루엣단계, student.S4실루엣단계, mode.S4실루엣단계, '전체')) + '</b></span>'
+    + '<span>S4실루엣단계 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계)) + '</b></span>'
     + '<span class="wm-banner-sep">|</span>'
-    + '<span>S6TEST모드 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드, profile.S6테스트모드, student.S6테스트모드, mode.S6테스트모드, '기본전체')) + '</b></span>'
+    + '<span>S6TEST모드 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드)) + '</b></span>'
     + '<span class="wm-banner-sep">|</span>'
-    + '<span>레벨완료조건 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건, profile.레벨완료조건, student.레벨완료조건, mode.레벨완료조건, '2회')) + '</b></span>'
+    + '<span>레벨완료조건 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건)) + '</b></span>'
     + '<span class="wm-banner-sep">|</span>'
-    + '<span>레벨완료횟수 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수, profile.레벨완료횟수, student.레벨완료횟수, 0)) + '</b></span>'
+    + '<span>레벨완료횟수 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수)) + '</b></span>'
     + '<span class="wm-banner-sep">|</span>'
-    + '<span>순차완주세트 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트, profile.순차완주세트, student.순차완주세트, 0)) + '</b></span>'
+    + '<span>순차완주세트 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트)) + '</b></span>'
     + '<span class="wm-banner-sep">|</span>'
-    + '<span>순차완주회차 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차, profile.순차완주회차, student.순차완주회차, 0)) + '</b></span>'
+    + '<span>순차완주회차 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차)) + '</b></span>'
     + '</div>';
 }
 
