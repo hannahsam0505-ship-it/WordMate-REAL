@@ -2139,11 +2139,11 @@ function wmMergeStudentPreserveValues_(base, incoming){
 }
 
 function wmResolveStudentInfo(){
-  /* WM_MAP_URL_STUDENT_FULL_MERGE_SPEED_FIX_V1
-     Vercel Map은 URL 파라미터가 가장 빠른 1차 캐시입니다.
-     root data-*가 일부 값만 가지고 있어도 학교/학년/반/교사명/currentSet을 URL·저장소와 병합합니다. */
-  const rootStudent = wmNormalizeStudentObject(wmReadStudentFromRootData()) || {};
-  const storedStudent = wmReadStudentFromStorage() || {};
+  /* WM_MAP_STUDENT_IDENTITY_MATCH_ONLY_20260820_V1
+     학생ID를 먼저 확정한 뒤 같은 학생ID의 URL/root/server/storage 값만 병합합니다.
+     다른 학생의 이전 캐시 이름·학교·반 정보가 현재 학생 화면에 먼저 표시되는 것을 차단합니다. */
+  const rootRaw = wmNormalizeStudentObject(wmReadStudentFromRootData()) || {};
+  const storedRaw = wmReadStudentFromStorage() || {};
 
   const serverCandidates = [
     window.WM_MAP_SERVER_STUDENT,
@@ -2151,11 +2151,11 @@ function wmResolveStudentInfo(){
     window.WM_CURRENT_STUDENT
   ];
 
-  let serverStudent = {};
+  let serverRaw = {};
   for(const candidate of serverCandidates){
     const normalized = wmNormalizeStudentObject(candidate);
     if(normalized && (normalized.학생이름 || normalized.학생ID)){
-      serverStudent = normalized;
+      serverRaw = normalized;
       break;
     }
   }
@@ -2170,8 +2170,19 @@ function wmResolveStudentInfo(){
   const urlSet = wmGetUrlParam('currentSet') || wmGetUrlParam('setId') || wmGetUrlParam('set_id') || wmGetUrlParam('wmCurrentSet');
   const urlSessionToken = wmGetUrlParam('sessionToken') || wmGetUrlParam('wmSessionToken') || wmGetUrlParam('WM_SESSION_TOKEN');
 
+  const resolvedStudentId = String(urlStudentId || rootRaw.학생ID || serverRaw.학생ID || storedRaw.학생ID || '').trim();
+  const resolvedStudentKey = resolvedStudentId.toUpperCase();
+  const sameStudent = function(source){
+    source = source || {};
+    const sourceId = String(source.학생ID || source.studentId || source.studentID || source.id || '').trim().toUpperCase();
+    return sourceId && resolvedStudentKey && sourceId === resolvedStudentKey ? source : {};
+  };
+  const rootStudent = sameStudent(rootRaw);
+  const serverStudent = sameStudent(serverRaw);
+  const storedStudent = sameStudent(storedRaw);
+
   const student = wmNormalizeStudentObject({
-    학생ID: urlStudentId || rootStudent.학생ID || serverStudent.학생ID || storedStudent.학생ID || '',
+    학생ID: resolvedStudentId,
     학생이름: urlStudentName || rootStudent.학생이름 || serverStudent.학생이름 || storedStudent.학생이름 || '',
     학교: urlSchool || rootStudent.학교 || serverStudent.학교 || storedStudent.학교 || '',
     학년: urlGrade || rootStudent.학년 || serverStudent.학년 || storedStudent.학년 || '',
@@ -2191,7 +2202,7 @@ function wmResolveStudentInfo(){
   });
 
   return student || {
-    학생ID: '',
+    학생ID: resolvedStudentId,
     학생이름: '',
     학습배정: '',
     현재세트: '',
@@ -2433,7 +2444,10 @@ function wmInitLearningMap(){
 
   wmCurrentStudent = wmResolveStudentInfo();
 
-  wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
+  /* WM_MAP_CURRENT_PROGRESS_PROFILE_FIRST_20260820_V1
+     현재진행_DB 응답 전에는 학생ID만 먼저 표시하고 이름/학교/학년/반/교사/레벨은 비워 둡니다.
+     이전 학생 캐시나 URL 이름이 현재 학생 이름으로 잠깐 보이는 현상을 차단합니다. */
+  wmApplyStudentLearningMap({ 학생ID: wmCurrentStudent.학생ID || '' }, { skipMapRender:true });
   wmShowMapLoadingState_();
   /* WM_MAP_FAKE_INSTANT_RENDER_DISABLED_V1: 현재진행_DB 응답 전 임시맵 생성 금지 */
 
@@ -2889,7 +2903,7 @@ function wmNormalizeLearningRecordForBottomTable_(record, data){
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   if(!cacheData || !cacheData.sourceSetId || !cacheData.currentStep || !cacheData.currentSet || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
 
-  const profileSource = Object.assign({}, cacheData.raw || {}, (data && (data.studentProfile || data.profile)) || {});
+  const profileSource = Object.assign({}, (data && (data.studentProfile || data.profile)) || {}, cacheData.raw || {});
   wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, profileSource);
   wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, wmStudentProfile || {});
 
