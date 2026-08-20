@@ -2995,12 +2995,10 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   const displayTotalSetCount = currentProgressTotalSetCount || validTotalSetCount;
   const safeLevelProgress = Math.max(0, Math.min(100, Math.floor(cacheData.levelProgress || 0)));
   const safeSetProgress = Math.max(0, Math.min(99, Math.floor(cacheData.setProgress || 0)));
-  const currentPlainSet = String(cacheData.currentSet || '').trim();
-
-  if(currentPlainSet){
-    wmApplyCurrentProgressDisplayOverrideToSetData_();
-    renderSetMap();
-  }
+  /* 현재레벨이 확인되면 Set_ID/기록Set_ID 유무와 무관하게 레벨 전체 블럭을 표시합니다.
+     현재 세트값은 있을 때만 현재 블럭 위치 지정에 사용합니다. */
+  wmApplyCurrentProgressDisplayOverrideToSetData_();
+  renderSetMap();
 
   totalSets = displayTotalSetCount || totalSets;
   setText('levelPercent', safeLevelProgress + '%');
@@ -3026,7 +3024,13 @@ function wmHandleLearningMapResponse(data){
     return;
   }
 
-  if(!data || data.success !== true){
+  /* WM_MAP_CURRENT_PROGRESS_FIRST_RENDER_V2_20260820
+     서버 fast payload가 아직 완성되지 않은 신규학생도 currentProgressCache 자체가 있으면
+     성공/실패 플래그보다 먼저 현재진행_DB 행을 사용해 맵과 하단 학습조건을 즉시 렌더링합니다. */
+  const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
+  const hasUsableCurrentProgress = !!(currentProgressCache && currentProgressCache.currentLevel && WM_LEVEL_CONFIG[currentProgressCache.currentLevel]);
+
+  if(!data || (data.success !== true && !hasUsableCurrentProgress)){
     wmRevealAuthenticatedMap_();
     wmStopMapLoadingState_();
     wmShowMapMessage(data && data.message ? data.message : '학습맵 조회에 실패했습니다.');
@@ -3053,8 +3057,7 @@ function wmHandleLearningMapResponse(data){
     wmApplyStudentLearningMap(wmCurrentStudent, { skipMapRender:true });
   }
 
-  const currentProgressCache = wmNormalizeCurrentProgressCache_(data);
-  if(currentProgressCache && wmApplyLearningMapFromCurrentProgressCache_(currentProgressCache, data)){
+  if(hasUsableCurrentProgress && wmApplyLearningMapFromCurrentProgressCache_(currentProgressCache, data)){
     if(data.recordsDeferred === true && !wmBottomRecordsDetailedLoaded){
       window.setTimeout(function(){ wmLoadLearningRecordsDirectForMap_('post-core-map'); }, 0);
     }
