@@ -2686,6 +2686,21 @@ function wmFindCurrentProgressCache_(data){
   if(!data || typeof data !== 'object') return null;
   if(data.currentProgressMissing === true || data.hasCurrentProgress === false) return null;
 
+  /* WM_MAP_CURRENT_PROGRESS_DIRECT_ROW_PRIORITY_20260820_V1
+     서버가 내려준 8.현재진행_DB 실제 행을 다른 요약객체보다 먼저 사용합니다.
+     신규학생도 현재레벨/전체세트수/학습조건 6가지를 같은 행에서 즉시 표시합니다. */
+  const directCurrentProgress = [
+    data.currentProgressCache,
+    data.currentProgress,
+    data.currentProgressRow,
+    data.progressCache,
+    data.mapCache
+  ];
+  for(const direct of directCurrentProgress){
+    if(!direct || typeof direct !== 'object') continue;
+    if(String(direct.현재레벨 || '').trim()) return direct;
+  }
+
   const candidates = [
     data.currentProgressCache,
     data.currentProgress,
