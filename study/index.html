@@ -1178,9 +1178,10 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     display:flex;
     flex-direction:column;
     align-items:center;
-    justify-content:space-evenly;
+    justify-content:center;
+    gap:28px;
     width:100%;
-    padding:12px 0 8px;
+    padding:28px 0 24px;
     box-sizing:border-box;
   }
   .wm-study-shell .wm-study-state-body .wm-meaning,
@@ -1243,8 +1244,45 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     margin:0;
     font-size:14px;
   }
-  .wm-study-shell .wm-step2-card .wm-pos{margin-bottom:12px;}
-  .wm-study-shell .wm-step2-card .wm-option{padding:14px;margin-top:8px;}
+  .wm-study-shell .wm-step2-card,
+  .wm-study-shell .wm-step3-card{
+    display:flex;
+    flex-direction:column;
+  }
+  .wm-study-shell .wm-step2-card .wm-title,
+  .wm-study-shell .wm-step3-card .wm-title{margin-bottom:6px;}
+  .wm-study-shell .wm-step2-card .wm-learning-guide,
+  .wm-study-shell .wm-step3-card .wm-learning-guide{margin-bottom:5px;}
+  .wm-study-shell .wm-step2-card > .wm-small,
+  .wm-study-shell .wm-step3-card > .wm-small{margin-top:3px;}
+  .wm-study-shell .wm-step2-card .word-progress,
+  .wm-study-shell .wm-step3-card .word-progress{margin-top:4px;margin-bottom:6px;}
+  .wm-study-shell .wm-step2-card .wm-step2-word-row{margin-top:2px;}
+  .wm-study-shell .wm-step2-card .wm-pos,
+  .wm-study-shell .wm-step3-card .wm-pos{margin-bottom:4px;}
+  .wm-study-shell .wm-step3-card .wm-meaning{margin-top:5px;margin-bottom:5px;}
+  .wm-study-shell .wm-step2-card .wm-option,
+  .wm-study-shell .wm-step3-card .wm-option{padding:11px 14px;margin-top:6px;}
+
+  /* 메인 UI 흐름을 밀지 않는 Step별 틀린단어 표시 */
+  .wm-study-shell .wm-step-wrong-badge{
+    position:absolute;
+    top:42px;
+    left:48px;
+    z-index:4;
+    min-width:124px;
+    padding:7px 10px;
+    border:1px solid #fecaca;
+    border-radius:10px;
+    background:#fff7f7;
+    color:#dc2626;
+    font-size:13px;
+    font-weight:900;
+    line-height:1.15;
+    text-align:center;
+    box-sizing:border-box;
+    pointer-events:none;
+  }
 
   /* Step 4 : 4단계 모두 하단 입력/확인 위치 고정 */
   .wm-study-shell .wm-step4-card{
@@ -1285,18 +1323,18 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   }
   .wm-study-shell .wm-step4-card > .wm-btn:last-child{padding:11px;margin-top:6px;}
 
-  /* 7~13레벨 20단어 : 동일 카드 폭 안에서 진행 동그라미만 재배치 */
+  /* 7~13레벨 20단어 : 10개씩 2줄. 고정 카드 크기는 변경하지 않습니다. */
   .wm-study-shell.wm-wordcount-20 .word-progress{
-    width:100%;
-    max-width:610px;
-    grid-template-columns:repeat(20,minmax(0,1fr));
+    width:max-content;
+    max-width:100%;
+    grid-template-columns:repeat(10,24px);
     gap:4px;
   }
   .wm-study-shell.wm-wordcount-20 .word-progress .word-dot{
-    width:100%;
-    height:auto;
-    aspect-ratio:1/1;
-    font-size:11px;
+    width:24px;
+    height:24px;
+    aspect-ratio:auto;
+    font-size:10px;
   }
 
   @media(max-width:640px){
@@ -1306,6 +1344,7 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     .wm-study-shell.wm-wordcount-20 .wm-study-state-card{height:640px;min-height:640px;max-height:640px;}
     .wm-study-shell .wm-step2-card .wm-step2-word-row{padding:0 92px 0 0;}
     .wm-study-shell .wm-step2-card .wm-step2-word-row .audio-btn{right:0;min-width:86px;padding:6px 9px;font-size:12px;}
+    .wm-study-shell .wm-step-wrong-badge{top:68px;left:16px;min-width:108px;padding:6px 8px;font-size:11px;}
     .wm-study-shell.wm-wordcount-20 .word-progress{
       max-width:100%;
       grid-template-columns:repeat(10,24px);
@@ -1691,6 +1730,7 @@ const wordAudio = document.getElementById("wordAudio");
 let stage = 0, index = 0;
 let currentWords = [];
 let step2Wrong = [], step3Wrong = [], memoryWrong = [];
+let step2WrongTotal = [], step3WrongTotal = [], memoryWrongTotal = [];
 let isStep2Review = false, isStep3Review = false, isMemoryReview = false;
 let memoryPhase = 0, memoryCount = 0, memoryLocked = false, afterMemoryAction = null;
 let testIndex = 0, testWords = [], testTimer = null, timeLeft = BASE_TEST_TIME, isRetest = false;
@@ -2123,6 +2163,22 @@ function shuffle(array){return [...array].sort(()=>Math.random()-0.5);}
 
 function wrongRetryTitle(stepTitle,count){
   return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재학습합니다.</span>`;
+}
+
+function wmTrackStepWrong_(list,item){
+  if(!Array.isArray(list) || !item) return;
+  const key=String(item.word || '').trim().toLowerCase();
+  if(!key) return;
+  if(!list.some(function(w){ return String((w && w.word) || '').trim().toLowerCase() === key; })) list.push(item);
+}
+
+function wmStepWrongBadgeHtml_(stepNumber,count){
+  return `<div id="wm-step-wrong-badge" class="wm-step-wrong-badge">Step ${stepNumber} 틀린단어 ${Number(count || 0)}개</div>`;
+}
+
+function wmUpdateStepWrongBadge_(stepNumber,count){
+  const badge=document.getElementById('wm-step-wrong-badge');
+  if(badge) badge.textContent=`Step ${stepNumber} 틀린단어 ${Number(count || 0)}개`;
 }
 
 function learningGuide(color = "blue"){
@@ -4389,6 +4445,9 @@ async function startLearning(){
   step2Wrong=[];
   step3Wrong=[];
   memoryWrong=[];
+  step2WrongTotal=[];
+  step3WrongTotal=[];
+  memoryWrongTotal=[];
   isStep2Review=false;
   isStep3Review=false;
   isMemoryReview=false;
@@ -4434,7 +4493,7 @@ function renderStep2(){
   const item=currentWords[index];
   const options=makeChoiceOptions(item.meaning, originalWords.map(w=>w.meaning), 5);
   const title=isStep2Review?wrongRetryTitle("Step 2 Choose meaning",currentWords.length):"Step 2 Choose meaning";
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-step2-word-row"><div class="wm-word">${item.word}</div><button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button></div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}${wmStepWrongBadgeHtml_(2,step2WrongTotal.length)}<div class="wm-title">${title}</div>${learningGuide("red")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-step2-word-row"><div class="wm-word">${item.word}</div><button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button></div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button class="wm-btn wm-option" onclick="checkStep2(this,'${option}','${item.meaning}',${index})">${i+1}. ${option}</button>`).join("")}</div>`;
   setTimeout(()=>playWordSegment(item, 5), 300);
 }
 
@@ -4447,6 +4506,8 @@ function checkStep2(button,selected,correct,wordIndex){
   else{
     button.classList.add("wm-wrong");
     if(!step2Wrong.some(w=>w.word===item.word)) step2Wrong.push(item);
+    wmTrackStepWrong_(step2WrongTotal,item);
+    wmUpdateStepWrongBadge_(2,step2WrongTotal.length);
     buttons.forEach(btn=>{if(btn.textContent.replace(/^\d+\.\s*/,"").trim()===correct) btn.classList.add("wm-correct");});
   }
   setTimeout(nextStep2,900);
@@ -4476,7 +4537,7 @@ function renderStep3(){
   WM_STEP3_OPTIONS = options;
   const title=isStep3Review?wrongRetryTitle("Step 3 Choose English",currentWords.length):"Step 3 Choose English";
 
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-meaning">${item.meaning}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button type="button" class="wm-btn wm-option" data-option-index="${i}">${i+1}. ${option}</button>`).join("")}</div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}${wmStepWrongBadgeHtml_(3,step3WrongTotal.length)}<div class="wm-title">${title}</div>${learningGuide("blue")}<div class="wm-small">${index+1} / ${currentWords.length}</div>${renderWordProgress(index+1,currentWords.length)}<div class="wm-meaning">${item.meaning}</div><div class="wm-pos">${item.pos}</div>${options.map((option,i)=>`<button type="button" class="wm-btn wm-option" data-option-index="${i}">${i+1}. ${option}</button>`).join("")}</div>`;
 
   document.querySelectorAll(".wm-option").forEach(btn=>{
     btn.onclick=function(){
@@ -4499,6 +4560,8 @@ function checkStep3(button,selectedIndex,wordIndex){
   }else{
     button.classList.add("wm-wrong");
     if(!step3Wrong.some(w=>w.word===item.word)) step3Wrong.push(item);
+    wmTrackStepWrong_(step3WrongTotal,item);
+    wmUpdateStepWrongBadge_(3,step3WrongTotal.length);
 
     buttons.forEach(btn=>{
       const idx=Number(btn.getAttribute("data-option-index"));
@@ -4563,7 +4626,7 @@ function renderMemory(){
   const currentStep=activeMemorySteps[memoryPhase] || activeMemorySteps[0];
   const silhouette=getSilhouette(item.word,currentStep.type);
   const title=isMemoryReview?wrongRetryTitle("Step 4 Memory",currentWords.length):"Step 4 Memory";
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${title}</div>${learningGuide("red")}<div style="margin:8px 28px 18px;"><div style="color:#2563eb;font-size:16px;font-weight:800;margin-bottom:8px;text-align:center;">전체단어 ${index+1}/${currentWords.length} 학습, ${Math.round((index/currentWords.length)*100)}% 완료</div><div style="width:100%;height:14px;background:#dbeafe;border-radius:999px;overflow:hidden;"><div style="width:${(index/currentWords.length)*100}%;height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;"></div></div></div><div class="wm-memory-count">총${getActiveMemoryTotalRounds()}회 받아쓰기 ${getMemoryRoundNumber()} / ${getActiveMemoryTotalRounds()}</div>${renderMemoryProgress()}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word wm-silhouette">${silhouette}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><input id="memoryInput" class="memory-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div id="memoryMessage" class="wm-alert"></div><button class="wm-btn" onclick="checkMemory()">확인</button></div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}${wmStepWrongBadgeHtml_(4,memoryWrongTotal.length)}<div class="wm-title">${title}</div>${learningGuide("red")}<div style="margin:8px 28px 18px;"><div style="color:#2563eb;font-size:16px;font-weight:800;margin-bottom:8px;text-align:center;">전체단어 ${index+1}/${currentWords.length} 학습, ${Math.round((index/currentWords.length)*100)}% 완료</div><div style="width:100%;height:14px;background:#dbeafe;border-radius:999px;overflow:hidden;"><div style="width:${(index/currentWords.length)*100}%;height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;"></div></div></div><div class="wm-memory-count">총${getActiveMemoryTotalRounds()}회 받아쓰기 ${getMemoryRoundNumber()} / ${getActiveMemoryTotalRounds()}</div>${renderMemoryProgress()}<button class="audio-btn" onclick="playWordSegment(currentWords[index], 5)">🔊 다시 듣기</button><div class="wm-word wm-silhouette">${silhouette}</div><div class="wm-pos">${item.pos}</div><div class="wm-meaning">${item.meaning}</div><input id="memoryInput" class="memory-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div id="memoryMessage" class="wm-alert"></div><button class="wm-btn" onclick="checkMemory()">확인</button></div>`;
   const input=document.getElementById("memoryInput");
   setTimeout(()=>input.focus(),100);
   input.addEventListener("keydown",e=>{if(e.key==="Enter") checkMemory();});
@@ -4579,6 +4642,10 @@ function checkMemory(){
   const answer=item.word;
   const currentStep=getActiveMemorySteps()[memoryPhase];
   const isExactAnswer=WM_STUDY_LOCKS.WRITING_EXACT.wmIsExactEnglishAnswer(input, answer);
+  if(!isExactAnswer){
+    wmTrackStepWrong_(memoryWrongTotal,item);
+    wmUpdateStepWrongBadge_(4,memoryWrongTotal.length);
+  }
   if(currentStep.type!=="0" && !isExactAnswer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
   if(currentStep.type==="0" && !isExactAnswer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
   memoryLocked=true;
