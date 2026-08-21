@@ -2495,22 +2495,20 @@ function wmInitLearningMap(){
 
   wmCurrentStudent = wmResolveStudentInfo();
 
-  /* WM_MAP_CURRENT_PROGRESS_PROFILE_FIRST_20260820_V1
-     현재진행_DB 응답 전에는 학생ID만 먼저 표시하고 이름/학교/학년/반/교사/레벨은 비워 둡니다.
-     이전 학생 캐시나 URL 이름이 현재 학생 이름으로 잠깐 보이는 현상을 차단합니다. */
-  wmApplyStudentLearningMap({ 학생ID: wmCurrentStudent.학생ID || '' }, { skipMapRender:true });
-  wmShowMapLoadingState_();
-  /* WM_MAP_FAKE_INSTANT_RENDER_DISABLED_V1: 현재진행_DB 응답 전 임시맵 생성 금지 */
-
   if(!wmCurrentStudent.학생ID || !wmGetCurrentSessionToken()){
     wmRedirectToLogin_();
     return;
   }
 
-  /* Study가 방금 완료 API에서 받은 현재진행_DB 행이 있으면 서버 재조회 없이 즉시 렌더합니다. */
+  /* WM_MAP_CURRENT_PROGRESS_FULL_PROFILE_FIRST_20260821_V1
+     Map 복귀는 Study가 넘긴 현재진행_DB 1행으로 전체 학생정보를 즉시 렌더하고,
+     일반 Map 진입은 학생ID만 먼저 표시하지 않고 현재진행_DB 응답 후 전체정보를 한 번에 표시합니다. */
   if(wmRenderStudyReturnCurrentProgress_()){
     return;
   }
+
+  wmShowMapLoadingState_();
+  /* WM_MAP_FAKE_INSTANT_RENDER_DISABLED_V1: 현재진행_DB 응답 전 임시 학생정보/임시맵 생성 금지 */
 
   /* WM_MAP_AUTH_DATA_SINGLE_ROUNDTRIP_V1_20260818
      Vercel Map은 getLearningMapCacheData 요청에 세션토큰을 함께 보내 서버에서 인증+Map 데이터를 한 번에 확인합니다.
