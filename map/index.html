@@ -2920,14 +2920,19 @@ function wmLoadLearningRecordsDirectForMap_(reason){
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
-    if(!directRecords.length) return;
 
     wmBottomRecordsDetailedLoaded = payload && payload.learningRecordDbDirect === true;
+    if(!directRecords.length){
+      const tbody = document.getElementById('homeworkTableBody');
+      if(tbody) tbody.innerHTML = '<tr><td colspan="20">표시할 학습기록이 없습니다.</td></tr>';
+      return;
+    }
+
     wmLearningRecords = directRecords;
     if(wmLastLearningMapData){
       wmLastLearningMapData.records = directRecords;
+      wmApplyLearningMapStatus(wmLastLearningMapData);
     }
-    wmApplyLearningMapStatus(wmLastLearningMapData);
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
     updateRecentScore(wmLearningRecords);
   }
@@ -3162,8 +3167,14 @@ function wmHandleLearningMapResponse(data){
 function wmFetchLearningMap(studentId){
   wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
 
+  /* WM_MAP_RECORDS_TRUE_PARALLEL_V1_20260821
+     현재진행_DB 첫 화면 조회와 2.학습기록_DB 상세기록 조회를 동시에 시작합니다.
+     학습기록 조회가 현재진행 첫 화면 렌더를 막지 않으며,
+     도착 즉시 점수 블럭과 하단 기록을 실제 기록값으로 갱신합니다. */
+  wmLoadLearningRecordsDirectForMap_('parallel-map-entry');
+
   /* WM_MAP_CORE_FIRST_RECORDS_AFTER_V1_20260818
-     첫 화면은 인증+현재진행_DB Map 응답을 우선하고, 하단 상세 학습기록은 핵심 Map 렌더 직후 요청합니다. */
+     첫 화면은 인증+현재진행_DB Map 응답을 우선하고, 상세 학습기록은 병렬로 받습니다. */
 
   /* WM_GET_LEARNING_MAP_CACHE_ONLY_V2
      현재진행_DB 안정화: Map은 getLearningMapCacheData만 호출합니다.
@@ -4189,14 +4200,14 @@ function getBlockContent(item){
     return `${item.progress || 0}%<br>${item.set}<br><small>학습중</small>`;
   }
 
-  const scoreText = item.score && item.score !== '-' ? item.score + '점' : '완료';
+  const scoreText = item.score && item.score !== '-' ? item.score + '점' : '';
 
   if(item.levelComplete === true){
-    return `${scoreText}<br>${item.set}<br><small>레벨완료</small>`;
+    return `${scoreText ? scoreText + '<br>' : ''}${item.set}<br><small>레벨완료</small>`;
   }
 
   const displayRound = wmGetDisplayRoundForBlock_(item) || 1;
-  return `${scoreText}<br>${item.set}<br><small>${displayRound}회 완료</small>`;
+  return `${scoreText ? scoreText + '<br>' : ''}${item.set}<br><small>${displayRound}회 완료</small>`;
 }
 
 function updateProgress(){
@@ -4602,14 +4613,8 @@ function renderHomeworkTable(records, profile, options){
   wmUpdateMapCumulativeWrongButton_();
 
   if(!Array.isArray(records) || records.length === 0){
-    const baseProfile = wmBuildEmptyLearningRecordFromProfile(profile || wmStudentProfile || wmCurrentStudent);
     wmHomeworkCurrentSourceRecords = [];
-
-    if(baseProfile && (baseProfile.학생ID || baseProfile.학생이름)){
-      tbody.innerHTML = wmRenderHomeworkRow(baseProfile, '');
-    }else{
-      tbody.innerHTML = '<tr><td colspan="20">아직 표시할 학습기록이 없습니다.</td></tr>';
-    }
+    tbody.innerHTML = '<tr><td colspan="20">학습기록을 불러오는 중입니다.</td></tr>';
     wmUpdateHomeworkPager_(0);
     wmInitHomeworkTopScrollbar();
     return;
