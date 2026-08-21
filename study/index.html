@@ -582,44 +582,67 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   }
   .wm-test-column{display:flex;flex-direction:column;gap:10px;min-width:0;}
   .wm-test-grid .test-question{margin-top:0;}
+  /* WM_TEST_OMR_COLLAPSIBLE_FLOAT_V1_20260822
+     시험 2열 폭은 그대로 유지하고 OMR카드만 내부 플로팅으로 접었다 펼칩니다.
+     펼침 크기는 약 250px, 20문항은 카드 내부에서 세로 스크롤합니다. */
   .wm-test-omr{
+    display:none;
     position:absolute;
-    top:0;
+    top:46px;
     right:0;
-    width:158px;
-    max-height:calc(100vh - 30px);
+    width:250px;
+    max-height:62vh;
     overflow:auto;
-    padding:10px;
+    padding:12px;
     border:1px solid #cbd5e1;
     border-radius:14px;
-    background:rgba(255,255,255,.98);
-    box-shadow:0 8px 24px rgba(15,23,42,.16);
+    background:rgba(255,255,255,.99);
+    box-shadow:0 10px 28px rgba(15,23,42,.20);
     box-sizing:border-box;
     pointer-events:auto;
   }
-  .wm-test-omr-title{margin-bottom:8px;color:#0c2b63;font-size:13px;font-weight:900;text-align:center;}
+  .wm-test-omr.is-open{display:block;}
+  .wm-test-omr-title{margin-bottom:9px;color:#0c2b63;font-size:15px;font-weight:900;text-align:center;}
   .wm-test-omr-row{
     display:grid;
-    grid-template-columns:22px minmax(0,1fr);
-    gap:5px;
+    grid-template-columns:24px minmax(0,1fr);
+    gap:6px;
     align-items:center;
-    padding:5px 0;
+    padding:6px 0;
     border-top:1px solid #eef2f7;
   }
   .wm-test-omr-row:first-child{border-top:0;}
-  .wm-test-omr-num{color:#475569;font-size:11px;font-weight:900;text-align:center;}
-  .wm-test-omr-choice{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;}
+  .wm-test-omr-num{color:#475569;font-size:12px;font-weight:900;text-align:center;}
+  .wm-test-omr-choice{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;}
   .wm-test-omr-choice-btn{
-    min-width:0;height:23px;padding:0;border:1px solid #cbd5e1;border-radius:50%;
-    background:#fff;color:#475569;font-size:9px;font-weight:900;cursor:pointer;
+    min-width:0;height:30px;padding:0;border:1px solid #cbd5e1;border-radius:50%;
+    background:#fff;color:#475569;font-size:11px;font-weight:900;cursor:pointer;
   }
   .wm-test-omr-choice-btn.is-selected{border-color:#2563eb;background:#2563eb;color:#fff;}
   .wm-test-omr-write{
-    width:100%;min-width:0;height:26px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:6px;
-    background:#fff;color:#111827;font-size:11px;box-sizing:border-box;
+    width:100%;min-width:0;height:32px;padding:5px 7px;border:1px solid #cbd5e1;border-radius:7px;
+    background:#fff;color:#111827;font-size:13px;box-sizing:border-box;
   }
   .wm-test-omr-row.is-active{margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px;border-radius:8px;background:#fff7ed;}
-  .wm-test-answer-toggle{display:none;}
+  .wm-test-answer-toggle{
+    display:block;
+    position:absolute;
+    top:0;
+    right:0;
+    z-index:10011;
+    min-width:96px;
+    height:38px;
+    padding:0 14px;
+    border:0;
+    border-radius:999px;
+    background:#0c2b63;
+    color:#fff;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(15,23,42,.22);
+    pointer-events:auto;
+  }
   @media(max-width:860px){
     .wm-test-omr-float-layer{position:static;height:auto;}
     .wm-test-omr{
@@ -628,9 +651,7 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     }
     .wm-test-omr.is-open{display:block;}
     .wm-test-answer-toggle{
-      display:block;position:fixed;right:14px;bottom:12px;z-index:10021;min-width:92px;height:38px;
-      padding:0 14px;border:0;border-radius:999px;background:#0c2b63;color:#fff;font-size:13px;font-weight:900;
-      cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.22);
+      position:fixed;right:14px;bottom:12px;top:auto;z-index:10021;
     }
   }
   @media(max-width:640px){.wm-test-grid{grid-template-columns:1fr;}}
@@ -4933,7 +4954,7 @@ function wmBuildTestAnswerSheet_(test){
     if(test.type==="choice"){
       return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><div class="wm-test-omr-choice">${[0,1,2,3,4].map(optionIndex=>`<button type="button" class="wm-test-omr-choice-btn" data-omr-index="${i}" data-omr-option="${optionIndex}" onclick="wmSelectOmrChoice_(${i},${optionIndex})">${optionIndex+1}</button>`).join("")}</div></div>`;
     }
-    return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><input class="wm-test-omr-write" data-omr-write-index="${i}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="wmSyncOmrWriteToQuestion_(this)"></div>`;
+    return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><input class="wm-test-omr-write" data-omr-write-index="${i}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="wmSyncOmrWriteToQuestion_(this)" onkeydown="wmHandleOmrWriteEnter_(event,this)"></div>`;
   }).join("");
   return `<div class="wm-test-omr-float-layer"><aside id="wmTestOmr" class="wm-test-omr" aria-label="OMR카드"><div class="wm-test-omr-title">OMR카드</div>${rows}</aside></div><button type="button" class="wm-test-answer-toggle" onclick="wmToggleTestAnswerSheet_()">OMR카드</button>`;
 }
@@ -5009,9 +5030,28 @@ function wmSyncOmrWriteToQuestion_(source){
   wmUpdateTestOmr_();
 }
 
+function wmHandleOmrWriteEnter_(event,source){
+  if(!event || event.key!=="Enter") return;
+  event.preventDefault();
+  wmSyncOmrWriteToQuestion_(source);
+
+  const qIndex=Number(source && source.getAttribute("data-omr-write-index"));
+  const next=document.querySelector(`.wm-test-omr-write[data-omr-write-index="${qIndex+1}"]`);
+  if(!next) return;
+
+  activeTestQuestionIndex=qIndex+1;
+  wmUpdateTestOmr_();
+  try{ next.scrollIntoView({block:"nearest",inline:"nearest"}); }catch(err){}
+  next.focus();
+  try{ next.select(); }catch(err){}
+}
+
 function wmToggleTestAnswerSheet_(){
   const sheet=document.getElementById("wmTestOmr");
-  if(sheet) sheet.classList.toggle("is-open");
+  const button=document.querySelector(".wm-test-answer-toggle");
+  if(!sheet) return;
+  const opened=sheet.classList.toggle("is-open");
+  if(button) button.textContent=opened ? "OMR카드 닫기" : "OMR카드";
 }
 
 function activateTestQuestionEvents(){
