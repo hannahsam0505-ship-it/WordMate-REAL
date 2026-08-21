@@ -1470,11 +1470,6 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     box-sizing:border-box;
     pointer-events:none;
   }
-  /* Step4 재학습에서만 좌측 틀린단어 박스를 상단 빈 공간으로 이동합니다.
-     Step2/3 및 모바일 위치는 변경하지 않습니다. */
-  @media(min-width:641px){
-    .wm-study-shell .wm-step4-card .wm-step-wrong-badge{top:18px;}
-  }
   /* 재학습 안내는 하단 남는 공간에 고정하며 본문 높이에 참여하지 않습니다. */
   .wm-study-shell .wm-wrong-retry-bottom{
     position:absolute;
