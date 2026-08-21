@@ -1262,7 +1262,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>학습종료일<input type="date" id="wmStudentRegisterLearningEndDate" onkeydown="event.preventDefault()" onpaste="event.preventDefault()" /></label>
           <label class="wm-required-field">출석약속<span class="wm-required-star">*</span><select id="wmStudentRegisterAttendancePromise"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
           <label class="wm-required-field">세트약속<span class="wm-required-star">*</span><select id="wmStudentRegisterSetPromise"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
-          <label class="wm-required-field">최초배정<span class="wm-required-star">*</span><select id="wmStudentRegisterLearningAssign"><option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option></select></label>
+          <label class="wm-required-field">최초배정<span class="wm-required-star">*</span><select id="wmStudentRegisterLearningAssign"><option value="">선택</option><option value="3레벨">3(초3)</option><option value="4레벨">4(초4)</option><option value="5레벨">5(초5)</option><option value="6레벨">6(초6)</option><option value="7레벨">7(중1)</option><option value="8레벨">8(중2)</option><option value="9레벨">9(중3)</option><option value="10레벨">10(고1)</option><option value="11레벨">11(고2)</option><option value="12레벨">12(고3)</option><option value="13레벨">13(수능)</option></select></label>
           <label class="wm-required-field">S4실루엣단계<span class="wm-required-star">*</span><select id="wmStudentRegisterS4"><option value="1단계">1단계('다보기'만, 100%)</option><option value="2단계">2단계('많이보기'까지, 70%)</option><option value="3단계">3단계('조금보기'까지, 30%)</option><option value="4단계" selected>4단계('스스로쓰기'까지, 0%)</option></select></label>
           <label class="wm-required-field">S6테스트모드<span class="wm-required-star">*</span><select id="wmStudentRegisterS6"><option>기본전체</option><option>객관식(2개)</option><option>객관식+영한</option><option>객관식+한영</option></select></label>
           <label class="wm-required-field">레벨완료조건<span class="wm-required-star">*</span><select id="wmStudentRegisterComplete"><option>1회</option><option selected>2회</option><option>3회</option></select></label>
@@ -8354,7 +8354,8 @@ async function saveSettingClass(){
     }
 
     /* 저장 응답의 1행만 화면에 반영하고 전체 학생·설정센터·대시보드 재조회는 하지 않습니다. */
-    const savedIdSet = new Set(studentIds.map(id=>String(id).trim().toUpperCase()));
+    const savedStudentIds = Array.isArray(result.savedStudentIds) ? result.savedStudentIds : studentIds;
+    const savedIdSet = new Set(savedStudentIds.map(id=>String(id).trim().toUpperCase()));
     const savedTeacherName = teacherName === '추후선택' ? '' : teacherName;
     const savedTeacherId = teacherName === '추후선택' ? '' : teacherId;
     (WM_STUDENT_MANAGE_ROWS || []).forEach(row=>{
@@ -8395,6 +8396,9 @@ async function saveSettingClass(){
     }
 
     setSettingStatus('settingClassStatus', result.message || '반등록 완료', true);
+    if(Array.isArray(result.skippedStudentIds) && result.skippedStudentIds.length){
+      alert('반 저장은 완료되었습니다. 학생관리_DB에서 찾지 못해 제외된 학생ID: '+result.skippedStudentIds.join(', '));
+    }
     wmSettingClassSelectedStudents.clear();
     renderSettingClassSelectedStudents();
     const search = document.getElementById('settingClassStudentSearch');
@@ -8690,7 +8694,7 @@ function updateStudentCreatePreview(){
     getValue('studentSeqForCreate') || '0001',
     getValue('studentAutoId') || '자동발급 대기',
     getValue('studentNameForCreate'),
-    getValue('studentLearningAssignForCreate') || '3레벨',
+    getValue('studentLearningAssignForCreate'),
     getValue('studentS4ForCreate') || '전체',
     getValue('studentS6ForCreate') || '기본전체',
     getValue('studentLevelCompleteForCreate') || '2회',
@@ -9226,12 +9230,13 @@ function wmNormalizeLearningAssignForDisplay(value){
 
 function wmLearningAssignSelectHtml(studentId, value, config){
   const opts = [
+    ['','선택'],
     ['3레벨','3(초3)'],['4레벨','4(초4)'],['5레벨','5(초5)'],['6레벨','6(초6)'],
     ['7레벨','7(중1)'],['8레벨','8(중2)'],['9레벨','9(중3)'],['10레벨','10(고1)'],
     ['11레벨','11(고2)'],['12레벨','12(고3)'],['13레벨','13(수능)']
   ];
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
-  const current = wmNormalizeLearningAssignForDisplay(value || '3레벨');
+  const current = wmNormalizeLearningAssignForDisplay(value);
   const locked = !!(config && config.locked);
   const reason = String((config && config.reason) || '').trim();
   return `<select class="wm-mode-select" data-student-id="${escapeHtml(studentId)}" data-mode-key="최초배정" id="wmMode_최초배정_${escapeHtml(safeId)}" ${locked ? 'disabled' : ''} ${reason ? `title="${escapeHtml(reason)}"` : ''}>${opts.map(([val,label])=>`<option value="${escapeHtml(val)}" ${val === current ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select>${locked ? `<span title="${escapeHtml(reason)}" style="margin-left:5px;cursor:help;">🔒</span>` : ''}`;
@@ -9570,85 +9575,98 @@ function wmLevelConditionLockState(row){
 async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
-  const studentName = String(row['학생이름'] || '').trim();
-  const getSel = key => {
-    const el = document.getElementById(`wmMode_${key}_${safeId}`);
-    if(el && (!el.disabled || key === '교사명')) return el.value || '';
-    if(key === '최초배정') return String(row['최초배정'] || row['학습배정'] || '').trim();
-    return String(row[key] || '').trim();
-  };
-  const nextLevel = wmNextLevelFromCurrentSet(row['현재세트']);
-  const learningStartDate=String(document.getElementById(`wmMode_학습시작일_${safeId}`)?.value||'').trim();
-  const learningEndDate=String(document.getElementById(`wmMode_학습종료일_${safeId}`)?.value||'').trim();
-  if(!learningStartDate){ alert('학습시작일을 달력에서 선택해주세요.'); return; }
-  if(learningEndDate&&learningEndDate<learningStartDate){ alert('학습종료일은 학습시작일보다 빠를 수 없습니다.'); return; }
+  const changes = wmStudentChangedItems(row, safeId);
+  if(!changes.length){
+    if(!skipLockAndToast) alert('변경된 항목이 없습니다.');
+    return {success:true, skipped:true, studentId:String(studentId || '').trim()};
+  }
+
+  const read = key => String(document.getElementById(`wmMode_${key}_${safeId}`)?.value || '').trim();
   const recipientType=wmRecipientTypeValueFromRow(studentId,row);
   const recipientSelect=document.getElementById(`wmMode_수신자구분_${safeId}`);
-  if(recipientSelect&&recipientSelect.value==='기타'&&!recipientType){ alert('기타 수신자 관계를 입력해주세요.'); return; }
-  const access=wmStudentDataAccessForCurrentActor_();
+  const changedKeys=new Set(changes.map(change=>change.key));
+  const currentStart=read('학습시작일');
+  const currentEnd=read('학습종료일');
+  const effectiveStart=changedKeys.has('학습시작일') ? currentStart : wmStudentDateInputValue(row['학습시작일'] || row['등록일'] || '');
+  const effectiveEnd=changedKeys.has('학습종료일') ? currentEnd : wmStudentDateInputValue(row['학습종료일'] || '');
+  if(changedKeys.has('학습시작일') && !effectiveStart){
+    if(!skipLockAndToast) alert('학습시작일을 달력에서 선택해주세요.');
+    return {success:false, studentId:String(studentId||'').trim(), message:'학습시작일을 선택하지 않았습니다.'};
+  }
+  if((changedKeys.has('학습시작일') || changedKeys.has('학습종료일')) && effectiveStart && effectiveEnd && effectiveEnd < effectiveStart){
+    if(!skipLockAndToast) alert('학습종료일은 학습시작일보다 빠를 수 없습니다.');
+    return {success:false, studentId:String(studentId||'').trim(), message:'학습종료일이 학습시작일보다 빠릅니다.'};
+  }
+  if(changedKeys.has('수신자구분') && recipientSelect && recipientSelect.value==='기타' && !recipientType){
+    if(!skipLockAndToast) alert('기타 수신자 관계를 입력해주세요.');
+    return {success:false, studentId:String(studentId||'').trim(), message:'기타 수신자 관계를 입력하지 않았습니다.'};
+  }
+
   const saveValues={
     mode:'saveStudentLearningMode',
     actorTeacherId:wmGetSettingActorTeacherId(),
     studentId:String(studentId || '').trim(),
-    learningStartDate:learningStartDate,
-    learningEndDate:learningEndDate,
-    attendancePromise:getSel('출석약속'),
-    setPromise:getSel('세트약속'),
-    learningAssign:getSel('최초배정'),
-    s4:getSel('S4실루엣단계'),
-    s6:getSel('S6테스트모드'),
-    levelCompleteCondition:getSel('레벨완료조건'),
-    nextLevel:String(nextLevel || ''),
-    nextLevelCompleteCondition:getSel('다음레벨완료조건'),
-    recipientType:recipientType,
-    className:getSel('반명'),
-    teacherName:getSel('교사명'),
-    assignedTeacherId:wmStudentTeacherIdByName_(getSel('교사명')),
-    school:getSel('학교'),
-    grade:getSel('학년'),
-    activeStatus:getSel('활성상태'),
     ts:String(Date.now())
   };
+  const setIfChanged=(key,param,value)=>{ if(changedKeys.has(key)) saveValues[param]=value; };
+  setIfChanged('학습시작일','learningStartDate',currentStart);
+  setIfChanged('학습종료일','learningEndDate',currentEnd);
+  setIfChanged('출석약속','attendancePromise',read('출석약속'));
+  setIfChanged('세트약속','setPromise',read('세트약속'));
+  setIfChanged('최초배정','learningAssign',read('최초배정'));
+  setIfChanged('S4실루엣단계','s4',read('S4실루엣단계'));
+  setIfChanged('S6테스트모드','s6',read('S6테스트모드'));
+  setIfChanged('레벨완료조건','levelCompleteCondition',read('레벨완료조건'));
+  setIfChanged('다음레벨완료조건','nextLevelCompleteCondition',read('다음레벨완료조건'));
+  setIfChanged('수신자구분','recipientType',recipientType);
+  setIfChanged('반명','className',read('반명'));
+  setIfChanged('교사명','teacherName',read('교사명'));
+  if(changedKeys.has('반명') && !changedKeys.has('교사명')) saveValues.teacherName=read('교사명');
+  if(Object.prototype.hasOwnProperty.call(saveValues,'teacherName')) saveValues.assignedTeacherId=wmStudentTeacherIdByName_(saveValues.teacherName);
+  setIfChanged('학교','school',read('학교'));
+  setIfChanged('학년','grade',read('학년'));
+  setIfChanged('활성상태','activeStatus',read('활성상태'));
+
+  const access=wmStudentDataAccessForCurrentActor_();
   if(access.parent){
-    saveValues.parentName=getSel('학부모명');
-    saveValues.parentPhone=getSel('학부모연락처');
+    setIfChanged('학부모명','parentName',read('학부모명'));
+    setIfChanged('학부모연락처','parentPhone',read('학부모연락처'));
   }
-  const params = new URLSearchParams(saveValues);
+
   if(!skipLockAndToast) wmSetSaveWaiting(true, '학생 정보를 저장 중입니다...');
   try{
+    const params = new URLSearchParams(saveValues);
     const res = await fetch(WM_APPS_SCRIPT_URL + '?' + params.toString(), {method:'GET', cache:'no-store'});
     const data = await res.json();
     if(!data || !data.success){
-      alert((data && data.message) ? data.message : '학습모드 저장 실패');
-      return;
+      const message=(data && (data.error || data.message)) ? String(data.error || data.message) : '학생정보 저장 실패';
+      if(!skipLockAndToast) alert(message);
+      return {success:false, studentId:String(studentId||'').trim(), message:message};
     }
-    Object.assign(row, {
-      '학습시작일':saveValues.learningStartDate,
-      '학습종료일':saveValues.learningEndDate,
-      '출석약속':saveValues.attendancePromise,
-      '세트약속':saveValues.setPromise,
-      '최초배정':saveValues.learningAssign,
-      'S4실루엣단계':saveValues.s4,
-      'S6테스트모드':saveValues.s6,
-      '레벨완료조건':saveValues.levelCompleteCondition,
-      '다음레벨완료조건':saveValues.nextLevelCompleteCondition,
-      '수신자구분':saveValues.recipientType,
-      '반명':saveValues.className,
-      '교사명':saveValues.teacherName,
-      '학교':saveValues.school,
-      '학년':saveValues.grade,
-      '활성상태':saveValues.activeStatus
+
+    const updateMap={
+      learningStartDate:'학습시작일', learningEndDate:'학습종료일', attendancePromise:'출석약속', setPromise:'세트약속',
+      learningAssign:'최초배정', s4:'S4실루엣단계', s6:'S6테스트모드', levelCompleteCondition:'레벨완료조건',
+      nextLevelCompleteCondition:'다음레벨완료조건', recipientType:'수신자구분', className:'반명', teacherName:'교사명',
+      school:'학교', grade:'학년', activeStatus:'활성상태', parentName:'학부모명', parentPhone:'학부모연락처'
+    };
+    Object.keys(updateMap).forEach(param=>{
+      if(Object.prototype.hasOwnProperty.call(saveValues,param)) row[updateMap[param]]=saveValues[param];
     });
-    if(access.parent){
-      row['학부모명']=saveValues.parentName;
-      row['학부모연락처']=saveValues.parentPhone;
-    }
+
+    const syncWarning = data.currentProgressStudentInfoSync && data.currentProgressStudentInfoSync.success === false
+      ? String(data.currentProgressStudentInfoSync.message || '현재진행_DB 동기화 확인 필요')
+      : '';
     if(!skipLockAndToast){
-      showStudentModeToast('저장을 완료하였습니다.');
+      if(syncWarning) alert('학생정보는 저장되었습니다. 현재진행_DB 동기화 확인이 필요합니다: '+syncWarning);
+      else showStudentModeToast('저장을 완료하였습니다.');
       renderStudentManageRows();
     }
+    return {success:true, skipped:false, studentId:String(studentId||'').trim(), warning:syncWarning};
   }catch(err){
-    if(!skipLockAndToast) alert('학습모드 저장 오류: ' + (err && err.message ? err.message : err));
+    const message=String(err && err.message ? err.message : err);
+    if(!skipLockAndToast) alert('학생정보 저장 오류: ' + message);
+    return {success:false, studentId:String(studentId||'').trim(), message:message};
   }finally{
     if(!skipLockAndToast) wmSetSaveWaiting(false);
   }
@@ -9686,7 +9704,7 @@ function wmStudentEditableValues(row, safeId){
       '출석약속':String(row['출석약속'] || '3').replace(/[^1-7]/g, '').slice(0,1) || '3',
       '세트약속':String(row['세트약속'] || '3').replace(/[^1-7]/g, '').slice(0,1) || '3',
       '수신자구분':String(row['수신자구분']||row['수신구분']||row['수신']||'').trim(),
-      '최초배정':wmNormalizeLearningAssignForDisplay(row['최초배정'] || row['학습배정'] || '3레벨'),
+      '최초배정':wmNormalizeLearningAssignForDisplay(row['최초배정'] || row['학습배정'] || ''),
       '레벨완료조건':wmNormalizeStudentModeValue(row, '레벨완료조건', '2회'),
       'S4실루엣단계':(s4Raw === '전체' || s4Raw === '0단계') ? '1단계' : s4Raw,
       'S6테스트모드':wmNormalizeStudentModeValue(row, 'S6테스트모드', row['학습모드'] || '기본전체'),
@@ -9778,15 +9796,33 @@ async function saveAllStudentLearningModes(){
     .map(el => el.getAttribute('data-student-id'))
     .filter(Boolean)
     .filter((id, idx, arr) => arr.indexOf(id) === idx);
-  if(!ids.length){
-    alert('저장할 학생 목록이 없습니다.');
-    return;
+  if(!ids.length){ alert('저장할 학생 목록이 없습니다.'); return; }
+
+  const changedIds = ids.filter(studentId=>{
+    const safeId=String(studentId||'').replace(/[^A-Za-z0-9_-]/g,'');
+    const row=(WM_STUDENT_MANAGE_ROWS||[]).find(r=>String(r['학생ID']||'').trim()===String(studentId||'').trim())||{};
+    return wmStudentChangedItems(row,safeId).length>0;
+  });
+  if(!changedIds.length){ alert('변경된 학생정보가 없습니다.'); return; }
+
+  wmSetSaveWaiting(true, '변경된 학생 정보를 저장 중입니다...');
+  const results=[];
+  try{
+    for(const studentId of changedIds){
+      results.push(await saveStudentLearningModeFromRow(studentId, true));
+    }
+    const failed=results.filter(result=>!result || result.success!==true);
+    const warnings=results.filter(result=>result && result.success===true && result.warning);
+    await loadStudents();
+    if(failed.length){
+      const summary=failed.slice(0,5).map(result=>(result&&result.studentId?result.studentId:'학생')+': '+String(result&&result.message||'저장 실패')).join('\n');
+      alert('전체 저장 결과: '+(changedIds.length-failed.length)+'명 저장 / '+failed.length+'명 실패\n\n'+summary);
+      return;
+    }
+    showStudentModeToast('전체 저장완료 ('+changedIds.length+'명)'+(warnings.length ? '<br><br>현재진행 동기화 확인 '+warnings.length+'명' : '')+'<br><br>변경사항은 변경시점 다음세트부터 해당됩니다.');
+  }finally{
+    wmSetSaveWaiting(false);
   }
-  for(const studentId of ids){
-    await saveStudentLearningModeFromRow(studentId, true);
-  }
-  await loadStudents();
-  showStudentModeToast('전체 저장완료<br><br>변경사항은 변경시점 다음세트부터 해당됩니다.');
 }
 
 function showStudentModeToast(message){
