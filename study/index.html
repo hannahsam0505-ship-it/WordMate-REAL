@@ -3550,25 +3550,22 @@ function markStepCompleted(stepId, stepTitle){
 }
 
 function queueStepSave(status){
-  saveProgressSnapshot(status);
-  wmStepSaveDirty = true;
+  const saveStatus = status || "step_completed";
+  const payload = saveProgressSnapshot(saveStatus);
+  wmStepSaveDirty = false;
 
   if(!WM_SAVE_API_URL){
-    wmStepSaveDirty = false;
-    return Promise.resolve({ok:true, localOnly:true});
+    return Promise.resolve({ok:true, localOnly:true, payload});
   }
 
-  /* WM_STEP_CUMULATIVE_SAVE_DRAIN_V1_20260819
-     화면은 즉시 다음 Step으로 이동하고, 저장 중 추가 완료된 Step은 dirty로 모읍니다.
-     현재 저장이 끝나는 즉시 가장 최신 누적 snapshot 1건을 자동 이어 저장해
-     Step1~5 누적시간이 마지막 완료처리 전에 학습기록 행에 모두 남도록 합니다. */
-  if(wmStepSaveInFlight){
-    return wmStepSaveInFlight;
-  }
-
-  wmStepSaveDirty = false;
-  wmStepSaveInFlight = Promise.resolve()
-    .then(function(){ return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(status || "step_completed"); })
+  /* WM_STEP_CUMULATIVE_SAVE_FIFO_V1_20260821
+     Step 완료 순간의 payload를 각각 고정해 순서대로 저장합니다.
+     저장 중 다음 Step이 끝나도 합치지 않고 Step1~5를 모두 새 누적행으로 보냅니다. */
+  const queuedSave = Promise.resolve(wmStepSaveChain)
+    .catch(function(){ return {ok:false}; })
+    .then(function(){
+      return WM_STUDY_SPEED_LOCKS.STEP_SAVE.saveLearningRecord(saveStatus, payload);
+    })
     .then(function(result){
       if(result && result.ok === false){
         wmStepSaveLastError = result;
@@ -3581,16 +3578,16 @@ function queueStepSave(status){
       console.warn("Word Mate step save failed", error);
       wmStepSaveLastError = {ok:false, error:String(error)};
       return wmStepSaveLastError;
-    })
-    .finally(function(){
-      wmStepSaveInFlight = null;
-      if(wmStepSaveDirty){
-        queueStepSave(status || "step_completed");
-      }
     });
 
-  wmStepSaveChain = wmStepSaveInFlight;
-  return wmStepSaveChain;
+  wmStepSaveChain = queuedSave;
+  wmStepSaveInFlight = queuedSave;
+  queuedSave.finally(function(){
+    if(wmStepSaveInFlight === queuedSave){
+      wmStepSaveInFlight = null;
+    }
+  });
+  return queuedSave;
 }
 
 async function wmWaitForStepSaves(){
@@ -4011,16 +4008,16 @@ function wmNormalizeOfficialNextSetId(setId){
   return text.startsWith("WM") ? text : `WM${text}`;
 }
 
-async function saveLearningRecord(status="completed"){
+async function saveLearningRecord(status="completed", payloadOverride=null){
   if(WM_DEV_LIVE_REVIEW_MODE){
-    const payload = buildLearningPayload(status);
+    const payload = (payloadOverride && typeof payloadOverride === "object") ? payloadOverride : buildLearningPayload(status);
     latestSavedPayload = payload;
     return {ok:true, reviewMode:true, saveBlocked:true, payload};
   }
 
   /* 세션 검증은 saveStudyCheckpointFast 서버 요청 안에서 1회만 수행합니다.
      저장 직전 별도 세션 왕복을 제거해 Step/세트 완료 지연을 만들지 않습니다. */
-  const payload=saveProgressSnapshot(status);
+  const payload=(payloadOverride && typeof payloadOverride === "object") ? payloadOverride : saveProgressSnapshot(status);
 
   if(!WM_SAVE_API_URL){
     return {ok:true, localOnly:true, payload};

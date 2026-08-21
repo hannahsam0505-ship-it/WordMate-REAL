@@ -1539,7 +1539,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
 .homework-table-scroll{
   width:100%;
   max-height:690px;
-  overflow-x:hidden;
+  overflow-x:auto;
   overflow-y:auto;
   scrollbar-width:none;
   border:1px solid #e5e7eb;
@@ -1607,6 +1607,10 @@ body.wm-map-loading-active #wm-learning-record-widget{
   width:100%;
   min-width:1180px;
   border-collapse:collapse;
+  --wm-sticky-col-1:78px;
+  --wm-sticky-col-2:102px;
+  --wm-sticky-col-3:92px;
+  --wm-sticky-col-4:64px;
 }
 
 .homework-table th,
@@ -1623,10 +1627,43 @@ body.wm-map-loading-active #wm-learning-record-widget{
   z-index:20;
   background:#f3f3f3;
 }
-.homework-table th:nth-child(1), .homework-table td:nth-child(1){min-width:58px;width:58px;text-align:center;}
-.homework-table th:nth-child(2), .homework-table td:nth-child(2){min-width:82px;}
-.homework-table th:nth-child(3), .homework-table td:nth-child(3){min-width:72px;}
-.homework-table th:nth-child(4), .homework-table td:nth-child(4){min-width:44px;}
+.homework-table th:nth-child(1), .homework-table td:nth-child(1){min-width:var(--wm-sticky-col-1);width:var(--wm-sticky-col-1);max-width:var(--wm-sticky-col-1);text-align:center;box-sizing:border-box;}
+.homework-table th:nth-child(2), .homework-table td:nth-child(2){min-width:var(--wm-sticky-col-2);width:var(--wm-sticky-col-2);max-width:var(--wm-sticky-col-2);box-sizing:border-box;}
+.homework-table th:nth-child(3), .homework-table td:nth-child(3){min-width:var(--wm-sticky-col-3);width:var(--wm-sticky-col-3);max-width:var(--wm-sticky-col-3);box-sizing:border-box;}
+.homework-table th:nth-child(4), .homework-table td:nth-child(4){min-width:var(--wm-sticky-col-4);width:var(--wm-sticky-col-4);max-width:var(--wm-sticky-col-4);box-sizing:border-box;}
+
+/* WM_HOMEWORK_LEFT4_STICKY_V1_20260821
+   일련번호·학습날짜·학습세트·점수 4열은 좌측 고정하고,
+   나머지 열은 본문/상단/하단 가로스크롤로 끝까지 이동합니다. */
+.homework-table th:nth-child(1),
+.homework-table td:nth-child(1):not([colspan]){
+  position:sticky;
+  left:0;
+}
+.homework-table th:nth-child(2),
+.homework-table td:nth-child(2):not([colspan]){
+  position:sticky;
+  left:var(--wm-sticky-col-1);
+}
+.homework-table th:nth-child(3),
+.homework-table td:nth-child(3):not([colspan]){
+  position:sticky;
+  left:calc(var(--wm-sticky-col-1) + var(--wm-sticky-col-2));
+}
+.homework-table th:nth-child(4),
+.homework-table td:nth-child(4):not([colspan]){
+  position:sticky;
+  left:calc(var(--wm-sticky-col-1) + var(--wm-sticky-col-2) + var(--wm-sticky-col-3));
+  box-shadow:2px 0 0 #dbeafe;
+}
+.homework-table td:nth-child(-n+4):not([colspan]){
+  z-index:12;
+  background:#fff;
+}
+.homework-table th:nth-child(-n+4){
+  z-index:32;
+  background:#f3f3f3;
+}
 .homework-table th:nth-child(n+5):nth-child(-n+11),
 .homework-table td:nth-child(n+5):nth-child(-n+11){min-width:68px;white-space:nowrap;}
 .homework-table th:nth-child(n+12):nth-child(-n+15){min-width:48px;font-size:10px;line-height:1.1;letter-spacing:-0.04em;padding-left:4px;padding-right:4px;}
@@ -1722,7 +1759,16 @@ body.wm-map-loading-active #wm-learning-record-widget{
   }
 
   .homework-table{
+    --wm-sticky-col-1:56px;
+    --wm-sticky-col-2:84px;
+    --wm-sticky-col-3:72px;
+    --wm-sticky-col-4:54px;
     white-space:nowrap;
+  }
+
+  .homework-table th:nth-child(-n+4),
+  .homework-table td:nth-child(-n+4):not([colspan]){
+    white-space:normal;
   }
 
 }
