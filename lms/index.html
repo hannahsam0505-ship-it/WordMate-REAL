@@ -773,6 +773,60 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #currentProgressManageTable tbody td { background-color:inherit; }
     #currentProgressManageTable th:first-child,
     #currentProgressManageTable td:first-child { width:72px; min-width:72px; max-width:72px; text-align:center; }
+
+    /* WM_CURRENT_PROGRESS_FIXED_5_COLUMNS_20260821_V1
+       현재진행: 일련번호/학생ID/학생이름/Class/교사명만 좌측 고정.
+       학교/학년부터 가로스크롤. 헤더 첫 행은 세로스크롤 시 상단 고정.
+       고정 셀은 완전 불투명 배경으로 뒤쪽 데이터 비침 방지. */
+    #currentProgressManageTable th:nth-child(1),
+    #currentProgressManageTable td:nth-child(1) {
+      position:sticky; left:0; width:72px; min-width:72px; max-width:72px; z-index:35; text-align:center;
+    }
+    #currentProgressManageTable th:nth-child(2),
+    #currentProgressManageTable td:nth-child(2) {
+      position:sticky; left:72px; width:112px; min-width:112px; max-width:112px; z-index:35;
+    }
+    #currentProgressManageTable th:nth-child(3),
+    #currentProgressManageTable td:nth-child(3) {
+      position:sticky; left:184px; width:112px; min-width:112px; max-width:112px; z-index:35;
+    }
+    #currentProgressManageTable th:nth-child(4),
+    #currentProgressManageTable td:nth-child(4) {
+      position:sticky; left:296px; width:100px; min-width:100px; max-width:100px; z-index:35;
+    }
+    #currentProgressManageTable th:nth-child(5),
+    #currentProgressManageTable td:nth-child(5) {
+      position:sticky; left:396px; width:112px; min-width:112px; max-width:112px; z-index:35;
+      box-shadow:2px 0 0 #d7e2f1;
+    }
+    #currentProgressManageTable thead th:nth-child(-n+5) {
+      top:0; z-index:50; background:#f9fafb !important;
+    }
+    #currentProgressManageTable tbody tr:nth-child(odd) td:nth-child(-n+5) {
+      background:#fff !important;
+    }
+    #currentProgressManageTable tbody tr:nth-child(even) td:nth-child(-n+5) {
+      background:#eef4ff !important;
+    }
+    #currentProgressManageTable tbody td:nth-child(3) {
+      color:#0d55c8; font-weight:900;
+    }
+    #currentProgressManageTable th:nth-child(-n+5),
+    #currentProgressManageTable td:nth-child(-n+5) {
+      overflow:hidden; text-overflow:ellipsis;
+    }
+    @media (max-width:640px) {
+      #currentProgressManageTable th:nth-child(1),
+      #currentProgressManageTable td:nth-child(1) { width:50px; min-width:50px; max-width:50px; }
+      #currentProgressManageTable th:nth-child(2),
+      #currentProgressManageTable td:nth-child(2) { left:50px; width:82px; min-width:82px; max-width:82px; }
+      #currentProgressManageTable th:nth-child(3),
+      #currentProgressManageTable td:nth-child(3) { left:132px; width:78px; min-width:78px; max-width:78px; }
+      #currentProgressManageTable th:nth-child(4),
+      #currentProgressManageTable td:nth-child(4) { left:210px; width:70px; min-width:70px; max-width:70px; }
+      #currentProgressManageTable th:nth-child(5),
+      #currentProgressManageTable td:nth-child(5) { left:280px; width:82px; min-width:82px; max-width:82px; }
+    }
     #reportTableWrap { border-radius:0 0 14px 14px; max-height:620px; overflow:auto; }
     #reportTableWrap thead th { position:sticky; top:0; z-index:30; background:#f9fafb; }
     #reportManageTable tbody tr:nth-child(odd) { background:#fff; }
@@ -2486,7 +2540,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         </div>
         <div class="wm-filter-actions"><button class="wm-action-btn" onclick="runFilter('currentProgress')">검색</button><span id="wmCurrentProgressLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span><button class="wm-action-btn sub" onclick="resetFilter('currentProgress')">초기화</button></div>
       </div>
-      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>일련번호</th><th>학생ID</th><th>학생이름</th><th>학교</th><th>학년</th><th>Class</th><th>교사명</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>1회차점수</th><th>2회차점수</th><th>3회차점수</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="34">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
+      <div class="wm-record-scroll-top" id="currentProgressTopScroll"><div class="wm-record-scroll-inner" id="currentProgressTopScrollInner"></div></div><div class="wm-table-wrap" id="currentProgressTableWrap"><table id="currentProgressManageTable"><thead><tr><th>일련번호</th><th>학생ID</th><th>학생이름</th><th>Class</th><th>교사명</th><th>학교</th><th>학년</th><th>Set_ID</th><th>완료Step</th><th>현재Step</th><th>기록Set_ID</th><th>최종수정일</th><th>학습기록ID</th><th>1회차점수</th><th>2회차점수</th><th>3회차점수</th><th>최근점수</th><th>S4실루엣단계</th><th>S6테스트모드</th><th>현재레벨</th><th>레벨완료조건</th><th>레벨완료횟수</th><th>순차완주세트</th><th>순차완주회차</th><th>완료세트수</th><th>전체세트수</th><th>세트진행률</th><th>레벨진행률</th><th>히스토리레벨</th><th>히스토리횟수</th><th>레벨완료여부</th><th>캐시버전</th><th>최근30건JSON</th><th>비고</th></tr></thead><tbody id="currentProgressTbody"><tr><td colspan="34">8.현재진행_DB 조회 준비 중입니다.</td></tr></tbody></table></div><div class="wm-current-progress-pager" id="currentProgressPager" style="display:none;"><button type="button" id="currentProgressPrevBtn" onclick="moveCurrentProgressPage(-1)">이전</button><span class="wm-current-progress-page-info" id="currentProgressPageInfo">1 / 1</span><button type="button" id="currentProgressNextBtn" onclick="moveCurrentProgressPage(1)">다음</button></div>
     </section>
     <section class="wm-panel" id="panel-counsel">
       <h2 class="wm-panel-title">상담카페</h2>
@@ -9877,7 +9931,7 @@ function wmRenderGenericDbRows(tbodyId, rows, columns, colspan){
  * LOCK 범위: 현재진행_DB 33컬럼, 행고정, 상단 가로바, 25줄 페이지, 이전/다음 버튼.
  * 실행 연결: 조회/렌더/페이지 이동 시 CurrentProgressDB_V2_LOCK 상태를 콘솔에 표시합니다.
  */
-const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "학교", "학년", "Class", "교사명", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "1회차점수", "2회차점수", "3회차점수", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
+const WM_CURRENT_PROGRESS_HEADERS = ["학생ID", "학생이름", "Class", "교사명", "학교", "학년", "Set_ID", "완료Step", "현재Step", "기록Set_ID", "최종수정일", "학습기록ID", "1회차점수", "2회차점수", "3회차점수", "최근점수", "S4실루엣단계", "S6테스트모드", "현재레벨", "레벨완료조건", "레벨완료횟수", "순차완주세트", "순차완주회차", "완료세트수", "전체세트수", "세트진행률", "레벨진행률", "히스토리레벨", "히스토리횟수", "레벨완료여부", "캐시버전", "최근30건JSON", "비고"];
 const WM_DEPLOY_MANAGE_HEADERS = ["변경ID", "버전ID", "구분(REAL/TEST)", "배포일시", "문제발생", "원인분석", "수정방향", "핵심수정", "대상파일", "연동파일", "수정위치/함수", "검색어(다수가능)", "변경전코드", "변경후코드", "변경전줄수", "변경후줄수", "줄수변화", "REAL 고정", "TEST 고정", "REAL 변수", "TEST 변수", "REAL 고정 수정", "TEST 고정 수정", "REAL 변수 수정", "TEST 변수 수정", "TEST적용상태", "TEST검증상태", "REAL적용상태", "REAL검증상태", "현재/직전버전", "기타버전", "파일동일성%", "상이확인", "성공/실패", "실패원인", "롤백여부", "롤백버전", "작업자", "작업구분", "비고"];
 
 function getCurrentProgressFilteredRows(rows){
