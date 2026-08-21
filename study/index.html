@@ -556,6 +556,105 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .test-option{display:block;margin:10px 0;font-size:16px;}
   .timer{font-size:20px;font-weight:bold;color:#dc2626;margin-bottom:15px;}
 
+  /* WM_TEST_TWO_COLUMN_OMR_V1_20260822
+     PC·태블릿은 시험문제를 좌/우 2열(앞 절반 / 뒤 절반)로 배치합니다.
+     OMR 번호판은 화면을 따라다니며 답변완료·현재문항을 표시합니다.
+     모바일은 문제 1열 + 하단 OMR로 유지합니다. */
+  .wm-study-shell.wm-test-sheet-active #wordmate-app{max-width:920px;}
+  .wm-test-card{overflow:visible;}
+  .wm-test-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    align-items:start;
+    text-align:left;
+  }
+  .wm-test-column{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-width:0;
+  }
+  .wm-test-grid .test-question{margin-top:0;}
+  .wm-test-omr{
+    position:fixed;
+    right:14px;
+    top:170px;
+    z-index:10010;
+    width:78px;
+    padding:10px 8px;
+    border:1px solid #cbd5e1;
+    border-radius:14px;
+    background:rgba(255,255,255,.97);
+    box-shadow:0 8px 24px rgba(15,23,42,.16);
+    box-sizing:border-box;
+  }
+  .wm-test-omr-title{
+    margin-bottom:7px;
+    color:#0c2b63;
+    font-size:12px;
+    font-weight:900;
+    text-align:center;
+  }
+  .wm-test-omr-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px;
+  }
+  .wm-test-omr-btn{
+    min-width:0;
+    height:27px;
+    padding:0;
+    border:1px solid #cbd5e1;
+    border-radius:7px;
+    background:#fff;
+    color:#475569;
+    font-size:11px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .wm-test-omr-btn.is-answered{
+    border-color:#2563eb;
+    background:#dbeafe;
+    color:#1d4ed8;
+  }
+  .wm-test-omr-btn.is-active{
+    border-color:#f59e0b;
+    background:#f59e0b;
+    color:#111827;
+    box-shadow:0 0 0 2px rgba(245,158,11,.18);
+  }
+  @media(max-width:1099px){
+    .wm-test-omr{
+      left:50%;
+      right:auto;
+      top:auto;
+      bottom:8px;
+      width:auto;
+      max-width:calc(100vw - 20px);
+      transform:translateX(-50%);
+      padding:7px 9px;
+    }
+    .wm-test-omr-title{display:none;}
+    .wm-test-omr-grid{
+      display:flex;
+      gap:4px;
+      overflow-x:auto;
+      max-width:calc(100vw - 38px);
+      scrollbar-width:none;
+    }
+    .wm-test-omr-grid::-webkit-scrollbar{display:none;}
+    .wm-test-omr-btn{
+      flex:0 0 27px;
+      width:27px;
+    }
+    .wm-test-card{padding-bottom:64px;}
+  }
+  @media(max-width:640px){
+    .wm-test-grid{grid-template-columns:1fr;}
+    .wm-test-card{padding-bottom:64px;}
+  }
+
   .score-area{position:relative;margin:20px 0 10px;min-height:90px;}
   .score-big{font-size:50px;font-weight:900;color:#dc2626;line-height:1;text-align:center;}
   .score-side-info{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;line-height:1.7;color:#333;text-align:right;white-space:nowrap;}
@@ -1326,7 +1425,16 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .wm-study-shell .wm-step2-card .wm-step2-word-row{margin-top:4px;}
   .wm-study-shell .wm-step2-card .wm-pos,
   .wm-study-shell .wm-step3-card .wm-pos{margin-bottom:6px;}
-  .wm-study-shell .wm-step3-card .wm-meaning{margin-top:5px;margin-bottom:5px;}
+  /* WM_STEP3_CENTER_TEXT_MATCH_STEP2_V1_20260822
+     Step3 중심 제시어만 Step2 중심 단어와 같은 36px 기준으로 맞춥니다.
+     선택지·외곽 프레임·버튼 크기는 변경하지 않습니다. */
+  .wm-study-shell .wm-step3-card .wm-meaning{
+    margin-top:5px;
+    margin-bottom:5px;
+    font-size:36px;
+    line-height:1.15;
+    font-weight:700;
+  }
   .wm-study-shell .wm-step2-card .wm-option,
   .wm-study-shell .wm-step3-card .wm-option{padding:14px;margin-top:5px;}
 
@@ -1927,6 +2035,7 @@ function wmSyncStudyShell(){
   if(mainTestStep) mainTestStep.textContent = `TEST(${tests.length}종)`;
 
   const testLearningActive = stage === 5 || stage === 7 || stage === 9 || (stage === 4 && afterMemoryAction === "testRetake");
+  shell.classList.toggle("wm-test-sheet-active", stage === 7);
   if(mainProgress) mainProgress.hidden = testLearningActive;
 
   const stageKeys = ["flash","choose-ek","choose-ke","memory","review","test"];
@@ -4731,12 +4840,20 @@ function checkMemory(){
   const answer=item.word;
   const currentStep=getActiveMemorySteps()[memoryPhase];
   const isExactAnswer=WM_STUDY_LOCKS.WRITING_EXACT.wmIsExactEnglishAnswer(input, answer);
-  if(!isExactAnswer){
+  /* WM_STEP4_FINAL_PHASE_WRONG_ONLY_V1_20260822
+     실루엣 1~3단계 오답은 연습 중 재입력만 하고 틀린단어로 기록하지 않습니다.
+     마지막 4단계(0%, 스스로쓰기) 오답만 틀린단어 기록 + Step4 종료 전 재학습 대상으로 처리합니다. */
+  if(currentStep.type!=="0" && !isExactAnswer){
+    messageEl.textContent="Try again.";
+    inputEl.value="";
+    inputEl.focus();
+    return;
+  }
+  if(currentStep.type==="0" && !isExactAnswer){
     wmTrackStepWrong_(memoryWrongTotal,item);
     wmUpdateStepWrongBadge_(4,memoryWrongTotal.length);
+    if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);
   }
-  if(currentStep.type!=="0" && !isExactAnswer){messageEl.textContent="Try again.";inputEl.value="";inputEl.focus();return;}
-  if(currentStep.type==="0" && !isExactAnswer){if(!memoryWrong.some(w=>w.word===item.word)) memoryWrong.push(item);}
   memoryLocked=true;
   nextMemory();
 }
@@ -4834,9 +4951,14 @@ function renderTest(){
   timeLeft=getTestTime(testWords.length);
   activeTestQuestionIndex=null;
   const guideMessage = testGuide(test);
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea">${testWords.map((item,i)=>renderTestQuestion(test,item,i)).join("")}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
+  const splitIndex = Math.ceil(testWords.length / 2);
+  const leftQuestions = testWords.slice(0, splitIndex).map((item,i)=>renderTestQuestion(test,item,i)).join("");
+  const rightQuestions = testWords.slice(splitIndex).map((item,i)=>renderTestQuestion(test,item,i + splitIndex)).join("");
+  const omrHtml = `<aside class="wm-test-omr" aria-label="시험 답안 현황"><div class="wm-test-omr-title">OMR</div><div class="wm-test-omr-grid">${testWords.map((item,i)=>`<button type="button" class="wm-test-omr-btn" data-omr-index="${i}" onclick="wmJumpToTestQuestion_(${i})">${i+1}</button>`).join("")}</div></aside>`;
+  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea" class="wm-test-grid"><div class="wm-test-column">${leftQuestions}</div><div class="wm-test-column">${rightQuestions}</div></div><button class="wm-btn" onclick="submitTest()">제출하기</button>${omrHtml}</div>`;
   activateTestQuestionEvents();
   addWritingEnterMove();
+  wmUpdateTestOmr_();
   wmActiveFirstTestStartTime = isRetest ? 0 : Date.now();
   startTimer();
 }
@@ -4855,19 +4977,55 @@ function renderTestQuestion(test,item,i){
   return `<div class="test-question" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div><input class="test-input" id="q${i}" data-direction="${test.direction}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>`;
 }
 
+function wmUpdateTestOmr_(){
+  document.querySelectorAll(".wm-test-omr-btn").forEach(button=>{
+    const qIndex=Number(button.getAttribute("data-omr-index"));
+    const question=document.querySelector(`.test-question[data-q-index="${qIndex}"]`);
+    let answered=false;
+    if(question){
+      const checked=question.querySelector('input[type="radio"]:checked');
+      const input=question.querySelector(".test-input");
+      answered=!!checked || !!(input && String(input.value || "").trim());
+    }
+    button.classList.toggle("is-answered", answered);
+    button.classList.toggle("is-active", qIndex===activeTestQuestionIndex);
+  });
+}
+
+function wmJumpToTestQuestion_(qIndex){
+  const question=document.querySelector(`.test-question[data-q-index="${Number(qIndex)}"]`);
+  if(!question) return;
+  activeTestQuestionIndex=Number(qIndex);
+  wmUpdateTestOmr_();
+  try{ question.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"}); }catch(err){ question.scrollIntoView(); }
+  const target=question.querySelector(".test-input") || question;
+  if(target && typeof target.focus==="function") target.focus();
+}
+
 function activateTestQuestionEvents(){
   const questions=document.querySelectorAll(".test-question");
   questions.forEach(q=>{
-    q.addEventListener("focus",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
-    q.addEventListener("click",()=>activeTestQuestionIndex=Number(q.dataset.qIndex));
+    q.addEventListener("focus",()=>{
+      activeTestQuestionIndex=Number(q.dataset.qIndex);
+      wmUpdateTestOmr_();
+    });
+    q.addEventListener("click",()=>{
+      activeTestQuestionIndex=Number(q.dataset.qIndex);
+      wmUpdateTestOmr_();
+    });
     q.querySelectorAll("input[type='radio']").forEach(radio=>{
       radio.addEventListener("change",()=>{
         const qIndex=Number(q.dataset.qIndex);
         activeTestQuestionIndex=qIndex;
+        wmUpdateTestOmr_();
         const nextQuestion=document.querySelector(`.test-question[data-q-index="${qIndex+1}"]`);
         if(nextQuestion) setTimeout(()=>nextQuestion.focus(),50);
       });
     });
+    const writingInput=q.querySelector(".test-input");
+    if(writingInput){
+      writingInput.addEventListener("input",wmUpdateTestOmr_);
+    }
   });
 }
 
