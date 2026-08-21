@@ -1244,25 +1244,17 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     margin:0;
     font-size:14px;
   }
+  /* WM_STEP2_3_VERTICAL_CENTER_NO_SCALE_20260821_V1
+     학습카드 크기/글자/버튼 크기는 줄이지 않고,
+     Step2/3의 실제 학습 UI 묶음만 고정 학습창 안에서 상하 중앙 정렬합니다. */
   .wm-study-shell .wm-step2-card,
   .wm-study-shell .wm-step3-card{
     display:flex;
     flex-direction:column;
+    justify-content:center;
   }
-  .wm-study-shell .wm-step2-card .wm-title,
-  .wm-study-shell .wm-step3-card .wm-title{margin-bottom:6px;}
-  .wm-study-shell .wm-step2-card .wm-learning-guide,
-  .wm-study-shell .wm-step3-card .wm-learning-guide{margin-bottom:5px;}
-  .wm-study-shell .wm-step2-card > .wm-small,
-  .wm-study-shell .wm-step3-card > .wm-small{margin-top:3px;}
-  .wm-study-shell .wm-step2-card .word-progress,
-  .wm-study-shell .wm-step3-card .word-progress{margin-top:4px;margin-bottom:6px;}
-  .wm-study-shell .wm-step2-card .wm-step2-word-row{margin-top:2px;}
-  .wm-study-shell .wm-step2-card .wm-pos,
-  .wm-study-shell .wm-step3-card .wm-pos{margin-bottom:4px;}
-  .wm-study-shell .wm-step3-card .wm-meaning{margin-top:5px;margin-bottom:5px;}
-  .wm-study-shell .wm-step2-card .wm-option,
-  .wm-study-shell .wm-step3-card .wm-option{padding:11px 14px;margin-top:6px;}
+  .wm-study-shell .wm-step2-card .wm-pos{margin-bottom:12px;}
+  .wm-study-shell .wm-step2-card .wm-option{padding:14px;margin-top:8px;}
 
   /* 메인 UI 흐름을 밀지 않는 Step별 틀린단어 표시 */
   .wm-study-shell .wm-step-wrong-badge{
@@ -2162,7 +2154,7 @@ function todayString(){
 function shuffle(array){return [...array].sort(()=>Math.random()-0.5);}
 
 function wrongRetryTitle(stepTitle,count){
-  return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재학습합니다.</span>`;
+  return stepTitle;
 }
 
 function wmTrackStepWrong_(list,item){
