@@ -1293,11 +1293,15 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   /* 재학습 안내는 하단 남는 공간에 고정하며 본문 높이에 참여하지 않습니다. */
   .wm-study-shell .wm-wrong-retry-bottom{
     position:absolute;
-    left:50%;
-    bottom:7px;
-    transform:translateX(-50%);
+    left:0;
+    right:0;
+    bottom:0;
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     z-index:4;
-    color:#64748b;
+    color:#2563eb;
     font-size:13px;
     font-weight:800;
     line-height:1.2;
@@ -1367,7 +1371,7 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     .wm-study-shell .wm-step2-card .wm-step2-word-row{padding:0 92px 0 0;}
     .wm-study-shell .wm-step2-card .wm-step2-word-row .audio-btn{right:0;min-width:86px;padding:6px 9px;font-size:12px;}
     .wm-study-shell .wm-step-wrong-badge{top:82px;left:16px;min-width:108px;padding:6px 8px;font-size:11px;}
-    .wm-study-shell .wm-wrong-retry-bottom{bottom:7px;font-size:12px;}
+    .wm-study-shell .wm-wrong-retry-bottom{height:46px;font-size:12px;}
     .wm-study-shell.wm-wordcount-20 .word-progress{
       max-width:100%;
       grid-template-columns:repeat(10,24px);
@@ -5301,6 +5305,25 @@ const WM_STUDY_RUNTIME_EXECUTION_LOCKS = Object.freeze({
   })
 });
 
+/* =========================================================
+ * WM_STUDY_CUMULATIVE_SAVE_LOCK_V1_20260821
+ * 현재 정상 누적저장 구조의 함수 참조만 별도 고정합니다.
+ * 저장 방식/DB/API/타이머는 변경하지 않습니다.
+ * ========================================================= */
+const WM_STUDY_CUMULATIVE_SAVE_LOCK_VERSION = "WM_STUDY_CUMULATIVE_SAVE_LOCK_V1";
+const WM_STUDY_CUMULATIVE_SAVE_LOCK_DATE = "2026-08-21";
+const WM_STUDY_CUMULATIVE_SAVE_LOCKS = Object.freeze({
+  CUMULATIVE_RECORD: Object.freeze({
+    completeStepThen,
+    queueStepSave,
+    wmWaitForStepSaves,
+    wmApplyResumeProgress,
+    buildLearningPayload,
+    saveProgressSnapshot,
+    saveLearningRecord
+  })
+});
+
 const WM_STUDY_LOCKS = Object.freeze({
   SESSION_GUARD: Object.freeze({wmStudyCheckCurrentSession, wmStudyStartSessionWatcher}),
   AUDIO_FORMULA: Object.freeze({
@@ -5337,7 +5360,7 @@ const WM_STUDY_LOCKS = Object.freeze({
 
 function wmStudyInstallFunctionLocks(){
   const lockedNames = [];
-  [WM_STUDY_LOCKS, WM_STUDY_SPEED_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS, WM_STUDY_RUNTIME_EXECUTION_LOCKS].forEach(lockRegistry=>{
+  [WM_STUDY_CUMULATIVE_SAVE_LOCKS, WM_STUDY_LOCKS, WM_STUDY_SPEED_LOCKS, WM_LEVEL_TRANSITION_NOTICE_LOCKS, WM_STUDY_RUNTIME_EXECUTION_LOCKS].forEach(lockRegistry=>{
     Object.keys(lockRegistry).forEach(groupName=>{
       const group = lockRegistry[groupName];
       Object.keys(group).forEach(name=>{
@@ -5543,6 +5566,54 @@ window.wmLogLevelTransitionNoticeLockStatus = function(){
   document.head.appendChild(script);
   setTimeout(function(){finish(null);},12000);
 };
+
+function wmLogStudyCumulativeSaveLockStatus(){
+  const group = WM_STUDY_CUMULATIVE_SAVE_LOCKS.CUMULATIVE_RECORD;
+  const rows = Object.keys(group).map(name=>{
+    const descriptor = Object.getOwnPropertyDescriptor(window, name);
+    const exactReference = window[name] === group[name];
+    const replaceBlocked = !!descriptor && descriptor.writable === false;
+    const deleteBlocked = !!descriptor && descriptor.configurable === false;
+    return {
+      함수:name,
+      원본참조일치:exactReference ? "YES" : "NO",
+      교체차단:replaceBlocked ? "YES" : "NO",
+      삭제차단:deleteBlocked ? "YES" : "NO",
+      LOCKED:exactReference && replaceBlocked && deleteBlocked ? "YES" : "NO"
+    };
+  });
+  const verified = Object.isFrozen(WM_STUDY_CUMULATIVE_SAVE_LOCKS) &&
+    Object.isFrozen(group) &&
+    rows.every(row=>row.LOCKED === "YES");
+  console.group("🔒 WORD MATE STUDY CUMULATIVE SAVE LOCK STATUS");
+  console.log("LOCK VERSION :", WM_STUDY_CUMULATIVE_SAVE_LOCK_VERSION);
+  console.log("LOCK DATE    :", WM_STUDY_CUMULATIVE_SAVE_LOCK_DATE);
+  console.table(rows);
+  console.log(verified ? "🔒 CUMULATIVE SAVE LOCK VERIFIED" : "❌ CUMULATIVE SAVE LOCK VERIFY FAILED");
+  console.groupEnd();
+  return verified;
+}
+
+function wmLogStudyResumeExitLockStatus(){
+  const targets = [
+    {group:WM_STUDY_CUMULATIVE_SAVE_LOCKS.CUMULATIVE_RECORD, name:"wmApplyResumeProgress", label:"이어복귀"},
+    {group:WM_STUDY_LOCKS.STUDY_EXIT, name:"leaveLearning", label:"중간나가기"},
+    {group:WM_STUDY_LOCKS.STUDY_EXIT, name:"wmStudyReturnToMap", label:"맵복귀"}
+  ];
+  const rows = targets.map(item=>{
+    const descriptor = Object.getOwnPropertyDescriptor(window, item.name);
+    const locked = window[item.name] === item.group[item.name] &&
+      !!descriptor && descriptor.writable === false && descriptor.configurable === false &&
+      Object.isFrozen(item.group);
+    return {구분:item.label, 함수:item.name, LOCKED:locked ? "YES" : "NO"};
+  });
+  const verified = rows.every(row=>row.LOCKED === "YES");
+  console.group("🔒 WORD MATE STUDY RESUME / EXIT LOCK STATUS");
+  console.table(rows);
+  console.log(verified ? "🔒 RESUME / EXIT LOCK VERIFIED" : "❌ RESUME / EXIT LOCK CHECK REQUIRED");
+  console.groupEnd();
+  return verified;
+}
 
 function wmLogStudyLockStatus(){
   const rows = [];
