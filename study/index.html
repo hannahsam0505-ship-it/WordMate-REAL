@@ -1199,6 +1199,65 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     justify-content:center;
     gap:18px;
   }
+
+  /* WM_TEST_INTRO_COMPACT_CENTER_20260821_V1
+     상단 곤색/시험 안내바는 건드리지 않고 흰 학습창 중앙의 남는 공간만 활용합니다.
+     시험 4종은 컴팩트 2x2 카드로 배치하고 버튼도 같은 중앙 폭에 맞춥니다. */
+  .wm-study-shell .wm-test-intro-card{
+    justify-content:center;
+  }
+  .wm-study-shell .wm-test-intro-body{
+    width:min(440px, calc(100% - 56px));
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+  }
+  .wm-study-shell .wm-test-intro-title{
+    margin:0;
+    font-size:23px;
+    font-weight:700;
+    color:#000;
+    line-height:1.25;
+  }
+  .wm-study-shell .wm-test-intro-grid{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .wm-study-shell .wm-test-intro-item{
+    min-height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:9px 12px;
+    border:1px solid #cbd5e1;
+    border-radius:12px;
+    background:#f8fafc;
+    color:#334155;
+    font-size:15px;
+    font-weight:800;
+    box-sizing:border-box;
+  }
+  .wm-study-shell .wm-test-intro-item.is-active{
+    border-color:#f59e0b;
+    background:#f59e0b;
+    color:#111827;
+  }
+  .wm-study-shell .wm-test-intro-note{
+    margin:0;
+    color:#555;
+    font-size:16px;
+    line-height:1.45;
+    text-align:center;
+  }
+  .wm-study-shell .wm-test-intro-card .wm-test-intro-btn{
+    width:100%;
+    margin:0;
+  }
   .wm-study-shell .wm-study-start-card > div:not(.wm-title){
     margin-top:0 !important;
   }
@@ -4708,10 +4767,17 @@ function nextMemory(){
 function renderBeforeTest(){
   app.innerHTML=`<div class="wm-card wm-study-state-card wm-test-intro-card">
     ${wmSetBadgeHtml()}
-    <div class="wm-title" style="font-size:23px;font-weight:500;margin-bottom:20px;color:#000;">이제 시험을 시작합니다.</div>
-    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:1.7;margin-bottom:12px;">${getActiveTestGuideText()}</div>
-    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:20px;">시험이 진행됩니다.</div>
-    <button class="wm-btn" onclick="startTest()">Start Test</button>
+    <div class="wm-test-intro-body">
+      <div class="wm-test-intro-title">이제 시험을 시작합니다.</div>
+      <div class="wm-test-intro-grid" aria-label="시험 4종">
+        <div class="wm-test-intro-item is-active">① 영한 객관식</div>
+        <div class="wm-test-intro-item">② 한영 객관식</div>
+        <div class="wm-test-intro-item">③ 영한 주관식</div>
+        <div class="wm-test-intro-item">④ 한영 주관식</div>
+      </div>
+      <div class="wm-test-intro-note">4종 시험이 순서대로 진행됩니다.</div>
+      <button class="wm-btn wm-test-intro-btn" onclick="startTest()">Start Test</button>
+    </div>
   </div>`;
 }
 
@@ -4739,19 +4805,17 @@ function nextOneMoreFlashCard(){
 function renderStartTestOnly(){
   app.innerHTML=`<div class="wm-card wm-study-state-card wm-test-intro-card">
     ${wmSetBadgeHtml()}
-    <div class="wm-title" style="font-size:23px;font-weight:500;color:#000;margin-bottom:20px;">
-      이제 시험을 시작합니다.
+    <div class="wm-test-intro-body">
+      <div class="wm-test-intro-title">이제 시험을 시작합니다.</div>
+      <div class="wm-test-intro-grid" aria-label="시험 4종">
+        <div class="wm-test-intro-item is-active">① 영한 객관식</div>
+        <div class="wm-test-intro-item">② 한영 객관식</div>
+        <div class="wm-test-intro-item">③ 영한 주관식</div>
+        <div class="wm-test-intro-item">④ 한영 주관식</div>
+      </div>
+      <div class="wm-test-intro-note">4종 시험이 순서대로 진행됩니다.</div>
+      <button class="wm-btn wm-test-intro-btn" onclick="startTest()">Start Test</button>
     </div>
-
-    <div class="wm-meaning" style="font-size:18px;color:#555;line-height:1.7;margin-bottom:12px;">
-      ${getActiveTestGuideText()}
-    </div>
-
-    <div class="wm-meaning" style="font-size:18px;color:#555;margin-bottom:20px;">
-      시험이 진행됩니다.
-    </div>
-
-    <button class="wm-btn" onclick="startTest()">Start Test</button>
   </div>`;
 }
 
