@@ -563,10 +563,15 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .wm-study-shell.wm-test-sheet-active #wordmate-app{max-width:920px;}
   .wm-test-card{overflow:visible;}
   .wm-test-layout{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) 158px;
-    gap:12px;
-    align-items:start;
+    position:relative;
+    display:block;
+  }
+  .wm-test-omr-float-layer{
+    position:sticky;
+    top:10px;
+    z-index:10010;
+    height:0;
+    pointer-events:none;
   }
   .wm-test-grid{
     display:grid;
@@ -578,18 +583,19 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .wm-test-column{display:flex;flex-direction:column;gap:10px;min-width:0;}
   .wm-test-grid .test-question{margin-top:0;}
   .wm-test-omr{
-    position:sticky;
-    top:10px;
-    z-index:6;
-    width:100%;
+    position:absolute;
+    top:0;
+    right:0;
+    width:158px;
     max-height:calc(100vh - 30px);
     overflow:auto;
     padding:10px;
     border:1px solid #cbd5e1;
     border-radius:14px;
-    background:#fff;
-    box-shadow:0 6px 18px rgba(15,23,42,.10);
+    background:rgba(255,255,255,.98);
+    box-shadow:0 8px 24px rgba(15,23,42,.16);
     box-sizing:border-box;
+    pointer-events:auto;
   }
   .wm-test-omr-title{margin-bottom:8px;color:#0c2b63;font-size:13px;font-weight:900;text-align:center;}
   .wm-test-omr-row{
@@ -615,7 +621,7 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .wm-test-omr-row.is-active{margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px;border-radius:8px;background:#fff7ed;}
   .wm-test-answer-toggle{display:none;}
   @media(max-width:860px){
-    .wm-test-layout{display:block;}
+    .wm-test-omr-float-layer{position:static;height:auto;}
     .wm-test-omr{
       display:none;position:fixed;left:12px;right:12px;bottom:58px;top:auto;width:auto;max-height:48vh;
       z-index:10020;box-shadow:0 12px 34px rgba(15,23,42,.24);
@@ -4929,7 +4935,7 @@ function wmBuildTestAnswerSheet_(test){
     }
     return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><input class="wm-test-omr-write" data-omr-write-index="${i}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="wmSyncOmrWriteToQuestion_(this)"></div>`;
   }).join("");
-  return `<aside id="wmTestOmr" class="wm-test-omr" aria-label="시험 답안지"><div class="wm-test-omr-title">답안지</div>${rows}</aside><button type="button" class="wm-test-answer-toggle" onclick="wmToggleTestAnswerSheet_()">답안지</button>`;
+  return `<div class="wm-test-omr-float-layer"><aside id="wmTestOmr" class="wm-test-omr" aria-label="OMR카드"><div class="wm-test-omr-title">OMR카드</div>${rows}</aside></div><button type="button" class="wm-test-answer-toggle" onclick="wmToggleTestAnswerSheet_()">OMR카드</button>`;
 }
 
 function renderTest(){
@@ -4943,7 +4949,7 @@ function renderTest(){
   const leftQuestions = testWords.slice(0, splitIndex).map((item,i)=>renderTestQuestion(test,item,i)).join("");
   const rightQuestions = testWords.slice(splitIndex).map((item,i)=>renderTestQuestion(test,item,i + splitIndex)).join("");
   const answerSheetHtml = wmBuildTestAnswerSheet_(test);
-  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div class="wm-test-layout"><div id="testArea" class="wm-test-grid"><div class="wm-test-column">${leftQuestions}</div><div class="wm-test-column">${rightQuestions}</div></div>${answerSheetHtml}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
+  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div class="wm-test-layout">${answerSheetHtml}<div id="testArea" class="wm-test-grid"><div class="wm-test-column">${leftQuestions}</div><div class="wm-test-column">${rightQuestions}</div></div></div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
   activateTestQuestionEvents();
   addWritingEnterMove();
   wmUpdateTestOmr_();
