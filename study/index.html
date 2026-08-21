@@ -3705,11 +3705,16 @@ function wmApplyResumeProgress(progress){
 
   const progressStep = String(progress.currentProgressStep || "").toUpperCase().trim();
 
-  /* WM_RESUME_RECORD_ID_NEW_SESSION_INSERT_20260617_V1
-     이어학습 데이터는 사용하되, 이전 학습기록ID는 재사용하지 않습니다.
-     같은 화면 세션 안에서는 첫 저장 후 받은 WM_RECORD_SESSION_ID로 UPDATE하고,
-     학습 종료/재접속 후 이어학습하면 같은 Set_ID라도 새 행 INSERT가 되게 합니다. */
-  WM_RECORD_SESSION_ID = "";
+  /* WM_RESUME_RECORD_ID_SAME_ROW_RESTORE_20260821_V1
+     이어학습은 현재진행_DB의 학습기록ID를 그대로 재사용해
+     같은 Set_ID의 Step1~Step5~TEST가 학습 종료/재접속 후에도 동일 행에 누적됩니다.
+     새 세트/STEP1은 이전 완료행을 재사용하지 않습니다. */
+  WM_RECORD_SESSION_ID = (
+    progressStep !== "COMPLETE" &&
+    progressStep !== "STEP1" &&
+    progressStep &&
+    progress.learningRecordId
+  ) ? String(progress.learningRecordId || "").trim() : "";
 
   /* WM_SEQUENTIAL_ROUND_RESUME_RESET_V1_20260721
      순차완주 회차가 바뀌어 서버 현재Step이 STEP1이면 이전 회차 completedSteps를 전부 폐기합니다.
