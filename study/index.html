@@ -556,12 +556,18 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .test-option{display:block;margin:10px 0;font-size:16px;}
   .timer{font-size:20px;font-weight:bold;color:#dc2626;margin-bottom:15px;}
 
-  /* WM_TEST_TWO_COLUMN_OMR_V1_20260822
-     PC·태블릿은 시험문제를 좌/우 2열(앞 절반 / 뒤 절반)로 배치합니다.
-     OMR 번호판은 화면을 따라다니며 답변완료·현재문항을 표시합니다.
-     모바일은 문제 1열 + 하단 OMR로 유지합니다. */
+  /* WM_TEST_TWO_COLUMN_ANSWER_SHEET_V2_20260822
+     PC·태블릿은 시험문제 2열을 유지하고, 실제 답안지는 시험지 내부 오른쪽에 붙입니다.
+     객관식은 1~5 선택, 주관식은 직접 입력으로 문제 답과 양방향 동기화합니다.
+     모바일은 문제 1열 + 하단 답안지 버튼으로 펼칩니다. */
   .wm-study-shell.wm-test-sheet-active #wordmate-app{max-width:920px;}
   .wm-test-card{overflow:visible;}
+  .wm-test-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 158px;
+    gap:12px;
+    align-items:start;
+  }
   .wm-test-grid{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -569,98 +575,69 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
     align-items:start;
     text-align:left;
   }
-  .wm-test-column{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    min-width:0;
-  }
+  .wm-test-column{display:flex;flex-direction:column;gap:10px;min-width:0;}
   .wm-test-grid .test-question{margin-top:0;}
   .wm-test-omr{
-    position:fixed;
-    right:14px;
-    top:170px;
-    z-index:10010;
-    width:78px;
-    padding:10px 8px;
+    position:sticky;
+    top:10px;
+    z-index:6;
+    width:100%;
+    max-height:calc(100vh - 30px);
+    overflow:auto;
+    padding:10px;
     border:1px solid #cbd5e1;
     border-radius:14px;
-    background:rgba(255,255,255,.97);
-    box-shadow:0 8px 24px rgba(15,23,42,.16);
+    background:#fff;
+    box-shadow:0 6px 18px rgba(15,23,42,.10);
     box-sizing:border-box;
   }
-  .wm-test-omr-title{
-    margin-bottom:7px;
-    color:#0c2b63;
-    font-size:12px;
-    font-weight:900;
-    text-align:center;
-  }
-  .wm-test-omr-grid{
+  .wm-test-omr-title{margin-bottom:8px;color:#0c2b63;font-size:13px;font-weight:900;text-align:center;}
+  .wm-test-omr-row{
     display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-columns:22px minmax(0,1fr);
     gap:5px;
+    align-items:center;
+    padding:5px 0;
+    border-top:1px solid #eef2f7;
   }
-  .wm-test-omr-btn{
-    min-width:0;
-    height:27px;
-    padding:0;
-    border:1px solid #cbd5e1;
-    border-radius:7px;
-    background:#fff;
-    color:#475569;
-    font-size:11px;
-    font-weight:900;
-    cursor:pointer;
+  .wm-test-omr-row:first-child{border-top:0;}
+  .wm-test-omr-num{color:#475569;font-size:11px;font-weight:900;text-align:center;}
+  .wm-test-omr-choice{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;}
+  .wm-test-omr-choice-btn{
+    min-width:0;height:23px;padding:0;border:1px solid #cbd5e1;border-radius:50%;
+    background:#fff;color:#475569;font-size:9px;font-weight:900;cursor:pointer;
   }
-  .wm-test-omr-btn.is-answered{
-    border-color:#2563eb;
-    background:#dbeafe;
-    color:#1d4ed8;
+  .wm-test-omr-choice-btn.is-selected{border-color:#2563eb;background:#2563eb;color:#fff;}
+  .wm-test-omr-write{
+    width:100%;min-width:0;height:26px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:6px;
+    background:#fff;color:#111827;font-size:11px;box-sizing:border-box;
   }
-  .wm-test-omr-btn.is-active{
-    border-color:#f59e0b;
-    background:#f59e0b;
-    color:#111827;
-    box-shadow:0 0 0 2px rgba(245,158,11,.18);
-  }
-  @media(max-width:1099px){
+  .wm-test-omr-row.is-active{margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px;border-radius:8px;background:#fff7ed;}
+  .wm-test-answer-toggle{display:none;}
+  @media(max-width:860px){
+    .wm-test-layout{display:block;}
     .wm-test-omr{
-      left:50%;
-      right:auto;
-      top:auto;
-      bottom:8px;
-      width:auto;
-      max-width:calc(100vw - 20px);
-      transform:translateX(-50%);
-      padding:7px 9px;
+      display:none;position:fixed;left:12px;right:12px;bottom:58px;top:auto;width:auto;max-height:48vh;
+      z-index:10020;box-shadow:0 12px 34px rgba(15,23,42,.24);
     }
-    .wm-test-omr-title{display:none;}
-    .wm-test-omr-grid{
-      display:flex;
-      gap:4px;
-      overflow-x:auto;
-      max-width:calc(100vw - 38px);
-      scrollbar-width:none;
+    .wm-test-omr.is-open{display:block;}
+    .wm-test-answer-toggle{
+      display:block;position:fixed;right:14px;bottom:12px;z-index:10021;min-width:92px;height:38px;
+      padding:0 14px;border:0;border-radius:999px;background:#0c2b63;color:#fff;font-size:13px;font-weight:900;
+      cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.22);
     }
-    .wm-test-omr-grid::-webkit-scrollbar{display:none;}
-    .wm-test-omr-btn{
-      flex:0 0 27px;
-      width:27px;
-    }
-    .wm-test-card{padding-bottom:64px;}
   }
-  @media(max-width:640px){
-    .wm-test-grid{grid-template-columns:1fr;}
-    .wm-test-card{padding-bottom:64px;}
-  }
+  @media(max-width:640px){.wm-test-grid{grid-template-columns:1fr;}}
 
   .score-area{position:relative;margin:20px 0 10px;min-height:90px;}
   .score-big{font-size:50px;font-weight:900;color:#dc2626;line-height:1;text-align:center;}
   .score-side-info{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:13px;line-height:1.7;color:#333;text-align:right;white-space:nowrap;}
 
   .result-list{margin-top:28px;text-align:left;}
-  .result-item{display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:center;background:#fff;border:1px solid #eee;border-radius:16px;padding:14px;margin-bottom:12px;}
+  .wm-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;}
+  .wm-result-column{display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .result-item{display:grid;grid-template-columns:54px 1fr;gap:10px;align-items:center;background:#fff;border:1px solid #eee;border-radius:14px;padding:12px;margin:0;}
+  @media(max-width:640px){.wm-result-grid{grid-template-columns:1fr;}}
   .result-num-wrap{position:relative;width:62px;height:62px;display:flex;align-items:center;justify-content:center;}
   .result-num{font-size:18px;font-weight:bold;color:#555;text-align:center;z-index:2;}
   .mark-circle{position:absolute;width:48px;height:42px;border:4px solid #dc2626;border-radius:48% 52% 46% 54%;transform:rotate(-13deg);left:5px;top:8px;z-index:1;}
@@ -669,6 +646,11 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .q-blue{color:#2563eb;font-weight:bold;}
   .a-black{color:#111;}
   .a-red{color:#dc2626;font-weight:bold;}
+
+  .wm-subjective-retry-note{font-size:18px;line-height:1.45;margin:14px 0 10px;}
+  .wm-study-shell .wm-step4-card .wm-wrong-retry-bottom{
+    position:relative;left:auto;right:auto;bottom:auto;height:20px;margin-top:2px;line-height:20px;
+  }
 
   .final-title{font-size:24px;font-weight:bold;line-height:1.35;margin-bottom:28px;text-align:center;}
   .final-score-box{font-size:24px;font-weight:bold;color:#dc2626;margin:30px 0 12px;line-height:1.7;text-align:center;}
@@ -1425,16 +1407,12 @@ const WM_DEV_LIVE_REVIEW_MODE = window.WM_DEV_ADMIN_REVIEW_MODE === true;
   .wm-study-shell .wm-step2-card .wm-step2-word-row{margin-top:4px;}
   .wm-study-shell .wm-step2-card .wm-pos,
   .wm-study-shell .wm-step3-card .wm-pos{margin-bottom:6px;}
-  /* WM_STEP3_CENTER_TEXT_MATCH_STEP2_V1_20260822
-     Step3 중심 제시어만 Step2 중심 단어와 같은 36px 기준으로 맞춥니다.
-     선택지·외곽 프레임·버튼 크기는 변경하지 않습니다. */
-  .wm-study-shell .wm-step3-card .wm-meaning{
-    margin-top:5px;
-    margin-bottom:5px;
-    font-size:36px;
-    line-height:1.15;
-    font-weight:700;
-  }
+  /* WM_STEP3_TEXT_BALANCE_V2_20260822
+     한글 중심 제시어는 기존 크기로 복구하고,
+     영어 선택지 글씨만 한 단계(18px) 키웁니다.
+     선택지 박스·간격·외곽 프레임은 변경하지 않습니다. */
+  .wm-study-shell .wm-step3-card .wm-meaning{margin-top:5px;margin-bottom:5px;}
+  .wm-study-shell .wm-step3-card .wm-option{font-size:18px;}
   .wm-study-shell .wm-step2-card .wm-option,
   .wm-study-shell .wm-step3-card .wm-option{padding:14px;margin-top:5px;}
 
@@ -4944,6 +4922,16 @@ function startTest(){
   render();
 }
 
+function wmBuildTestAnswerSheet_(test){
+  const rows=testWords.map((item,i)=>{
+    if(test.type==="choice"){
+      return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><div class="wm-test-omr-choice">${[0,1,2,3,4].map(optionIndex=>`<button type="button" class="wm-test-omr-choice-btn" data-omr-index="${i}" data-omr-option="${optionIndex}" onclick="wmSelectOmrChoice_(${i},${optionIndex})">${optionIndex+1}</button>`).join("")}</div></div>`;
+    }
+    return `<div class="wm-test-omr-row" data-omr-row="${i}"><div class="wm-test-omr-num">${i+1}</div><input class="wm-test-omr-write" data-omr-write-index="${i}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="wmSyncOmrWriteToQuestion_(this)"></div>`;
+  }).join("");
+  return `<aside id="wmTestOmr" class="wm-test-omr" aria-label="시험 답안지"><div class="wm-test-omr-title">답안지</div>${rows}</aside><button type="button" class="wm-test-answer-toggle" onclick="wmToggleTestAnswerSheet_()">답안지</button>`;
+}
+
 function renderTest(){
   stopWordAudio();
   clearInterval(testTimer);
@@ -4954,8 +4942,8 @@ function renderTest(){
   const splitIndex = Math.ceil(testWords.length / 2);
   const leftQuestions = testWords.slice(0, splitIndex).map((item,i)=>renderTestQuestion(test,item,i)).join("");
   const rightQuestions = testWords.slice(splitIndex).map((item,i)=>renderTestQuestion(test,item,i + splitIndex)).join("");
-  const omrHtml = `<aside class="wm-test-omr" aria-label="시험 답안 현황"><div class="wm-test-omr-title">OMR</div><div class="wm-test-omr-grid">${testWords.map((item,i)=>`<button type="button" class="wm-test-omr-btn" data-omr-index="${i}" onclick="wmJumpToTestQuestion_(${i})">${i+1}</button>`).join("")}</div></aside>`;
-  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div id="testArea" class="wm-test-grid"><div class="wm-test-column">${leftQuestions}</div><div class="wm-test-column">${rightQuestions}</div></div><button class="wm-btn" onclick="submitTest()">제출하기</button>${omrHtml}</div>`;
+  const answerSheetHtml = wmBuildTestAnswerSheet_(test);
+  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="timer" id="timer">${formatTime(timeLeft)}</div><div class="wm-small">${isRetest?"오답 재시험입니다.":"첫 시험 점수가 기록됩니다."}</div>${guideMessage}<div class="wm-test-layout"><div id="testArea" class="wm-test-grid"><div class="wm-test-column">${leftQuestions}</div><div class="wm-test-column">${rightQuestions}</div></div>${answerSheetHtml}</div><button class="wm-btn" onclick="submitTest()">제출하기</button></div>`;
   activateTestQuestionEvents();
   addWritingEnterMove();
   wmUpdateTestOmr_();
@@ -4971,35 +4959,53 @@ function renderTestQuestion(test,item,i){
     const pool=originalWords.map(w=>test.direction==="eng-ko"?w.meaning:w.word);
     const options=makeChoiceOptions(answer,pool,5);
     const question=test.direction==="eng-ko"?item.word:item.meaning;
-    return `<div class="test-question" tabindex="0" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div>${options.map((option,j)=>`<label class="test-option"><input type="radio" name="q${i}" value="${option}"> ${j+1}. ${option}</label>`).join("")}</div>`;
+    return `<div class="test-question" tabindex="0" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div>${options.map((option,j)=>`<label class="test-option"><input type="radio" name="q${i}" value="${option}" data-option-index="${j}"> ${j+1}. ${option}</label>`).join("")}</div>`;
   }
   const question=test.direction==="eng-ko"?item.word:item.meaning;
   return `<div class="test-question" data-q-index="${i}"><div class="test-q-title">${i+1}. ${question}</div><input class="test-input" id="q${i}" data-direction="${test.direction}" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>`;
 }
 
 function wmUpdateTestOmr_(){
-  document.querySelectorAll(".wm-test-omr-btn").forEach(button=>{
+  document.querySelectorAll(".wm-test-omr-row").forEach(row=>{
+    const qIndex=Number(row.getAttribute("data-omr-row"));
+    row.classList.toggle("is-active", qIndex===activeTestQuestionIndex);
+  });
+  document.querySelectorAll(".wm-test-omr-choice-btn").forEach(button=>{
     const qIndex=Number(button.getAttribute("data-omr-index"));
-    const question=document.querySelector(`.test-question[data-q-index="${qIndex}"]`);
-    let answered=false;
-    if(question){
-      const checked=question.querySelector('input[type="radio"]:checked');
-      const input=question.querySelector(".test-input");
-      answered=!!checked || !!(input && String(input.value || "").trim());
-    }
-    button.classList.toggle("is-answered", answered);
-    button.classList.toggle("is-active", qIndex===activeTestQuestionIndex);
+    const optionIndex=Number(button.getAttribute("data-omr-option"));
+    const radio=document.querySelector(`.test-question[data-q-index="${qIndex}"] input[type="radio"][data-option-index="${optionIndex}"]`);
+    button.classList.toggle("is-selected", !!(radio && radio.checked));
+  });
+  document.querySelectorAll(".wm-test-omr-write").forEach(input=>{
+    const qIndex=Number(input.getAttribute("data-omr-write-index"));
+    const questionInput=document.getElementById(`q${qIndex}`);
+    const value=questionInput ? String(questionInput.value || "") : "";
+    if(input.value!==value) input.value=value;
   });
 }
 
-function wmJumpToTestQuestion_(qIndex){
-  const question=document.querySelector(`.test-question[data-q-index="${Number(qIndex)}"]`);
-  if(!question) return;
+function wmSelectOmrChoice_(qIndex,optionIndex){
+  const radio=document.querySelector(`.test-question[data-q-index="${Number(qIndex)}"] input[type="radio"][data-option-index="${Number(optionIndex)}"]`);
+  if(!radio) return;
   activeTestQuestionIndex=Number(qIndex);
+  radio.checked=true;
+  radio.dispatchEvent(new Event("change",{bubbles:true}));
   wmUpdateTestOmr_();
-  try{ question.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"}); }catch(err){ question.scrollIntoView(); }
-  const target=question.querySelector(".test-input") || question;
-  if(target && typeof target.focus==="function") target.focus();
+}
+
+function wmSyncOmrWriteToQuestion_(source){
+  const qIndex=Number(source && source.getAttribute("data-omr-write-index"));
+  const input=document.getElementById(`q${qIndex}`);
+  if(!input) return;
+  activeTestQuestionIndex=qIndex;
+  input.value=String(source.value || "");
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  wmUpdateTestOmr_();
+}
+
+function wmToggleTestAnswerSheet_(){
+  const sheet=document.getElementById("wmTestOmr");
+  if(sheet) sheet.classList.toggle("is-open");
 }
 
 function activateTestQuestionEvents(){
@@ -5125,7 +5131,11 @@ function submitTest(){
 
 function renderTestResult(test,score,total,wrongs){
   const percent=Math.round((score/total)*100);
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list">${currentTestResults.map((r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`).join("")}</div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
+  const splitIndex=Math.ceil(currentTestResults.length/2);
+  const resultItemHtml=(r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`;
+  const leftResults=currentTestResults.slice(0,splitIndex).map((r,i)=>resultItemHtml(r,i)).join("");
+  const rightResults=currentTestResults.slice(splitIndex).map((r,i)=>resultItemHtml(r,i+splitIndex)).join("");
+  app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list wm-result-grid"><div class="wm-result-column">${leftResults}</div><div class="wm-result-column">${rightResults}</div></div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
   afterScreenRender();
 }
 
@@ -5139,7 +5149,7 @@ function continueAfterTestResult(){
     afterScreenRender();
     return;
   }
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
+  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning wm-subjective-retry-note">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
   afterScreenRender();
 }
 
