@@ -759,11 +759,11 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
         <input id="startDate" type="date">
         <input id="endDate" type="date">
 
-        <button onclick="filterHomeworkRecords()">검색</button>
+        <button id="homeworkSearchButton" onclick="filterHomeworkRecords()">검색<span id="homeworkSearchSpinner" class="wm-homework-search-spinner" aria-label="학습기록 검색 중"></span></button>
         <button class="reset-btn" onclick="resetHomeworkFilters()">검색초기화</button>
 
       </div>
-      <div class="wm-homework-search-limit-note">*검색 최장 기간은 3년입니다.</div>
+      <div class="wm-homework-search-limit-note">*최장 검색 기간은 3년입니다.</div>
 
       <div class="record-summary">
 
@@ -800,6 +800,8 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
       </div>
 
       </div>
+
+      <div id="homeworkSearchResultMessage" class="wm-homework-search-result-message" aria-live="polite"></div>
 
       <div class="homework-scroll-top-fixed" id="homeworkScrollTopFixed">
         <div class="homework-scroll-inner"></div>
@@ -850,12 +852,21 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
         <button type="button" onclick="wmMoveHomeworkPage_(-1)">이전</button>
         <span id="homeworkPageInfo">1페이지</span>
         <button type="button" onclick="wmMoveHomeworkPage_(1)">다음</button>
+        <span id="homeworkPagerSpinner" class="wm-homework-pager-spinner" aria-label="다음 학습기록 불러오는 중"></span>
       </div>
 
     </div>
 
   </div>
 
+</div>
+
+<div id="wmHomeworkSearchNoticeModal" class="wm-homework-search-notice-modal" role="dialog" aria-modal="true" aria-labelledby="wmHomeworkSearchNoticeTitle">
+  <div class="wm-homework-search-notice-card">
+    <div id="wmHomeworkSearchNoticeTitle" class="wm-homework-search-notice-title">영어잡는 Word Mate</div>
+    <div id="wmHomeworkSearchNoticeMessage" class="wm-homework-search-notice-message"></div>
+    <button type="button" class="wm-homework-search-notice-confirm" onclick="wmCloseHomeworkSearchNotice_()">확인</button>
+  </div>
 </div>
 
 
@@ -1033,10 +1044,24 @@ body.wm-map-loading-active #wm-learning-record-widget{
 .wm-homework-search-limit-note{
   margin:0 2px 10px;
   color:#64748b;
-  font-size:11px;
+  font-size:12px;
+  font-weight:700;
   line-height:1.35;
   text-align:right;
 }
+
+.wm-homework-search-spinner{display:none;width:16px;height:16px;margin-left:6px;vertical-align:-3px;border:3px solid rgba(255,255,255,.55);border-top-color:#fff;border-radius:50%;box-sizing:border-box;animation:wmHomeworkSpin .7s linear infinite;}
+.wm-homework-pager-spinner{display:none;width:26px;height:26px;flex:0 0 26px;border:4px solid #dbeafe;border-top-color:#0066cc;border-radius:50%;box-sizing:border-box;animation:wmHomeworkSpin .7s linear infinite;}
+.wm-homework-search-spinner.active,.wm-homework-pager-spinner.active{display:inline-block;}
+.wm-homework-search-result-message{display:none;margin:0 0 8px;padding:9px 12px;border:1px solid #93b9ef;border-radius:10px;background:#f8fbff;color:#173b75;font-size:13px;font-weight:900;line-height:1.35;text-align:left;}
+.wm-homework-search-result-message.active{display:block;}
+.wm-homework-search-notice-modal{position:fixed;inset:0;z-index:2147483200;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.38);box-sizing:border-box;}
+.wm-homework-search-notice-modal.active{display:flex;}
+.wm-homework-search-notice-card{width:min(400px,92vw);background:#fff;border-radius:16px;padding:22px 22px 18px;box-shadow:0 22px 60px rgba(15,23,42,.28);text-align:center;}
+.wm-homework-search-notice-title{margin:0 0 18px;color:#111827;font-size:18px;font-weight:950;line-height:1.2;text-align:center;}
+.wm-homework-search-notice-message{color:#374151;font-size:14px;font-weight:700;line-height:1.6;text-align:center;white-space:pre-line;}
+.wm-homework-search-notice-confirm{min-width:72px;margin-top:20px;padding:10px 18px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-size:14px;font-weight:900;cursor:pointer;}
+@keyframes wmHomeworkSpin{to{transform:rotate(360deg);}}
 
 .wm-homework-control-box .record-summary{
   margin-bottom:12px;
@@ -1596,6 +1621,9 @@ body.wm-map-loading-active #wm-learning-record-widget{
   font-size:13px;
   font-weight:900;
 }
+.homework-pager .wm-homework-pager-spinner{
+  margin-left:2px;
+}
 
 .homework-pager button{
   padding:8px 12px;
@@ -1842,6 +1870,7 @@ let wmHomeworkServerTotalRows = 0;
 let wmHomeworkAllRecordsLoaded = false;
 let wmHomeworkServerHasMore = false;
 let wmHomeworkServerQuery_ = null;
+let wmHomeworkSearchTotalCount_ = null;
 
 function wmGetApiBaseUrl(){
   return String(WM_CONFIG.APPS_SCRIPT_URL || '').trim().split('?')[0];
@@ -3235,14 +3264,20 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
     setKeyword:String(requestQuery.setKeyword || '').trim(),
     levelKeyword:String(requestQuery.levelKeyword || '').trim(),
     month:String(requestQuery.month || '').trim(),
-    week:String(requestQuery.week || '').trim()
+    week:String(requestQuery.week || '').trim(),
+    needTotalCount:requestQuery.needTotalCount === true
   } : {};
 
   wmHomeworkServerQuery_ = requestQuery;
   wmBottomRecordsDirectLoading = true;
+  if(reason === 'search') wmSetHomeworkSearchLoading_(true);
+  if(reason === 'homework-page') wmSetHomeworkPagerLoading_(true);
+  if(reason === 'search-reset') wmClearHomeworkSearchResult_();
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
+    if(reason === 'search') wmSetHomeworkSearchLoading_(false);
+    if(reason === 'homework-page') wmSetHomeworkPagerLoading_(false);
 
     if(payload && payload.learningRecordDbRangeError){
       wmShowHomeworkSearchNotice_('1개월 단위로 검색이 가능합니다.');
@@ -3260,6 +3295,15 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
     wmHomeworkServerTotalRows = 0;
     wmHomeworkCurrentPage = paged ? Math.max(1, Number(payload.learningRecordDbPage || requestedPage)) : 1;
     wmLearningRecords = directRecords;
+
+    if(reason === 'search'){
+      const exactTotal = Number(payload && payload.learningRecordDbSearchTotalCount);
+      wmHomeworkSearchTotalCount_ = Number.isFinite(exactTotal) && exactTotal >= 0
+        ? exactTotal
+        : (wmHomeworkServerHasMore ? directRecords.length : directRecords.length);
+      if(wmHomeworkServerQuery_) wmHomeworkServerQuery_.needTotalCount = false;
+      wmShowHomeworkSearchResult_(fromDate, toDate, wmHomeworkSearchTotalCount_);
+    }
 
     const isSearchResult = reason === 'search' || reason === 'homework-page';
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, paged ? {
@@ -3279,6 +3323,8 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
 
   function failPayload(){
     wmBottomRecordsDirectLoading = false;
+    if(reason === 'search') wmSetHomeworkSearchLoading_(false);
+    if(reason === 'homework-page') wmSetHomeworkPagerLoading_(false);
     if(typeof done === 'function') done(null);
   }
 
@@ -5384,8 +5430,56 @@ function wmGetHomeworkSearchLevelFromSetId_(setId){
   return match ? match[1] : '';
 }
 
+function wmCloseHomeworkSearchNotice_(){
+  const modal = document.getElementById('wmHomeworkSearchNoticeModal');
+  if(modal) modal.classList.remove('active');
+}
+
 function wmShowHomeworkSearchNotice_(message){
+  const modal = document.getElementById('wmHomeworkSearchNoticeModal');
+  const messageBox = document.getElementById('wmHomeworkSearchNoticeMessage');
+  if(modal && messageBox){
+    messageBox.textContent = String(message || '');
+    modal.classList.add('active');
+    return;
+  }
   alert('영어잡는 Word Mate\n\n' + String(message || ''));
+}
+
+function wmSetHomeworkSearchLoading_(active){
+  const spinner = document.getElementById('homeworkSearchSpinner');
+  const button = document.getElementById('homeworkSearchButton');
+  if(spinner) spinner.classList.toggle('active', !!active);
+  if(button) button.disabled = !!active;
+}
+
+function wmSetHomeworkPagerLoading_(active){
+  const pager = document.getElementById('homeworkPager');
+  const spinner = document.getElementById('homeworkPagerSpinner');
+  if(spinner) spinner.classList.toggle('active', !!active);
+  if(!pager) return;
+  const buttons = pager.querySelectorAll('button');
+  if(active){
+    buttons.forEach(function(button){ button.disabled = true; });
+  }else{
+    wmUpdateHomeworkPager_(wmHomeworkCurrentSourceRecords.length);
+  }
+}
+
+function wmClearHomeworkSearchResult_(){
+  wmHomeworkSearchTotalCount_ = null;
+  const box = document.getElementById('homeworkSearchResultMessage');
+  if(!box) return;
+  box.textContent = '';
+  box.classList.remove('active');
+}
+
+function wmShowHomeworkSearchResult_(fromDate, toDate, totalCount){
+  const box = document.getElementById('homeworkSearchResultMessage');
+  if(!box) return;
+  const total = Math.max(0, Number(totalCount || 0) || 0);
+  box.textContent = '검색기간 ' + String(fromDate || '-') + ' ~ ' + String(toDate || '-') + ' · 총 ' + total + '건의 학습기록입니다.';
+  box.classList.add('active');
 }
 
 function wmGetHomeworkStudentSearchEarliestDate_(){
@@ -5413,6 +5507,7 @@ function filterHomeworkRecords(){
   if(!hasFilter){
     wmHomeworkServerQuery_ = null;
     wmHomeworkCurrentPage = 1;
+    wmClearHomeworkSearchResult_();
     wmLoadLearningRecordsDirectForMap_('search-reset', 1, false);
     return;
   }
@@ -5461,7 +5556,8 @@ function filterHomeworkRecords(){
     setKeyword:setKeyword,
     levelKeyword:levelKeyword,
     month:month,
-    week:week
+    week:week,
+    needTotalCount:true
   };
 
   wmHomeworkCurrentPage = 1;
@@ -5479,6 +5575,7 @@ function resetHomeworkFilters(){
 
   wmHomeworkCurrentPage = 1;
   wmHomeworkServerQuery_ = null;
+  wmClearHomeworkSearchResult_();
   wmLoadLearningRecordsDirectForMap_('search-reset', 1, false);
 }
 
