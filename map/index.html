@@ -1816,7 +1816,6 @@ let wmBottomRecordsDirectLoading = false;
 let wmBottomRecordsDetailedLoaded = false;
 let wmCurrentProgressRecentScoreForMap_ = '';
 let wmCurrentProgressDisplayOverride = null;
-let wmLearningMapScoreMap_ = {};
 let wmStudyReturnSnapshotActive_ = false;
 const WM_MAP_RETURN_SNAPSHOT_KEY_ = 'WM_MAP_RETURN_SNAPSHOT_V1';
 let wmMapAllWrongWordRecords_ = [];
@@ -2547,8 +2546,8 @@ function wmApplyStudyReturnSnapshot_(row){
     return false;
   }
 
+  wmLearningMapScoreStateForMap_=cacheData.learningMapScoreState || {v:2,scores:{}};
   wmStudyReturnSnapshotActive_=true;
-  wmLearningMapScoreMap_=cacheData.learningMapScoreMap || wmLearningMapScoreMap_ || {};
   try{ sessionStorage.removeItem(WM_MAP_RETURN_SNAPSHOT_KEY_); }catch(err){}
 
   wmStudentProfile=wmMergeStudentPreserveValues_(wmCurrentStudent || {},row || {});
@@ -2625,8 +2624,8 @@ function wmApplyStudyReturnSnapshot_(row){
 
   totalSets=Number(cacheData.totalSetCount || 0) || setData.length;
   wmCurrentProgressRecentScoreForMap_=cacheData.recentScore || '';
-  wmApplyLearningMapScoreMapToSetData_();
 
+  wmApplyLearningMapScoreJsonToSetData_();
   renderSetMap();
   setText('levelPercent',cacheData.levelProgress + '%');
   setText('mainProgressText',cacheData.levelProgress + '%');
@@ -3064,13 +3063,12 @@ function wmNormalizeCurrentProgressCache_(data){
     : levelProgress;
   const setProgress = wmParseProgressPercentNumber_(wmPickFirstValue_(cache.세트진행률, cache.setProgress, cache.currentSetProgress, learningProgress.세트진행률, learningProgress.stepProgressPercent, 0));
   const recentScore = wmNormalizeScoreForMap_(wmPickFirstValue_(cache.최근점수, cache.recentScore, cache.score, learningProgress.최근점수, ''));
-  const learningMapScoreJson = String(wmPickFirstValue_(
+  const learningMapScoreState = wmParseLearningMapScoreJsonForMap_(wmPickFirstValue_(
     cache.학습맵점수JSON,
     cache.learningMapScoreJson,
-    data && data.learningMapScoreJson,
+    cache.learningMapScores,
     ''
-  ) || '').trim();
-  const learningMapScoreMap = wmParseLearningMapScoreMap_(learningMapScoreJson);
+  ));
 
   return {
     raw: cache,
@@ -3085,9 +3083,8 @@ function wmNormalizeCurrentProgressCache_(data){
     levelProgress: Number.isFinite(currentRoundLevelProgress) ? currentRoundLevelProgress : 0,
     setProgress: Number.isFinite(setProgress) ? setProgress : 0,
     recentScore: recentScore,
-    learningMapScoreJson: learningMapScoreJson,
-    learningMapScoreMap: learningMapScoreMap,
     recent30Records: recent30,
+    learningMapScoreState: learningMapScoreState,
     historyCache: wmBuildCurrentProgressHistoryCacheForMap_(cache, currentLevel)
   };
 }
@@ -3104,51 +3101,65 @@ function wmNormalizeScoreForMap_(value){
   return String(Math.round(n));
 }
 
+let wmLearningMapScoreStateForMap_ = {v:2,scores:{}};
 
-function wmParseLearningMapScoreMap_(value){
+function wmParseLearningMapScoreJsonForMap_(value){
+  const state={v:2,scores:{}};
   const text=String(value || '').trim();
-  if(!text) return {};
+  if(!text) return state;
   try{
     const parsed=JSON.parse(text);
-    if(!parsed || typeof parsed!=='object' || Array.isArray(parsed)) return {};
-    const scores=(parsed.scores && typeof parsed.scores==='object' && !Array.isArray(parsed.scores))
-      ? parsed.scores
-      : parsed;
-    const result={};
-    Object.keys(scores || {}).forEach(function(rawSetId){
-      const setId=wmNormalizeCurrentSetIdForMap_(rawSetId);
-      const rounds=scores[rawSetId];
-      if(!setId || !rounds || typeof rounds!=='object' || Array.isArray(rounds)) return;
-      result[setId]={};
-      Object.keys(rounds).forEach(function(roundKey){
-        const score=wmNormalizeScoreForMap_(rounds[roundKey]);
-        if(score) result[setId][String(Math.max(1,Number(roundKey || 1) || 1))]=score;
-      });
-    });
-    return result;
-  }catch(err){
-    return {};
-  }
+    if(parsed && typeof parsed==='object' && !Array.isArray(parsed)){
+      state.v=Number(parsed.v || 2) || 2;
+      state.scores=(parsed.scores && typeof parsed.scores==='object' && !Array.isArray(parsed.scores))
+        ? parsed.scores
+        : parsed;
+    }
+  }catch(err){}
+  return state;
 }
 
-function wmGetLearningMapScoreForSetRound_(setId,roundValue){
+function wmGetLearningMapScoreFromState_(setId,roundValue){
   const plain=wmNormalizeCurrentSetIdForMap_(setId || '');
   if(!plain) return '';
-  const rounds=wmLearningMapScoreMap_[plain] || {};
-  const round=Math.max(1,Number(roundValue || 1) || 1);
-  return wmNormalizeScoreForMap_(rounds[String(round)] || '');
+
+  const scores=(wmLearningMapScoreStateForMap_ && wmLearningMapScoreStateForMap_.scores) || {};
+  const entry=scores[plain] || scores['WM'+plain];
+  if(entry === undefined || entry === null) return '';
+
+  if(typeof entry!=='object' || Array.isArray(entry)){
+    return wmNormalizeScoreForMap_(entry);
+  }
+
+  const round=Math.max(1,Math.floor(Number(roundValue || 1) || 1));
+  const exact=wmNormalizeScoreForMap_(entry[String(round)] || '');
+  if(exact) return exact;
+
+  const latest=wmNormalizeScoreForMap_(entry.latest || entry.최근점수 || '');
+  if(latest) return latest;
+
+  const numericKeys=Object.keys(entry)
+    .filter(function(key){ return /^\\d+$/.test(key); })
+    .sort(function(a,b){ return Number(b)-Number(a); });
+  for(let i=0;i<numericKeys.length;i++){
+    const score=wmNormalizeScoreForMap_(entry[numericKeys[i]]);
+    if(score) return score;
+  }
+  return '';
 }
 
-function wmApplyLearningMapScoreMapToSetData_(){
+function wmApplyLearningMapScoreJsonToSetData_(){
   if(!Array.isArray(setData) || !setData.length) return false;
   let changed=false;
+
   setData=setData.map(function(item){
     if(!item || item.status!=='complete') return item;
-    const score=wmGetLearningMapScoreForSetRound_(item.set,item.officialRound || item.repeatCount || 1);
+    const score=wmGetLearningMapScoreFromState_(item.set,item.officialRound || item.repeatCount || 1);
     if(!score || wmNormalizeScoreForMap_(item.score || '')===score) return item;
     changed=true;
     return Object.assign({},item,{score:score});
   });
+
   return changed;
 }
 
@@ -3204,15 +3215,6 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
-
-    if(payload && payload.learningMapScoreJson){
-      const restoredScoreMap=wmParseLearningMapScoreMap_(payload.learningMapScoreJson);
-      if(restoredScoreMap && Object.keys(restoredScoreMap).length){
-        wmLearningMapScoreMap_=restoredScoreMap;
-        if(wmApplyLearningMapScoreMapToSetData_()) renderSetMap();
-      }
-    }
-
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
     const paged = !!(payload && payload.learningRecordDbPaged === true && pageSize > 0);
 
@@ -3328,7 +3330,6 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
      현재진행_DB 현재레벨이 확인되면 해당 레벨 맵 전체를 즉시 표시합니다. */
   if(!cacheData || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
 
-  wmLearningMapScoreMap_=cacheData.learningMapScoreMap || wmLearningMapScoreMap_ || {};
   const profileSource = Object.assign({}, (data && (data.studentProfile || data.profile)) || {}, cacheData.raw || {});
   wmStudentProfile = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, profileSource);
   wmCurrentStudent = wmMergeStudentPreserveValues_(wmCurrentStudent || {}, wmStudentProfile || {});
@@ -3405,7 +3406,9 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   /* WM_MAP_CURRENT_PROGRESS_SAFE_RENDER_20260707_V2
      현재진행_DB의 완료세트수/전체세트수 값이 컬럼 밀림으로 틀어질 수 있으므로
-     세트 블럭 색상과 히스토리는 학습기록_DB records + setStatusMap 공식으로 렌더링합니다. */
+     세트 블럭 색상과 히스토리는 학습기록_DB records + setStatusMap 공식으로 렌더링합니다.
+     점수는 현재진행_DB에 사전구축된 학습맵점수JSON을 같은 렌더 사이클에서 즉시 적용합니다. */
+  wmLearningMapScoreStateForMap_ = cacheData.learningMapScoreState || {v:2,scores:{}};
   wmApplyLearningMapStatus(wmLastLearningMapData);
 
   const sequence = wmBuildLevelSetData(currentLevelNumber).map(function(item){ return item.set; });
@@ -4388,7 +4391,6 @@ function wmApplyLearningMapStatus(mapData){
     const statusInfo = getStatusInfoForSet(item.set);
     const officialRound = Number((sequentialState.officialRoundMap || {})[item.set] || 0);
     const recordInfo = getRecordInfoForSet(item.set, officialRound);
-    const storedMapScore = wmGetLearningMapScoreForSetRound_(item.set, officialRound);
     const isOfficialCurrent = !!officialCurrentSet && normalizeSetIdForMap_(item.set) === officialCurrentSet;
     const isComplete = !isOfficialCurrent && officialRound > 0;
     const recordRepeatCount = wmGetRepeatCountFromRecordsForMap_(records, item.set, normalizeSetIdForMap_, isCompletedRecord_);
@@ -4406,7 +4408,7 @@ function wmApplyLearningMapStatus(mapData){
         officialRound:Number(sequentialState.targetLimit || 1),
         targetRoundLimit:Number(sequentialState.targetLimit || 1),
         levelComplete:true,
-        score:String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || storedMapScore || statusInfo.latestScore || statusInfo.score || '-').trim() || '-',
+        score:String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || statusInfo.latestScore || statusInfo.score || '-').trim() || '-',
         latestDate:String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
       };
     }
@@ -4420,7 +4422,7 @@ function wmApplyLearningMapStatus(mapData){
         officialRound: officialRound,
         targetRoundLimit: Number(sequentialState.targetLimit || 1),
         levelComplete: forceLevelDone || !!sequentialState.levelComplete,
-        score: String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || storedMapScore || (officialRound === 1 ? (statusInfo.latestScore || statusInfo.score) : '') || '-').trim() || '-',
+        score: String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || (officialRound === 1 ? (statusInfo.latestScore || statusInfo.score) : '') || '-').trim() || '-',
         latestDate: String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
       };
     }
@@ -4453,6 +4455,7 @@ function wmApplyLearningMapStatus(mapData){
     };
   });
 
+  wmApplyLearningMapScoreJsonToSetData_();
   wmMapDataReady = true;
   wmStopMapLoadingState_();
   renderSetMap();
