@@ -4839,11 +4839,9 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       }
       if(scope==='records'){
         WM_RECORD_MANAGE_PAGE = 1;
-        if(WM_RECORD_MANAGE_ROWS && WM_RECORD_MANAGE_ROWS.length){
-          renderRecordManageRows();
-        }else{
-          loadRecords();
-        }
+        /* WM_LMS_RECORD_SEARCH_SERVER_REFRESH_V1_20260822
+           검색은 최초 25행 캐시를 재필터링하지 않고 서버에서 조건에 맞는 실제 기록을 다시 조회합니다. */
+        loadRecords({search:true});
         return;
       }
       if(scope==='currentProgress'){
@@ -4917,8 +4915,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       }
       if(scope==='records'){
         WM_RECORD_MANAGE_PAGE = 1;
-        if(WM_RECORD_MANAGE_ROWS && WM_RECORD_MANAGE_ROWS.length) renderRecordManageRows();
-        else loadRecords();
+        loadRecords();
         return;
       }
       if(scope==='reports'){
@@ -5825,32 +5822,67 @@ function extractRecordRowsFromResponse(data){
       return rows;
     }
 
-    async function loadRecords(){
+    function wmBuildLmsRecordSearchUrl_(){
+      const params = new URLSearchParams();
+      params.set('mode','records');
+      params.set('search','1');
+      params.set('studentId', getFilterValue('records','studentId'));
+      params.set('studentName', getFilterValue('records','studentName'));
+      params.set('teacher', getFilterValue('records','teacher'));
+      params.set('leader', getFilterValue('records','leader'));
+      params.set('className', getFilterValue('records','class'));
+      params.set('school', getFilterValue('records','school'));
+      params.set('region', getFilterValue('records','region'));
+      params.set('level', getFilterValue('records','level'));
+
+      const dateStart = getFilterValue('records','dateStart');
+      const dateEnd = getFilterValue('records','dateEnd');
+      if(dateStart) params.set('dateStart', dateStart);
+      if(dateEnd) params.set('dateEnd', dateEnd);
+      if(!dateStart && !dateEnd) params.set('allDates','1');
+
+      params.set('ts', String(Date.now()));
+      return WM_APPS_SCRIPT_URL + '?' + params.toString() + wmLmsActorQuery();
+    }
+
+    function wmHasLmsRecordSearchCondition_(){
+      return ['studentId','studentName','teacher','leader','class','school','region','level','dateStart','dateEnd']
+        .some(function(key){ return !!String(getFilterValue('records',key) || '').trim(); });
+    }
+
+    async function loadRecords(options){
       const tbody = document.getElementById('recordManageTbody');
       setManageLoading('records', true);
       if(tbody) tbody.innerHTML = '<tr><td colspan="27">학습기록_DB 조회 중입니다.</td></tr>';
 
       try{
+        const opts = options || {};
+        const searchMode = opts.search === true && wmHasLmsRecordSearchCondition_();
         let rows = [];
-        const urls = [
-          WM_APPS_SCRIPT_URL + '?mode=records&initial=1&limit=25&ts=' + Date.now() + wmLmsActorQuery(),
-          WM_APPS_SCRIPT_URL + '?mode=profile&ts=' + Date.now(),
-          WM_APPS_SCRIPT_URL + '?studentId=&studentName=&ts=' + Date.now()
-        ];
 
-        for(const url of urls){
-          rows = await fetchRecordRowsByUrl(url);
-          if(rows.length) break;
-        }
+        if(searchMode){
+          rows = await fetchRecordRowsByUrl(wmBuildLmsRecordSearchUrl_());
+        }else{
+          const urls = [
+            WM_APPS_SCRIPT_URL + '?mode=records&initial=1&limit=25&ts=' + Date.now() + wmLmsActorQuery(),
+            WM_APPS_SCRIPT_URL + '?mode=profile&ts=' + Date.now(),
+            WM_APPS_SCRIPT_URL + '?studentId=&studentName=&ts=' + Date.now()
+          ];
 
-        if(!rows.length){
-          rows = await readSheetRows(['2.학습기록_DB','학습기록_DB','records']);
+          for(const url of urls){
+            rows = await fetchRecordRowsByUrl(url);
+            if(rows.length) break;
+          }
+
+          if(!rows.length){
+            rows = await readSheetRows(['2.학습기록_DB','학습기록_DB','records']);
+          }
         }
 
         WM_RECORD_MANAGE_ROWS = normalizeRows(rows);
         renderRecordManageRows();
         setManageLoading('records', false);
-        console.log('학습기록_DB 첫화면 최소조회 성공:', WM_RECORD_MANAGE_ROWS);
+        console.log('학습기록_DB 조회 성공:', WM_RECORD_MANAGE_ROWS);
         return WM_RECORD_MANAGE_ROWS;
       }catch(err){
         console.error('학습기록_DB 로드 실패', err);

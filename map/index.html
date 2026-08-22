@@ -763,6 +763,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
         <button class="reset-btn" onclick="resetHomeworkFilters()">검색초기화</button>
 
       </div>
+      <div class="wm-homework-search-limit-note">*검색 최장 기간은 3년입니다.</div>
 
       <div class="record-summary">
 
@@ -1026,7 +1027,15 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 .wm-homework-control-box .filter-box{
-  margin-bottom:12px;
+  margin-bottom:8px;
+}
+
+.wm-homework-search-limit-note{
+  margin:0 2px 10px;
+  color:#64748b;
+  font-size:11px;
+  line-height:1.35;
+  text-align:right;
 }
 
 .wm-homework-control-box .record-summary{
@@ -3236,7 +3245,7 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
     wmBottomRecordsDirectLoading = false;
 
     if(payload && payload.learningRecordDbRangeError){
-      alert(payload.message || '학습기록 검색은 최대 1개월 단위로 가능합니다.');
+      wmShowHomeworkSearchNotice_('1개월 단위로 검색이 가능합니다.');
       if(typeof done === 'function') done(payload);
       return;
     }
@@ -3252,12 +3261,18 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
     wmHomeworkCurrentPage = paged ? Math.max(1, Number(payload.learningRecordDbPage || requestedPage)) : 1;
     wmLearningRecords = directRecords;
 
+    const isSearchResult = reason === 'search' || reason === 'homework-page';
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, paged ? {
       serverPage:true,
       serverPageNumber:wmHomeworkCurrentPage,
       serverHasMore:wmHomeworkServerHasMore,
-      skipPeriod:true
-    } : {});
+      skipPeriod:true,
+      requestComplete:true,
+      emptyState:isSearchResult ? 'search' : 'initial'
+    } : {
+      requestComplete:true,
+      emptyState:isSearchResult ? 'search' : 'initial'
+    });
 
     if(typeof done === 'function') done(payload || {});
   }
@@ -5013,7 +5028,13 @@ function renderHomeworkTable(records, profile, options){
 
   if(!Array.isArray(records) || records.length === 0){
     wmHomeworkCurrentSourceRecords = [];
-    tbody.innerHTML = '<tr><td colspan="20">학습기록을 불러오는 중입니다.</td></tr>';
+    let emptyMessage = '학습기록을 불러오는 중입니다.';
+    if(opts.requestComplete === true){
+      emptyMessage = opts.emptyState === 'search'
+        ? '검색한 기간에 학습기록이 없습니다.'
+        : '아직 학습기록이 없습니다.';
+    }
+    tbody.innerHTML = '<tr><td colspan="20">' + emptyMessage + '</td></tr>';
     wmUpdateHomeworkPager_(0);
     wmInitHomeworkTopScrollbar();
     return;
@@ -5363,6 +5384,18 @@ function wmGetHomeworkSearchLevelFromSetId_(setId){
   return match ? match[1] : '';
 }
 
+function wmShowHomeworkSearchNotice_(message){
+  alert('영어잡는 Word Mate\n\n' + String(message || ''));
+}
+
+function wmGetHomeworkStudentSearchEarliestDate_(){
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const earliest = new Date(now);
+  earliest.setFullYear(earliest.getFullYear() - 3);
+  return earliest;
+}
+
 function filterHomeworkRecords(){
   /* WM_HOMEWORK_SERVER_1MONTH_SEARCH_V1_20260822
      검색은 전체 학습기록을 브라우저로 가져오지 않습니다.
@@ -5405,10 +5438,16 @@ function filterHomeworkRecords(){
       return;
     }
 
+    const earliest = wmGetHomeworkStudentSearchEarliestDate_();
+    if(start < earliest || end < earliest){
+      wmShowHomeworkSearchNotice_('검색 최장 기간은 3년입니다.');
+      return;
+    }
+
     const limit = new Date(start.getTime());
     limit.setMonth(limit.getMonth() + 1);
     if(end > limit){
-      alert('1개월씩 검색해주세요.');
+      wmShowHomeworkSearchNotice_('1개월 단위로 검색이 가능합니다.');
       return;
     }
   }else{
