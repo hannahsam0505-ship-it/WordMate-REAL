@@ -1826,6 +1826,9 @@ const WM_HOMEWORK_DEFAULT_MONTHS = 3;
 const WM_HOMEWORK_DEFAULT_PERIOD_RANGE = '0-3';
 let wmHomeworkCurrentPage = 1;
 let wmHomeworkCurrentSourceRecords = [];
+let wmHomeworkServerPaged = false;
+let wmHomeworkServerTotalRows = 0;
+let wmHomeworkAllRecordsLoaded = false;
 
 function wmGetApiBaseUrl(){
   return String(WM_CONFIG.APPS_SCRIPT_URL || '').trim().split('?')[0];
@@ -2951,26 +2954,37 @@ function wmPickLearningRecordsFromPayload_(data, cacheData){
   return [];
 }
 
-function wmLoadLearningRecordsDirectForMap_(reason){
-  /* WM_MAP_BOTTOM_RECORDS_DIRECT_LOAD_20260707_V1
-     getLearningMapCacheData 응답의 records/learningRecords/최근30건JSON이 비어 있을 때,
-     하단 학습기록만 2.학습기록_DB 직접 조회 API로 다시 채웁니다. */
+function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
+  /* WM_MAP_RECORD_FIRST_PAGE_ONLY_V1_20260822
+     최초/복귀 Map은 2.학습기록_DB 첫 페이지 15행만 요청합니다.
+     다음/이전 페이지는 클릭 시 해당 페이지만 요청하고, 검색을 실행할 때만 기존 전체기록 API를 사용합니다. */
   if(wmBottomRecordsDirectLoading) return;
 
   const student = wmCurrentStudent || wmStudentProfile || {};
   const studentId = String(student.학생ID || student.studentId || '').trim();
   if(!studentId) return;
 
+  const requestedPage = Math.max(1, Math.floor(Number(page || 1) || 1));
+  const requestAll = loadAll === true;
+  const pageSize = requestAll ? 0 : WM_HOMEWORK_PAGE_SIZE;
+  const fromDate = requestAll ? '' : wmGetHomeworkPeriodDateTextByMonthsAgo_(WM_HOMEWORK_DEFAULT_MONTHS);
   wmBottomRecordsDirectLoading = true;
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
     const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
+    const paged = !!(payload && payload.learningRecordDbPaged === true && pageSize > 0);
 
     wmBottomRecordsDetailedLoaded = payload && payload.learningRecordDbDirect === true;
+    wmHomeworkServerPaged = paged;
+    wmHomeworkAllRecordsLoaded = !paged && !!(payload && payload.learningRecordDbDirect === true);
+    wmHomeworkServerTotalRows = paged ? Math.max(0, Number(payload.learningRecordDbTotalCount || 0)) : directRecords.length;
+    wmHomeworkCurrentPage = paged ? Math.max(1, Number(payload.learningRecordDbPage || requestedPage)) : 1;
+
     if(!directRecords.length){
-      const tbody = document.getElementById('homeworkTableBody');
-      if(tbody) tbody.innerHTML = '<tr><td colspan="20">표시할 학습기록이 없습니다.</td></tr>';
+      wmLearningRecords = [];
+      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent, paged ? {serverPage:true,totalRows:wmHomeworkServerTotalRows,serverPageNumber:wmHomeworkCurrentPage,skipPeriod:true} : {});
+      if(typeof done === 'function') done(payload || {});
       return;
     }
 
@@ -2979,19 +2993,26 @@ function wmLoadLearningRecordsDirectForMap_(reason){
       wmLastLearningMapData.records = directRecords;
       wmApplyLearningMapStatus(wmLastLearningMapData);
     }
-    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, paged ? {
+      serverPage:true,
+      totalRows:wmHomeworkServerTotalRows,
+      serverPageNumber:wmHomeworkCurrentPage,
+      skipPeriod:true
+    } : {});
     updateRecentScore(wmLearningRecords);
+    if(typeof done === 'function') done(payload || {});
   }
 
   function failPayload(){
     wmBottomRecordsDirectLoading = false;
+    if(typeof done === 'function') done(null);
   }
 
   if(window.google && google.script && google.script.run){
     google.script.run
       .withSuccessHandler(applyPayload)
       .withFailureHandler(failPayload)
-      .getLearningRecordsForMapData(studentId);
+      .getLearningRecordsForMapData(studentId, requestedPage, pageSize, fromDate);
     return;
   }
 
@@ -2999,6 +3020,9 @@ function wmLoadLearningRecordsDirectForMap_(reason){
     + '?mode=getLearningRecordsForMapData'
     + '&action=getLearningRecordsForMapData'
     + '&studentId=' + encodeURIComponent(studentId)
+    + '&page=' + encodeURIComponent(requestedPage)
+    + '&pageSize=' + encodeURIComponent(pageSize)
+    + '&fromDate=' + encodeURIComponent(fromDate)
     + '&t=' + Date.now();
 
   fetch(url)
@@ -3023,6 +3047,40 @@ function wmNormalizeLearningRecordForBottomTable_(record, data){
   r.완료상태 = r.완료상태 || r.status || r.latestStatus || '';
   r.완료 = r.완료 || r.completeRound || r.round || '';
   return r;
+}
+
+let wmStudyWarmSetId_ = '';
+function wmWarmCurrentStudyContentFromMap_(setId){
+  /* WM_MAP_STUDY_CONTENT_WARM_V1_20260822
+     Map의 현재진행_DB가 현재 학습세트를 확정한 뒤 getSetData 서버 캐시를 백그라운드에서 미리 준비합니다.
+     Map 첫 화면/학습기록 렌더를 막지 않으며 Study 진입 때 콘텐츠 DB 조회 대기를 줄입니다. */
+  const plainSetId = wmNormalizeCurrentSetIdForMap_(setId || '');
+  if(!plainSetId) return;
+  const normalizedSetId = 'WM' + plainSetId;
+  if(wmStudyWarmSetId_ === normalizedSetId) return;
+  wmStudyWarmSetId_ = normalizedSetId;
+
+  const callbackName = 'wmMapStudyWarm_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  let script = null;
+  let finished = false;
+  function cleanup(){
+    try{ delete window[callbackName]; }catch(err){ window[callbackName] = undefined; }
+    if(script && script.parentNode) script.parentNode.removeChild(script);
+  }
+  window[callbackName] = function(){
+    if(finished) return;
+    finished = true;
+    cleanup();
+  };
+  script = document.createElement('script');
+  script.src = wmGetApiBaseUrl()
+    + '?action=getSetData'
+    + '&set_id=' + encodeURIComponent(normalizedSetId)
+    + '&callback=' + encodeURIComponent(callbackName)
+    + '&t=' + Date.now();
+  script.onerror = function(){ if(finished) return; finished = true; cleanup(); };
+  document.body.appendChild(script);
+  window.setTimeout(function(){ if(finished) return; finished = true; cleanup(); }, 10000);
 }
 
 function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
@@ -3135,6 +3193,7 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
 
   renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
   wmShowLearningModeBanner();
+  window.setTimeout(function(){ wmWarmCurrentStudyContentFromMap_(cacheData.currentSet); }, 200);
   return true;
 }
 
@@ -4643,6 +4702,13 @@ function wmUpdateHomeworkPager_(totalRows){
 }
 
 function wmMoveHomeworkPage_(direction){
+  if(wmHomeworkServerPaged && !wmHomeworkAllRecordsLoaded){
+    const totalPages = Math.max(1, Math.ceil(wmHomeworkServerTotalRows / WM_HOMEWORK_PAGE_SIZE));
+    const nextPage = Math.min(totalPages, Math.max(1, wmHomeworkCurrentPage + Number(direction || 0)));
+    if(nextPage === wmHomeworkCurrentPage) return;
+    wmLoadLearningRecordsDirectForMap_('homework-page', nextPage, false);
+    return;
+  }
   const totalRows = wmHomeworkCurrentSourceRecords.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / WM_HOMEWORK_PAGE_SIZE));
   wmHomeworkCurrentPage = Math.min(totalPages, Math.max(1, wmHomeworkCurrentPage + Number(direction || 0)));
@@ -4668,6 +4734,17 @@ function renderHomeworkTable(records, profile, options){
 
   const sortedRecords = opts.skipPeriod ? wmSortLearningRecordsDesc_(records) : wmApplyHomeworkDefaultPeriod_(records);
   wmHomeworkCurrentSourceRecords = sortedRecords;
+
+  if(opts.serverPage === true){
+    wmHomeworkCurrentPage = Math.max(1, Number(opts.serverPageNumber || wmHomeworkCurrentPage || 1));
+    const serverStartIndex = (wmHomeworkCurrentPage - 1) * WM_HOMEWORK_PAGE_SIZE;
+    tbody.innerHTML = sortedRecords.map(function(record, pageIndex){
+      return wmRenderHomeworkRow(record, serverStartIndex + pageIndex + 1);
+    }).join('');
+    wmUpdateHomeworkPager_(Math.max(0, Number(opts.totalRows || sortedRecords.length)));
+    wmInitHomeworkTopScrollbar();
+    return;
+  }
 
   if(sortedRecords.length === 0){
     tbody.innerHTML = '<tr><td colspan="20">선택한 조회기간에 표시할 학습기록이 없습니다.</td></tr>';
@@ -4935,24 +5012,14 @@ async function wmLogout(){
     + '&sessionToken=' + encodeURIComponent(sessionToken)
     + '&t=' + Date.now();
 
+  /* WM_LOGOUT_IMMEDIATE_KEEPALIVE_V1_20260822
+     학생이 기다리는 것은 현재세션 종료 응답이 아니라 로그인 화면 전환입니다.
+     서버의 현재세션/LOGOUT 갱신 요청은 keepalive로 계속 보내고 브라우저 로그인정보는 즉시 정리해 이동합니다. */
   try{
-    const response = await fetch(logoutUrl, { cache:'no-store' });
-    const data = await response.json();
-
-    if(!response.ok || !data || data.success !== true || data.cleared !== true){
-      wmLogoutInProgress = false;
-      wmStartSessionWatcher();
-      alert((data && data.message) || '로그아웃 처리에 실패했습니다. 다시 시도해 주세요.');
-      return;
-    }
-
-    wmClearLoginStorage();
-    window.top.location.replace(WM_LOGIN_URL);
-  }catch(err){
-    wmLogoutInProgress = false;
-    wmStartSessionWatcher();
-    alert('로그아웃 서버 연결에 실패했습니다. 다시 시도해 주세요.');
-  }
+    fetch(logoutUrl, { cache:'no-store', keepalive:true }).catch(function(){});
+  }catch(err){}
+  wmClearLoginStorage();
+  window.top.location.replace(WM_LOGIN_URL);
 }
 
 function printRecords(){
@@ -5020,6 +5087,13 @@ function filterHomeworkRecords(){
   const startDate = (document.getElementById('startDate')?.value || '').trim();
   const endDate = (document.getElementById('endDate')?.value || '').trim();
   const hasFilter = !!(setKeyword || levelKeywordRaw || month || week || startDate || endDate);
+
+  if(hasFilter && wmHomeworkServerPaged && !wmHomeworkAllRecordsLoaded){
+    wmLoadLearningRecordsDirectForMap_('search-full', 1, true, function(payload){
+      if(payload) filterHomeworkRecords();
+    });
+    return;
+  }
 
   if(!hasFilter){
     wmRenderHomeworkForActiveLevel_();

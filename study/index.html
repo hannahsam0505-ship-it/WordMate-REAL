@@ -3693,6 +3693,10 @@ function queueStepSave(status){
         wmStepSaveLastError = result;
       }else if(wmIsSaveSuccess(result)){
         wmStepSaveLastError = null;
+        /* WM_STEP_RETURN_CURRENT_PROGRESS_READY_V1_20260822
+           Step 저장 응답에 이미 포함된 현재진행_DB 1행을 즉시 복귀용으로 보관합니다.
+           나가기 때 저장/현재진행 재조회를 새로 만들지 않습니다. */
+        wmCacheCurrentProgressForMapReturn_(result);
       }
       return result;
     })
