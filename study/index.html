@@ -2380,6 +2380,54 @@ function wmTrackStepWrong_(list,item){
   if(!list.some(function(w){ return String((w && w.word) || '').trim().toLowerCase() === key; })) list.push(item);
 }
 
+/* WM_REQUIRED_WRONG_REVIEW_GATE_V1_20260822
+   Step2 / Step3 / Step4 / TEST 한영주관식은 틀린단어가 1개라도 남아 있으면
+   다음 Step·다음 TEST·다음 Set으로 넘어가지 않고 반드시 재학습을 먼저 실행합니다.
+   기존 오답 판정 기준과 Step4 최종(0%) 오답 기준은 변경하지 않습니다. */
+function wmStartRequiredWrongReview_(kind, wrongList){
+  const pending=Array.isArray(wrongList) ? wrongList.filter(Boolean) : [];
+  if(!pending.length) return false;
+
+  if(kind==="STEP2"){
+    currentWords=shuffle(pending);
+    step2Wrong=[];
+    index=0;
+    isStep2Review=true;
+    render();
+    return true;
+  }
+
+  if(kind==="STEP3"){
+    currentWords=shuffle(pending);
+    step3Wrong=[];
+    index=0;
+    isStep3Review=true;
+    render();
+    return true;
+  }
+
+  if(kind==="STEP4"){
+    currentWords=shuffle(pending);
+    memoryWrong=[];
+    index=0;
+    isMemoryReview=true;
+    memoryPhase=0;
+    memoryCount=0;
+    memoryLocked=false;
+    render();
+    return true;
+  }
+
+  if(kind==="TEST_KO_ENG"){
+    testWords=[...pending];
+    app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning wm-subjective-retry-note">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
+    afterScreenRender();
+    return true;
+  }
+
+  return false;
+}
+
 function wmStepWrongBadgeHtml_(stepNumber,count){
   return `<div id="wm-step-wrong-badge" class="wm-step-wrong-badge">Step ${stepNumber} 틀린단어 ${Number(count || 0)}개</div>`;
 }
@@ -4730,7 +4778,7 @@ function checkStep2(button,selected,correct,wordIndex){
 function nextStep2(){
   index++;
   if(index>=currentWords.length){
-    if(step2Wrong.length>0){currentWords=shuffle(step2Wrong);step2Wrong=[];index=0;isStep2Review=true;render();return;}
+    if(wmStartRequiredWrongReview_("STEP2",step2Wrong)) return;
     completeStepThen("step2_choose_meaning", "Step 2 Choose meaning", function(){
       stage=3;
       index=0;
@@ -4790,7 +4838,7 @@ function checkStep3(button,selectedIndex,wordIndex){
 function nextStep3(){
   index++;
   if(index>=currentWords.length){
-    if(step3Wrong.length>0){currentWords=shuffle(step3Wrong);step3Wrong=[];index=0;isStep3Review=true;render();return;}
+    if(wmStartRequiredWrongReview_("STEP3",step3Wrong)) return;
     completeStepThen("step3_choose_english", "Step 3 Choose English", function(){
       index=0;
       currentWords=shuffle(originalWords);
@@ -4882,7 +4930,7 @@ function nextMemory(){
   if(memoryCount>=currentStep.count){memoryCount=0;memoryPhase++;}
   if(memoryPhase>=getActiveMemorySteps().length){memoryPhase=0;index++;}
   if(index>=currentWords.length){
-    if(memoryWrong.length>0){currentWords=shuffle(memoryWrong);memoryWrong=[];index=0;isMemoryReview=true;memoryPhase=0;memoryCount=0;render();return;}
+    if(wmStartRequiredWrongReview_("STEP4",memoryWrong)) return;
     if(afterMemoryAction==="testRetake"){afterMemoryAction=null;startRetest();return;}
     completeStepThen("step4_memory", "Step 4 Memory", function(){
       stage=6;
@@ -5201,6 +5249,10 @@ function renderTestResult(test,score,total,wrongs){
 function continueAfterTestResult(){
   const test=getTestList()[testIndex];
   if(currentTestWrongs.length===0){goNextTest();return;}
+  if(test.type==="write" && test.direction==="ko-eng"){
+    if(wmStartRequiredWrongReview_("TEST_KO_ENG",currentTestWrongs)) return;
+  }
+
   testWords=[...currentTestWrongs];
   if(test.type==="choice" || (test.type==="write" && test.direction==="eng-ko")){
     isRetest=true;
@@ -5208,8 +5260,6 @@ function continueAfterTestResult(){
     afterScreenRender();
     return;
   }
-  app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><div class="wm-meaning wm-subjective-retry-note">주관식 한영 오답은 Memory 학습 후 재시험을 봅니다.</div><button class="wm-btn" onclick="startSubjectiveMemory()">오답 학습 시작</button></div>`;
-  afterScreenRender();
 }
 
 function startSubjectiveMemory(){
