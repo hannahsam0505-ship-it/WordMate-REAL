@@ -5226,7 +5226,15 @@ function submitTest(){
     if(test.direction==="ko-eng") isCorrect=WM_STUDY_LOCKS.WRITING_EXACT.wmIsExactEnglishAnswer(userAnswer,item.word);
     const question=test.direction==="eng-ko"?item.word:item.meaning;
     const correctAnswer=test.direction==="eng-ko"?item.meaning:item.word;
-    currentTestResults.push({item,question,correctAnswer,userAnswer,isCorrect});
+    let userChoiceIndex=-1;
+    let correctChoiceIndex=-1;
+    if(test.type==="choice"){
+      const checked=document.querySelector(`input[name="q${i}"]:checked`);
+      if(checked) userChoiceIndex=Number(checked.getAttribute("data-option-index"));
+      const correctChoice=Array.from(document.querySelectorAll(`input[name="q${i}"]`)).find(input=>input.value===correctAnswer);
+      if(correctChoice) correctChoiceIndex=Number(correctChoice.getAttribute("data-option-index"));
+    }
+    currentTestResults.push({item,question,correctAnswer,userAnswer,isCorrect,userChoiceIndex,correctChoiceIndex});
     if(isCorrect) correctCount++;
     else{
       wrongs.push(item);
@@ -5243,7 +5251,12 @@ function submitTest(){
 function renderTestResult(test,score,total,wrongs){
   const percent=Math.round((score/total)*100);
   const splitIndex=Math.ceil(currentTestResults.length/2);
-  const resultItemHtml=(r,i)=>`<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${r.userAnswer || "(빈칸)"}</div><div class="a-red">정답 : ${r.correctAnswer}</div></div></div>`;
+  const circledChoice=["①","②","③","④","⑤"];
+  const resultItemHtml=(r,i)=>{
+    const userAnswerText=test.type==="choice" && r.userAnswer ? `${circledChoice[r.userChoiceIndex] || ""} ${r.userAnswer}`.trim() : (r.userAnswer || "(빈칸)");
+    const correctAnswerText=test.type==="choice" ? `${circledChoice[r.correctChoiceIndex] || ""} ${r.correctAnswer}`.trim() : r.correctAnswer;
+    return `<div class="result-item"><div class="result-num-wrap"><div class="result-num">${i+1}</div>${r.isCorrect?`<div class="mark-circle"></div>`:`<div class="mark-slash"></div>`}</div><div><div class="q-blue">문제 : ${r.question}</div><div class="a-black">내답 : ${userAnswerText}</div><div class="a-red">정답 : ${correctAnswerText}</div></div></div>`;
+  };
   const leftResults=currentTestResults.slice(0,splitIndex).map((r,i)=>resultItemHtml(r,i)).join("");
   const rightResults=currentTestResults.slice(splitIndex).map((r,i)=>resultItemHtml(r,i+splitIndex)).join("");
   app.innerHTML=`<div class="wm-card wm-test-card">${wmSetBadgeHtml()}<div class="wm-title">${wmGetTestScreenTitle(test)}</div><div class="score-area"><div class="score-big">${percent}점</div><div class="score-side-info">날짜 : ${todayString()}<br>이름 : ${STUDENT_NAME}</div></div><div class="wm-small">${score} / ${total}</div><div class="result-list wm-result-grid"><div class="wm-result-column">${leftResults}</div><div class="wm-result-column">${rightResults}</div></div><button class="wm-btn" onclick="continueAfterTestResult()">다음</button></div>`;
