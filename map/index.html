@@ -847,7 +847,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
       <div class="homework-pager" id="homeworkPager">
         <button type="button" onclick="wmMoveHomeworkPage_(-1)">이전</button>
-        <span id="homeworkPageInfo">1 / 1</span>
+        <span id="homeworkPageInfo">1페이지</span>
         <button type="button" onclick="wmMoveHomeworkPage_(1)">다음</button>
       </div>
 
@@ -1824,13 +1824,15 @@ let wmMapWrongWordLoadState_ = 'idle';
 let wmMapWrongWordContextSerial_ = 0;
 const wmMapWrongWordContexts_ = {};
 const WM_HOMEWORK_PAGE_SIZE = 15;
-const WM_HOMEWORK_DEFAULT_MONTHS = 3;
-const WM_HOMEWORK_DEFAULT_PERIOD_RANGE = '0-3';
+const WM_HOMEWORK_DEFAULT_MONTHS = 1;
+const WM_HOMEWORK_DEFAULT_PERIOD_RANGE = '0-1';
 let wmHomeworkCurrentPage = 1;
 let wmHomeworkCurrentSourceRecords = [];
 let wmHomeworkServerPaged = false;
 let wmHomeworkServerTotalRows = 0;
 let wmHomeworkAllRecordsLoaded = false;
+let wmHomeworkServerHasMore = false;
+let wmHomeworkServerQuery_ = null;
 
 function wmGetApiBaseUrl(){
   return String(WM_CONFIG.APPS_SCRIPT_URL || '').trim().split('?')[0];
@@ -3197,10 +3199,10 @@ function wmPickLearningRecordsFromPayload_(data, cacheData){
   return [];
 }
 
-function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
-  /* WM_MAP_RECORD_FIRST_PAGE_ONLY_V1_20260822
-     최초/복귀 Map은 2.학습기록_DB 첫 페이지 15행만 요청합니다.
-     다음/이전 페이지는 클릭 시 해당 페이지만 요청하고, 검색을 실행할 때만 기존 전체기록 API를 사용합니다. */
+function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
+  /* WM_MAP_RECORD_1MONTH_HASMORE_ONLY_V1_20260822
+     최초/복귀/검색 모두 1개월 범위에서 15개씩만 요청합니다.
+     전체조회와 전체페이지수 계산은 사용하지 않고 다음 1개 존재여부(hasMore)만 받습니다. */
   if(wmBottomRecordsDirectLoading) return;
 
   const student = wmCurrentStudent || wmStudentProfile || {};
@@ -3208,40 +3210,55 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
   if(!studentId) return;
 
   const requestedPage = Math.max(1, Math.floor(Number(page || 1) || 1));
-  const requestAll = loadAll === true;
-  const pageSize = requestAll ? 0 : WM_HOMEWORK_PAGE_SIZE;
-  const fromDate = requestAll ? '' : wmGetHomeworkPeriodDateTextByMonthsAgo_(WM_HOMEWORK_DEFAULT_MONTHS);
+  const pageSize = WM_HOMEWORK_PAGE_SIZE;
+  const requestQuery = query || ((reason === 'homework-page') ? wmHomeworkServerQuery_ : null) || null;
+  const fromDate = String(
+    requestQuery && requestQuery.fromDate
+      ? requestQuery.fromDate
+      : wmGetHomeworkPeriodDateTextByMonthsAgo_(WM_HOMEWORK_DEFAULT_MONTHS)
+  ).trim();
+  const toDate = String(
+    requestQuery && requestQuery.toDate
+      ? requestQuery.toDate
+      : wmGetHomeworkPeriodDateTextByMonthsAgo_(0)
+  ).trim();
+  const searchFilter = requestQuery ? {
+    setKeyword:String(requestQuery.setKeyword || '').trim(),
+    levelKeyword:String(requestQuery.levelKeyword || '').trim(),
+    month:String(requestQuery.month || '').trim(),
+    week:String(requestQuery.week || '').trim()
+  } : {};
+
+  wmHomeworkServerQuery_ = requestQuery;
   wmBottomRecordsDirectLoading = true;
 
   function applyPayload(payload){
     wmBottomRecordsDirectLoading = false;
-    const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
-    const paged = !!(payload && payload.learningRecordDbPaged === true && pageSize > 0);
 
-    wmBottomRecordsDetailedLoaded = payload && payload.learningRecordDbDirect === true;
-    wmHomeworkServerPaged = paged;
-    wmHomeworkAllRecordsLoaded = !paged && !!(payload && payload.learningRecordDbDirect === true);
-    wmHomeworkServerTotalRows = paged ? Math.max(0, Number(payload.learningRecordDbTotalCount || 0)) : directRecords.length;
-    wmHomeworkCurrentPage = paged ? Math.max(1, Number(payload.learningRecordDbPage || requestedPage)) : 1;
-
-    if(!directRecords.length){
-      wmLearningRecords = [];
-      renderHomeworkTable([], wmStudentProfile || wmCurrentStudent, paged ? {serverPage:true,totalRows:wmHomeworkServerTotalRows,serverPageNumber:wmHomeworkCurrentPage,skipPeriod:true} : {});
-      if(typeof done === 'function') done(payload || {});
+    if(payload && payload.learningRecordDbRangeError){
+      alert(payload.message || '학습기록 검색은 최대 1개월 단위로 가능합니다.');
+      if(typeof done === 'function') done(payload);
       return;
     }
 
+    const directRecords = wmSortLearningRecordsDesc_(wmPickLearningRecordsFromPayload_(payload || {}, null));
+    const paged = !!(payload && payload.learningRecordDbPaged === true);
+
+    wmBottomRecordsDetailedLoaded = payload && payload.learningRecordDbDirect === true;
+    wmHomeworkServerPaged = paged;
+    wmHomeworkAllRecordsLoaded = false;
+    wmHomeworkServerHasMore = !!(payload && payload.learningRecordDbHasMore === true);
+    wmHomeworkServerTotalRows = 0;
+    wmHomeworkCurrentPage = paged ? Math.max(1, Number(payload.learningRecordDbPage || requestedPage)) : 1;
     wmLearningRecords = directRecords;
 
-    /* WM_MAP_BOTTOM_RECORDS_NEVER_REWRITE_TOP_V1_20260822
-       하단 첫 15개/페이지 이동 기록은 하단 표 전용입니다.
-       현재진행_DB로 이미 그린 상단 세트상태·진행률·최근점수를 다시 계산하지 않습니다. */
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, paged ? {
       serverPage:true,
-      totalRows:wmHomeworkServerTotalRows,
       serverPageNumber:wmHomeworkCurrentPage,
+      serverHasMore:wmHomeworkServerHasMore,
       skipPeriod:true
     } : {});
+
     if(typeof done === 'function') done(payload || {});
   }
 
@@ -3250,11 +3267,20 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
     if(typeof done === 'function') done(null);
   }
 
+  const searchFilterText = JSON.stringify(searchFilter);
+
   if(window.google && google.script && google.script.run){
     google.script.run
       .withSuccessHandler(applyPayload)
       .withFailureHandler(failPayload)
-      .getLearningRecordsForMapData(studentId, requestedPage, pageSize, fromDate);
+      .getLearningRecordsForMapData(
+        studentId,
+        requestedPage,
+        pageSize,
+        fromDate,
+        toDate,
+        searchFilterText
+      );
     return;
   }
 
@@ -3265,6 +3291,8 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
     + '&page=' + encodeURIComponent(requestedPage)
     + '&pageSize=' + encodeURIComponent(pageSize)
     + '&fromDate=' + encodeURIComponent(fromDate)
+    + '&toDate=' + encodeURIComponent(toDate)
+    + '&searchFilter=' + encodeURIComponent(searchFilterText)
     + '&t=' + Date.now();
 
   fetch(url)
@@ -4661,8 +4689,8 @@ function wmNormalizeLearningRecordDateText_(value){
 }
 
 function wmGetHomeworkPeriodRange_(){
-  /* WM_HOMEWORK_PERIOD_3MONTH_UNIT_ONLY_V1
-     전체 조회는 막고, 학습기록은 항상 3개월 단위 범위 안에서만 표시/검색합니다. */
+  /* WM_HOMEWORK_PERIOD_1MONTH_UNIT_ONLY_V1
+     전체 조회는 막고, 학습기록은 항상 1개월 단위 범위 안에서만 표시/검색합니다. */
   const value = String(document.getElementById('periodFilter')?.value || WM_HOMEWORK_DEFAULT_PERIOD_RANGE).trim();
   const match = value.match(/^(\d+)-(\d+)$/);
   if(!match){
@@ -4936,24 +4964,38 @@ function wmUpdateHomeworkPager_(totalRows){
   const info = document.getElementById('homeworkPageInfo');
   if(!pager || !info) return;
 
-  const totalPages = Math.max(1, Math.ceil(Number(totalRows || 0) / WM_HOMEWORK_PAGE_SIZE));
-  if(wmHomeworkCurrentPage > totalPages) wmHomeworkCurrentPage = totalPages;
   if(wmHomeworkCurrentPage < 1) wmHomeworkCurrentPage = 1;
+  info.textContent = wmHomeworkCurrentPage + '페이지';
 
-  info.textContent = wmHomeworkCurrentPage + ' / ' + totalPages;
   const buttons = pager.querySelectorAll('button');
   if(buttons[0]) buttons[0].disabled = wmHomeworkCurrentPage <= 1;
+
+  if(wmHomeworkServerPaged && !wmHomeworkAllRecordsLoaded){
+    if(buttons[1]) buttons[1].disabled = !wmHomeworkServerHasMore;
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(Number(totalRows || 0) / WM_HOMEWORK_PAGE_SIZE));
   if(buttons[1]) buttons[1].disabled = wmHomeworkCurrentPage >= totalPages;
 }
 
 function wmMoveHomeworkPage_(direction){
   if(wmHomeworkServerPaged && !wmHomeworkAllRecordsLoaded){
-    const totalPages = Math.max(1, Math.ceil(wmHomeworkServerTotalRows / WM_HOMEWORK_PAGE_SIZE));
-    const nextPage = Math.min(totalPages, Math.max(1, wmHomeworkCurrentPage + Number(direction || 0)));
+    const delta = Number(direction || 0);
+    let nextPage = wmHomeworkCurrentPage;
+
+    if(delta < 0){
+      nextPage = Math.max(1, wmHomeworkCurrentPage - 1);
+    }else if(delta > 0){
+      if(!wmHomeworkServerHasMore) return;
+      nextPage = wmHomeworkCurrentPage + 1;
+    }
+
     if(nextPage === wmHomeworkCurrentPage) return;
-    wmLoadLearningRecordsDirectForMap_('homework-page', nextPage, false);
+    wmLoadLearningRecordsDirectForMap_('homework-page', nextPage, false, null, wmHomeworkServerQuery_);
     return;
   }
+
   const totalRows = wmHomeworkCurrentSourceRecords.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / WM_HOMEWORK_PAGE_SIZE));
   wmHomeworkCurrentPage = Math.min(totalPages, Math.max(1, wmHomeworkCurrentPage + Number(direction || 0)));
@@ -4986,7 +5028,8 @@ function renderHomeworkTable(records, profile, options){
     tbody.innerHTML = sortedRecords.map(function(record, pageIndex){
       return wmRenderHomeworkRow(record, serverStartIndex + pageIndex + 1);
     }).join('');
-    wmUpdateHomeworkPager_(Math.max(0, Number(opts.totalRows || sortedRecords.length)));
+    wmHomeworkServerHasMore = opts.serverHasMore === true;
+    wmUpdateHomeworkPager_(sortedRecords.length);
     wmInitHomeworkTopScrollbar();
     return;
   }
@@ -5321,9 +5364,9 @@ function wmGetHomeworkSearchLevelFromSetId_(setId){
 }
 
 function filterHomeworkRecords(){
-  /* WM_HOMEWORK_ALL_LEVEL_FILTER_RESTORE_V2
-     검색은 현재레벨 화면에 보이는 행만이 아니라 전체 학습기록_DB(wmLearningRecords)를 대상으로 합니다.
-     따라서 완료레벨/현재레벨의 세트와 레벨을 모두 검색할 수 있습니다. */
+  /* WM_HOMEWORK_SERVER_1MONTH_SEARCH_V1_20260822
+     검색은 전체 학습기록을 브라우저로 가져오지 않습니다.
+     서버에서 최대 1개월 범위 + 15개 단위로 필터링하고 hasMore만 받습니다. */
   const setKeyword = (document.getElementById('setKeyword')?.value || '').trim().toUpperCase().replace(/^WM/, '');
   const levelKeywordRaw = (document.getElementById('levelKeyword')?.value || '').trim();
   const levelMatch = levelKeywordRaw.match(/^(3|4|5|6|7|8|9|10|11|12|13)(?:\s*레벨)?$/);
@@ -5334,15 +5377,15 @@ function filterHomeworkRecords(){
   const endDate = (document.getElementById('endDate')?.value || '').trim();
   const hasFilter = !!(setKeyword || levelKeywordRaw || month || week || startDate || endDate);
 
-  if(hasFilter && wmHomeworkServerPaged && !wmHomeworkAllRecordsLoaded){
-    wmLoadLearningRecordsDirectForMap_('search-full', 1, true, function(payload){
-      if(payload) filterHomeworkRecords();
-    });
+  if(!hasFilter){
+    wmHomeworkServerQuery_ = null;
+    wmHomeworkCurrentPage = 1;
+    wmLoadLearningRecordsDirectForMap_('search-reset', 1, false);
     return;
   }
 
-  if(!hasFilter){
-    wmRenderHomeworkForActiveLevel_();
+  if(levelKeywordRaw && !levelKeyword){
+    alert('레벨은 3~13 중에서 입력해 주세요.');
     return;
   }
 
@@ -5350,6 +5393,9 @@ function filterHomeworkRecords(){
     alert('시작일과 끝일을 모두 선택해 주세요.');
     return;
   }
+
+  let queryFromDate = startDate;
+  let queryToDate = endDate;
 
   if(startDate && endDate){
     const start = new Date(startDate + 'T00:00:00');
@@ -5360,42 +5406,29 @@ function filterHomeworkRecords(){
     }
 
     const limit = new Date(start.getTime());
-    limit.setMonth(limit.getMonth() + WM_HOMEWORK_DEFAULT_MONTHS);
+    limit.setMonth(limit.getMonth() + 1);
     if(end > limit){
-      alert('3개월씩 검색해주세요.');
+      alert('1개월씩 검색해주세요.');
       return;
     }
+  }else{
+    queryFromDate = wmGetHomeworkPeriodDateTextByMonthsAgo_(WM_HOMEWORK_DEFAULT_MONTHS);
+    queryToDate = wmGetHomeworkPeriodDateTextByMonthsAgo_(0);
   }
 
-  const sourceRecords = wmSortLearningRecordsDesc_(Array.isArray(wmLearningRecords) ? wmLearningRecords : []);
-  const filteredRecords = sourceRecords.filter(function(record){
-    const dateText = wmNormalizeHomeworkSearchDateText_(record && record.학습날짜);
-    const setId = wmNormalizeHomeworkSearchSetId_(record && (record.Set_ID || record.setId || record.set_id || record.SetID || record['Set ID'] || record['세트ID'] || record['현재세트']));
-    const rowLevel = wmGetHomeworkSearchLevelFromSetId_(setId);
-    const rowMonth = dateText ? dateText.slice(5, 7) : '';
-    const rowWeek = wmGetHomeworkSearchWeekOfMonth_(dateText);
+  const query = {
+    fromDate:queryFromDate,
+    toDate:queryToDate,
+    setKeyword:setKeyword,
+    levelKeyword:levelKeyword,
+    month:month,
+    week:week
+  };
 
-    if(setKeyword && setId !== setKeyword) return false;
-    if(levelKeyword && rowLevel !== levelKeyword) return false;
-    if(levelKeywordRaw && !levelKeyword) return false;
-    if(month && rowMonth !== month) return false;
-    if(week && rowWeek !== week) return false;
-    if(startDate && dateText && dateText < startDate) return false;
-    if(endDate && dateText && dateText > endDate) return false;
-    if((startDate || endDate || month || week) && !dateText) return false;
-
-    if(startDate && endDate){
-      if(!dateText || dateText < startDate || dateText > endDate) return false;
-    }else{
-      const periodStart = wmGetHomeworkPeriodDateTextByMonthsAgo_(WM_HOMEWORK_DEFAULT_MONTHS);
-      if(!dateText || dateText < periodStart) return false;
-    }
-
-    return true;
-  });
-
-  renderHomeworkTable(filteredRecords, wmStudentProfile || wmCurrentStudent);
+  wmHomeworkCurrentPage = 1;
+  wmLoadLearningRecordsDirectForMap_('search', 1, false, null, query);
 }
+
 function resetHomeworkFilters(){
   const ids = ['setKeyword','levelKeyword','monthFilter','weekFilter','startDate','endDate'];
   ids.forEach(function(id){
@@ -5406,7 +5439,8 @@ function resetHomeworkFilters(){
   });
 
   wmHomeworkCurrentPage = 1;
-  wmRenderHomeworkForActiveLevel_();
+  wmHomeworkServerQuery_ = null;
+  wmLoadLearningRecordsDirectForMap_('search-reset', 1, false);
 }
 
 
