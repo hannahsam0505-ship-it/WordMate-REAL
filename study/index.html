@@ -2373,6 +2373,10 @@ function wrongRetryTitle(stepTitle,count){
   return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재학습합니다.</span>`;
 }
 
+function wrongRetestTitle(stepTitle,count){
+  return `<span class="wm-wrong-retry-main">${stepTitle}</span><span class="wm-wrong-retry-sub">틀린문제(${count}개)를 재시험봅니다.</span>`;
+}
+
 function wmTrackStepWrong_(list,item){
   if(!Array.isArray(list) || !item) return;
   const key=String(item.word || '').trim().toLowerCase();
@@ -5256,7 +5260,7 @@ function continueAfterTestResult(){
   testWords=[...currentTestWrongs];
   if(test.type==="choice" || (test.type==="write" && test.direction==="eng-ko")){
     isRetest=true;
-    app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetryTitle("Step 6 TEST",testWords.length)}</div><button class="wm-btn" onclick="startRetest()">재시험 보기</button></div>`;
+    app.innerHTML=`<div class="wm-card">${wmSetBadgeHtml()}<div class="wm-title">${wrongRetestTitle("Step 6 TEST",testWords.length)}</div><button class="wm-btn" onclick="startRetest()">재시험 보기</button></div>`;
     afterScreenRender();
     return;
   }

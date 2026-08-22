@@ -3161,17 +3161,16 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done){
     }
 
     wmLearningRecords = directRecords;
-    if(wmLastLearningMapData){
-      wmLastLearningMapData.records = directRecords;
-      if(!wmStudyReturnSnapshotActive_) wmApplyLearningMapStatus(wmLastLearningMapData);
-    }
+
+    /* WM_MAP_BOTTOM_RECORDS_NEVER_REWRITE_TOP_V1_20260822
+       하단 첫 15개/페이지 이동 기록은 하단 표 전용입니다.
+       현재진행_DB로 이미 그린 상단 세트상태·진행률·최근점수를 다시 계산하지 않습니다. */
     renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, paged ? {
       serverPage:true,
       totalRows:wmHomeworkServerTotalRows,
       serverPageNumber:wmHomeworkCurrentPage,
       skipPeriod:true
     } : {});
-    updateRecentScore(wmLearningRecords);
     if(typeof done === 'function') done(payload || {});
   }
 
