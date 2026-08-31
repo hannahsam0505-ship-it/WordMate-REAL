@@ -1,0 +1,792 @@
+<!-- [TEST부스] Login 로그인접속기기전달 789-792 -->
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<script>
+/* =========================
+   BOOTH CONFIG
+   ========================= */
+const WM_BOOTH_MODE = 'REAL';   // "TEST" 또는 "REAL"
+
+// TEST
+const WM_TEST_LOGIN_PAGE_URL = "https://hsam05.com/test-login";
+const WM_TEST_MAP_PAGE_URL = "https://word-mate-test.vercel.app/map";
+const WM_TEST_STUDY_PAGE_URL = "https://word-mate-test.vercel.app/study";
+const WM_TEST_LMS_PAGE_URL = "https://word-mate-test.vercel.app/lms";
+const WM_TEST_API_URL = "https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec";
+
+// REAL
+const WM_REAL_LOGIN_PAGE_URL = "https://hsam05.com/login";
+const WM_REAL_MAP_PAGE_URL = "https://word-mate-real.vercel.app/map";
+const WM_REAL_STUDY_PAGE_URL = "https://word-mate-real.vercel.app/study";
+const WM_REAL_LMS_PAGE_URL = "https://word-mate-real.vercel.app/lms";
+const WM_REAL_API_URL = "https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec";
+
+// ACTIVE
+const WM_LOGIN_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_LOGIN_PAGE_URL : WM_REAL_LOGIN_PAGE_URL;
+const WM_MAP_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_MAP_PAGE_URL : WM_REAL_MAP_PAGE_URL;
+const WM_STUDY_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_STUDY_PAGE_URL : WM_REAL_STUDY_PAGE_URL;
+const WM_LMS_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_LMS_PAGE_URL : WM_REAL_LMS_PAGE_URL;
+const WM_API_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_API_URL : WM_REAL_API_URL;
+
+const WM_STUDENT_LOGIN_API_URL = WM_API_URL;
+const WM_MAP_EXEC_URL = WM_API_URL;
+
+/* WM_LOGIN_MAP_ORIGIN_PRECONNECT_SPEED_V1
+   로그인 판정/세션/이동 공식은 그대로 두고, 성공 후 이동할 Map origin 연결만 미리 준비합니다. */
+try{
+  const wmMapOriginPreconnect = document.createElement("link");
+  wmMapOriginPreconnect.rel = "preconnect";
+  wmMapOriginPreconnect.href = new URL(WM_MAP_PAGE_URL).origin;
+  wmMapOriginPreconnect.crossOrigin = "anonymous";
+  document.head.appendChild(wmMapOriginPreconnect);
+}catch(err){}
+</script>
+
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 -->
+<div id="wm-test-booth-banner" role="status" aria-label="TEST 부스">🧪 TEST 부스</div>
+<style>
+  :root{--wm-test-booth-height:64px;}
+  #wm-test-booth-banner{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100%;
+    height:var(--wm-test-booth-height);
+    box-sizing:border-box;
+    align-items:center;
+    justify-content:center;
+    background:#dc2626;
+    color:#fff;
+    text-align:center;
+    font-size:28px;
+    font-weight:900;
+    line-height:1;
+    padding:0 10px;
+    letter-spacing:-0.02em;
+    font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
+    z-index:2147483000;
+  }
+  body.wm-test-booth-active{
+    margin-top:var(--wm-test-booth-height) !important;
+  }
+
+  @media (max-width:640px){
+    :root{--wm-test-booth-height:54px;}
+    #wm-test-booth-banner{font-size:22px;}
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  var LOCK_VERSION = 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK_V1.0';
+  var LOCK_DATE = '2026-07-28';
+  var PAGE = "LOGIN";
+
+  function wmApplyTestBoothFloatingBanner(){
+    var isTest = String(typeof WM_BOOTH_MODE !== 'undefined' ? WM_BOOTH_MODE : '').toUpperCase() === 'TEST';
+    var banner = document.getElementById('wm-test-booth-banner');
+    if(!banner) return false;
+    banner.style.display = isTest ? 'flex' : 'none';
+    if(document.body){
+      document.body.classList.toggle('wm-test-booth-active', isTest);
+    }
+    return isTest ? banner.style.display === 'flex' : banner.style.display === 'none';
+  }
+
+  function wmGetTestBoothFloatingBannerLockStatus(){
+    var banner = document.getElementById('wm-test-booth-banner');
+    var isTest = String(typeof WM_BOOTH_MODE !== 'undefined' ? WM_BOOTH_MODE : '').toUpperCase() === 'TEST';
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'wmApplyTestBoothFloatingBanner') || {};
+    var registry = window.WM_TEST_BOOTH_FLOATING_BANNER_LOCK;
+    var style = banner && window.getComputedStyle ? window.getComputedStyle(banner) : null;
+    var status = {
+      page: PAGE,
+      environmentTest: isTest,
+      bannerElement: !!banner,
+      bannerText: !!banner && String(banner.textContent || '').trim() === '🧪 TEST 부스',
+      floatingFixed: !!style && style.position === 'fixed',
+      topFixed: !!style && style.top === '0px',
+      fullWidth: !!style && style.left === '0px' && style.right === '0px',
+      visibleInTest: !isTest || (!!style && style.display === 'flex'),
+      bodyOffset: !isTest || !!(document.body && document.body.classList.contains('wm-test-booth-active')),
+      actualFunction: descriptor.value === wmApplyTestBoothFloatingBanner,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.apply === wmApplyTestBoothFloatingBanner
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return ['page','verified'].indexOf(key) !== -1 || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFloatingBannerLockStatus(){
+    var s = wmGetTestBoothFloatingBannerLockStatus();
+    var rows = {
+      'TEST 환경': s.environmentTest,
+      '배너 요소': s.bannerElement,
+      '배너 문구': s.bannerText,
+      '상단 고정(position:fixed)': s.floatingFixed,
+      'top:0': s.topFixed,
+      '좌우 전체폭': s.fullWidth,
+      'TEST 표시': s.visibleInTest,
+      '본문 상단 보정': s.bodyOffset,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    };
+    console.group('🔒 WORD MATE TEST BOOTH FLOATING BANNER LOCK STATUS — ' + PAGE);
+    console.log('LOCK VERSION : ' + LOCK_VERSION);
+    console.log('LOCK DATE    : ' + LOCK_DATE);
+    console.table(rows);
+    console.log(s.verified ? '🔒 TEST BOOTH FLOATING BANNER ALL LOCK VERIFIED' : '❌ TEST BOOTH FLOATING BANNER LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'wmApplyTestBoothFloatingBanner', {
+    value: wmApplyTestBoothFloatingBanner,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFloatingBannerLockStatus', {
+    value: wmGetTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFloatingBannerLockStatus', {
+    value: wmPrintTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK', {
+    value: Object.freeze({
+      version: LOCK_VERSION,
+      date: LOCK_DATE,
+      page: PAGE,
+      apply: wmApplyTestBoothFloatingBanner,
+      status: wmGetTestBoothFloatingBannerLockStatus,
+      log: wmPrintTestBoothFloatingBannerLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  function boot(){
+    window.wmApplyTestBoothFloatingBanner();
+    setTimeout(window.wmLogTestBoothFloatingBannerLockStatus, 0);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load', function(){
+    window.wmApplyTestBoothFloatingBanner();
+    window.wmLogTestBoothFloatingBannerLockStatus();
+  }, {once:true});
+})();
+</script>
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 END --><!-- WM_TEST_LOGIN_ENTER_AUTOMAP_V1_260618: Enter 로그인 + 로그인 성공 후 test-map 자동 진입 -->
+<!-- WM_CLASS_DISPLAY_NAME_RULE_V1: 반ID는 내부 시스템용, 사용자 화면/학습기록/성적표/교사·관리자 확인 화면은 실제 반명 우선. -->
+<!-- WM_IMWEB_LOGIN_MAP_ONLY_V12: 로그인 후 Study 직접 진입 금지, 반드시 Map.html 학습맵으로 먼저 진입. -->
+<!-- Word Mate 학생 로그인창 / 아임웹 코드 위젯 삽입용 -->
+<div id="wm-student-login-box">
+  <div class="wm-login-card">
+
+    <div class="wm-login-title">Word Mate 학생 로그인</div>
+    <div class="wm-login-desc">학생ID와 비밀번호를 입력해 주세요.</div>
+
+    <label class="wm-login-label">학생ID</label>
+    <input id="wmStudentId" class="wm-login-input" type="text" placeholder="예: S7284" />
+
+    <label class="wm-login-label">비밀번호</label>
+    <input id="wmStudentPw" class="wm-login-input" type="password" placeholder="비밀번호 4자리" />
+
+    <button id="wmLoginBtn" class="wm-login-btn" type="button" onclick="wmStudentLogin()">
+      로그인
+    </button>
+
+    <div id="wmLoginMessage" class="wm-login-message"></div>
+
+    <div id="wmLoginResult" class="wm-login-result"></div>
+
+  </div>
+</div>
+
+<style>
+  #wm-student-login-box {
+    width: calc(100% - 40px);
+    max-width: 920px;
+    min-height: 560px;
+    margin: 0 auto;
+    padding: 58px 24px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #071f4b 0 34%, #eaf4ff 34% 100%);
+    border: 1px solid #dbe5f1;
+    border-radius: 28px;
+    box-shadow: inset 0 7px 0 #ffd633, 0 22px 55px rgba(7,31,75,0.16);
+    font-family: "Pretendard","Noto Sans KR",Arial,sans-serif;
+  }
+
+  .wm-login-card {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border: 3px solid #ffd633;
+    border-radius: 20px;
+    padding: 30px 26px;
+    box-sizing: border-box;
+    box-shadow: 0 18px 42px rgba(7,31,75,0.20);
+  }
+
+  .wm-login-title {
+    font-size: 24px;
+    font-weight: 900;
+    text-align: center;
+    color: #071f4b;
+  }
+
+  .wm-login-desc {
+    font-size: 14px;
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 20px;
+  }
+
+  .wm-login-label {
+    display: block;
+    font-size: 13px;
+    margin-top: 12px;
+    font-weight: 700;
+  }
+
+  .wm-login-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #b9cbe1;
+    border-radius: 10px;
+    margin-top: 5px;
+    box-sizing: border-box;
+    background: #f5f9fd;
+  }
+
+  .wm-login-btn {
+    width: 100%;
+    margin-top: 18px;
+    padding: 12px;
+    background: #071f4b;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .wm-login-btn:hover {
+    background: #071f4b;
+  }
+
+  @media (max-width: 640px) {
+    #wm-student-login-box {
+      width: calc(100% - 24px);
+      min-height: 520px;
+      margin: 0 auto;
+      padding: 48px 16px 34px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #071f4b 0 28%, #eaf4ff 28% 100%);
+    }
+
+    .wm-login-card {
+      padding: 26px 20px;
+    }
+  }
+
+  .wm-login-message {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: red;
+  }
+
+  .wm-login-result {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f3f4f6;
+    border-radius: 12px;
+    display: none;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  html,body{min-height:100%;}
+  body{min-height:100vh;margin:0;display:grid;place-items:center;padding:clamp(64px,8vh,96px) 20px;box-sizing:border-box;background:radial-gradient(circle 150px at 8% 16%,rgba(255,221,153,.34) 0 45%,transparent 46%),radial-gradient(circle 88px at 18% 78%,rgba(255,201,214,.28) 0 45%,transparent 46%),radial-gradient(circle 118px at 92% 18%,rgba(184,233,220,.30) 0 45%,transparent 46%),radial-gradient(circle 78px at 83% 74%,rgba(205,194,255,.28) 0 45%,transparent 46%),radial-gradient(circle 58px at 70% 9%,rgba(255,215,176,.26) 0 45%,transparent 46%),radial-gradient(circle 104px at 5% 88%,rgba(184,218,255,.25) 0 45%,transparent 46%),radial-gradient(circle 52px at 39% 8%,rgba(189,238,230,.24) 0 45%,transparent 46%),radial-gradient(circle 72px at 96% 90%,rgba(255,232,169,.27) 0 45%,transparent 46%),radial-gradient(circle 46px at 30% 93%,rgba(218,202,255,.23) 0 45%,transparent 46%),linear-gradient(135deg,#f9fbff 0%,#fffaf4 50%,#f6fbf8 100%);}
+  body.wm-test-booth-active{min-height:calc(100vh - var(--wm-test-booth-height));}
+</style>
+
+<script>
+  window.wmStudentLogin = async function() {
+    const studentId = document.getElementById("wmStudentId").value.trim();
+    const password = document.getElementById("wmStudentPw").value.trim();
+
+    const msg = document.getElementById("wmLoginMessage");
+    const result = document.getElementById("wmLoginResult");
+    const btn = document.getElementById("wmLoginBtn");
+
+    msg.style.color = "red";
+    msg.textContent = "";
+    result.style.display = "none";
+    result.innerHTML = "";
+
+    if (!studentId || !password) {
+      msg.textContent = "학생ID와 비밀번호를 입력하세요.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "로그인 중...";
+
+    /* WM_LOGIN_FIVE_FIELDS_DIRECT_V1_20260827
+       브라우저는 학생ID + 비밀번호 + 접속기기만 전달합니다.
+       서버는 해당 ID의 비밀번호 / 활성상태 확인 후 현재세션 / 세션상태 / 접속기기를 갱신합니다. */
+    const url = WM_STUDENT_LOGIN_API_URL
+      + "?mode=studentLogin"
+      + "&studentId=" + encodeURIComponent(studentId)
+      + "&password=" + encodeURIComponent(password)
+      + "&deviceInfo=" + encodeURIComponent(navigator.userAgent || "")
+      + "&t=" + Date.now();
+
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      const data = await res.json();
+
+      if (!data || !data.success) {
+        msg.textContent = (data && data.message) || "로그인 실패";
+        return;
+      }
+
+      const sessionToken = String(data.sessionToken || (data.student && data.student.현재세션) || "");
+      if (!sessionToken) {
+        msg.textContent = "세션 발급에 실패했습니다.";
+        return;
+      }
+
+      const s = {
+        학생ID: String((data.student && data.student.학생ID) || studentId).trim(),
+        현재세션: sessionToken,
+        sessionToken: sessionToken,
+        wmSessionToken: sessionToken
+      };
+
+      try {
+        sessionStorage.setItem("WM_STUDENT_ID", s.학생ID);
+        sessionStorage.setItem("WM_SESSION_TOKEN", sessionToken);
+        localStorage.setItem("WM_SESSION_TOKEN", sessionToken);
+        sessionStorage.setItem("wmLoggedInStudent", JSON.stringify(s));
+        localStorage.setItem("wmLoggedInStudent", JSON.stringify(s));
+      } catch (storageErr) {}
+
+      window.WM_LOGGED_IN_STUDENT = s;
+
+      msg.style.color = "green";
+      msg.textContent = "로그인 성공";
+      btn.textContent = "학습맵 이동 중...";
+
+      wmOpenLearningMap();
+    } catch (e) {
+      msg.textContent = "서버 연결 오류";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "로그인";
+    }
+  }
+
+
+  function wmBuildInitialSetId(learningAssign) {
+    const text = String(learningAssign || "");
+    const match = text.match(/(\d+)/);
+    if (!match) return "5-1-1";
+    return Number(match[1]) + "-1-1";
+  }
+
+  function wmNormalizeSetIdForStudy(setId) {
+    const text = String(setId || "").trim().toUpperCase();
+
+    if (/^WM\d+-\d+-\d+$/.test(text)) {
+      return text;
+    }
+
+    if (/^\d+-\d+-\d+$/.test(text)) {
+      return "WM" + text;
+    }
+
+    return "WM4-1-1";
+  }
+
+  function wmEncodeStudentPayload(student) {
+    const payload = JSON.stringify({
+      학생ID: student.학생ID || "",
+      학생이름: student.학생이름 || "",
+      학교: student.학교 || "",
+      학년: student.학년 || "",
+      Class: student.Class || student.반명 || "",
+      반명: student.반명 || student.Class || "",
+      교사명: student.교사명 || "",
+      학습배정: student.학습배정 || "",
+      현재세트: student.현재세트 || wmBuildInitialSetId(student.학습배정) || "4-1-1",
+      현재세션: student.현재세션 || student.sessionToken || student.wmSessionToken || "",
+      sessionToken: student.sessionToken || student.현재세션 || student.wmSessionToken || "",
+      wmSessionToken: student.wmSessionToken || student.sessionToken || student.현재세션 || ""
+    });
+
+    try {
+      return btoa(unescape(encodeURIComponent(payload)));
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function wmOpenLearningMap() {
+    const s = window.WM_LOGGED_IN_STUDENT;
+
+    if (!s || !s.학생ID) {
+      alert("로그인 정보가 없습니다. 다시 로그인해 주세요.");
+      return;
+    }
+
+    const studentId = String(s.학생ID || "").trim();
+    const sessionToken = String(
+      s.sessionToken ||
+      s.현재세션 ||
+      s.wmSessionToken ||
+      sessionStorage.getItem("WM_SESSION_TOKEN") ||
+      localStorage.getItem("WM_SESSION_TOKEN") ||
+      ""
+    ).trim();
+
+    if (!studentId || !sessionToken) {
+      alert("로그인 세션 정보가 없습니다. 다시 로그인해 주세요.");
+      return;
+    }
+
+    /* WM_LOGIN_TO_MAP_MINIMUM_HANDOFF_V1_20260813
+       로그인은 인증만 담당합니다.
+       Map에 학생ID + 세션토큰만 전달하고,
+       학생정보·현재세트·현재진행은 Map/Code.gs가 자기 공식 DB에서 다시 조회합니다. */
+    window.top.location.href =
+      WM_MAP_PAGE_URL
+      + "?wmEntry=login"
+      + "&studentId=" + encodeURIComponent(studentId)
+      + "&studentID=" + encodeURIComponent(studentId)
+      + "&wmStudentId=" + encodeURIComponent(studentId)
+      + "&sessionToken=" + encodeURIComponent(sessionToken)
+      + "&wmSessionToken=" + encodeURIComponent(sessionToken)
+      + "&WM_SESSION_TOKEN=" + encodeURIComponent(sessionToken);
+  }
+
+  function wmBindLoginEnterKey() {
+    const idInput = document.getElementById("wmStudentId");
+    const pwInput = document.getElementById("wmStudentPw");
+
+    [idInput, pwInput].forEach(function(input) {
+      if (!input) return;
+      input.addEventListener("keydown", function(e) {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        const btn = document.getElementById("wmLoginBtn");
+        if (btn && btn.disabled) return;
+        window.wmStudentLogin();
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wmBindLoginEnterKey);
+  } else {
+    wmBindLoginEnterKey();
+  }
+
+
+  /* ==========================================================
+     🔒 WM SPEED LOCK V1 - LOGIN SPEED / 실제 실행 LOCK
+     적용대상: 로그인 API 호출·성공 처리·학습맵 즉시 이동
+     ========================================================== */
+  (function wmApplyLoginSpeedLockV1_(){
+    'use strict';
+
+    const VERSION = 'WM_SPEED_LOCK_V1.0';
+    const DATE = '2026-07-10';
+    const GROUPS = Object.freeze({
+      loginSpeed: Object.freeze([
+        'wmStudentLogin',
+        'wmOpenLearningMap'
+      ])
+    });
+
+    const results = {};
+    let allLocked = true;
+
+    GROUPS.loginSpeed.forEach(function(name){
+      const fn = window[name];
+      if(typeof fn !== 'function'){
+        results[name] = '❌ 함수 없음';
+        allLocked = false;
+        return;
+      }
+
+      try{
+        const current = Object.getOwnPropertyDescriptor(window, name);
+        if(!current || current.configurable !== false || current.writable !== false){
+          Object.defineProperty(window, name, {
+            value: fn,
+            writable: false,
+            configurable: false,
+            enumerable: true
+          });
+        }
+      }catch(err){
+        results[name] = '❌ LOCK 실패: ' + (err && err.message ? err.message : err);
+        allLocked = false;
+        return;
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(window, name);
+      const locked = !!descriptor && descriptor.value === fn && descriptor.writable === false && descriptor.configurable === false;
+      results[name] = locked ? '✅ ACTUAL LOCK' : '❌ 속성 검증 실패';
+      if(!locked) allLocked = false;
+    });
+
+    const registry = Object.freeze({
+      version: VERSION,
+      date: DATE,
+      loginSpeed: allLocked
+    });
+
+    try{
+      Object.defineProperty(window, 'WM_LOGIN_SPEED_LOCK', {
+        value: registry,
+        writable: false,
+        configurable: false
+      });
+    }catch(err){
+      allLocked = false;
+    }
+
+    function printStatus(){
+      console.group('🔒 WORD MATE LOGIN SPEED LOCK STATUS');
+      console.log('LOCK VERSION : ' + VERSION);
+      console.log('LOCK DATE    : ' + DATE);
+      console.table(results);
+      console.log(allLocked ? '🔒 LOGIN SPEED LOCK VERIFIED' : '⚠️ LOGIN SPEED LOCK CHECK REQUIRED');
+      console.groupEnd();
+    }
+
+    printStatus();
+    document.addEventListener('DOMContentLoaded', printStatus, {once:true});
+  })();
+
+
+  /* ==========================================================
+     🔒 WM LOGIN ALL LOCK V1 / 실제 실행 연결 LOCK
+     적용대상: 로그인·학생정보 구성·학습맵 이동·Enter 실행
+     ========================================================== */
+  (function wmApplyLoginAllLockV1_(){
+    'use strict';
+
+    const VERSION = 'WM_LOGIN_ALL_LOCK_V1.0';
+    const DATE = '2026-07-13';
+    const GROUPS = Object.freeze({
+      login: Object.freeze([
+        'wmStudentLogin'
+      ]),
+      studentData: Object.freeze([
+        'wmBuildInitialSetId',
+        'wmNormalizeSetIdForStudy',
+        'wmEncodeStudentPayload'
+      ]),
+      mapEntry: Object.freeze([
+        'wmOpenLearningMap',
+        'wmBindLoginEnterKey'
+      ])
+    });
+
+    const results = {};
+    const groupStatus = {};
+    let allLocked = true;
+
+    Object.keys(GROUPS).forEach(function(groupName){
+      let groupLocked = true;
+
+      GROUPS[groupName].forEach(function(name){
+        const fn = window[name];
+        if(typeof fn !== 'function'){
+          results[name] = '❌ 함수 없음';
+          groupLocked = false;
+          allLocked = false;
+          return;
+        }
+
+        try{
+          const current = Object.getOwnPropertyDescriptor(window, name);
+          if(!current || current.configurable !== false || current.writable !== false){
+            Object.defineProperty(window, name, {
+              value: fn,
+              writable: false,
+              configurable: false,
+              enumerable: true
+            });
+          }
+        }catch(err){
+          results[name] = '❌ LOCK 실패: ' + (err && err.message ? err.message : err);
+          groupLocked = false;
+          allLocked = false;
+          return;
+        }
+
+        const descriptor = Object.getOwnPropertyDescriptor(window, name);
+        const locked = !!descriptor &&
+          descriptor.value === fn &&
+          descriptor.writable === false &&
+          descriptor.configurable === false;
+
+        results[name] = locked ? '✅ ACTUAL LOCK' : '❌ 속성 검증 실패';
+        if(!locked){
+          groupLocked = false;
+          allLocked = false;
+        }
+      });
+
+      groupStatus[groupName] = groupLocked;
+    });
+
+    const registry = Object.freeze({
+      version: VERSION,
+      date: DATE,
+      login: groupStatus.login === true,
+      studentData: groupStatus.studentData === true,
+      mapEntry: groupStatus.mapEntry === true,
+      allLocked: allLocked
+    });
+
+    try{
+      Object.defineProperty(window, 'WM_LOGIN_ALL_LOCK', {
+        value: registry,
+        writable: false,
+        configurable: false,
+        enumerable: true
+      });
+    }catch(err){
+      results.WM_LOGIN_ALL_LOCK = '❌ Registry LOCK 실패';
+      allLocked = false;
+    }
+
+    function printStatus(){
+      console.group('🔒 WORD MATE LOGIN ALL LOCK STATUS');
+      console.log('LOCK VERSION : ' + VERSION);
+      console.log('LOCK DATE    : ' + DATE);
+      console.table(results);
+      console.table(groupStatus);
+      console.log(allLocked ? '🔒 LOGIN ALL LOCK VERIFIED' : '⚠️ LOGIN ALL LOCK CHECK REQUIRED');
+      console.groupEnd();
+    }
+
+    printStatus();
+    document.addEventListener('DOMContentLoaded', printStatus, {once:true});
+  })();
+
+  /* ==========================================================
+     🔒 LOGIN ACTUAL FUNCTION·FREEZE LOCK - 9 MODULES / 수정 금지
+     로그인 상세 대차대조표 9개 기능영역 기준
+     ========================================================== */
+  (function wmApplyLoginActualFunctionLock_(){
+    'use strict';
+    const VERSION='LOGIN_ACTUAL_LOCK_ALL_MODULES_V1.0';
+    const WM_LOGIN_ENV_LOCK=Object.freeze({
+      mode:WM_BOOTH_MODE,
+      loginUrl:WM_LOGIN_PAGE_URL,
+      mapUrl:WM_MAP_PAGE_URL,
+      studyUrl:WM_STUDY_PAGE_URL,
+      apiUrl:WM_API_URL
+    });
+    function wmVerifyLoginEnvironmentLock_(){
+      const isTest=WM_BOOTH_MODE==='TEST';
+      return Object.isFrozen(WM_LOGIN_ENV_LOCK) &&
+        WM_LOGIN_ENV_LOCK.loginUrl===(isTest?WM_TEST_LOGIN_PAGE_URL:WM_REAL_LOGIN_PAGE_URL) &&
+        WM_LOGIN_ENV_LOCK.mapUrl===(isTest?WM_TEST_MAP_PAGE_URL:WM_REAL_MAP_PAGE_URL) &&
+        WM_LOGIN_ENV_LOCK.studyUrl===(isTest?WM_TEST_STUDY_PAGE_URL:WM_REAL_STUDY_PAGE_URL) &&
+        WM_LOGIN_ENV_LOCK.apiUrl===(isTest?WM_TEST_API_URL:WM_REAL_API_URL) &&
+        WM_STUDENT_LOGIN_API_URL===WM_LOGIN_ENV_LOCK.apiUrl &&
+        WM_MAP_EXEC_URL===WM_LOGIN_ENV_LOCK.apiUrl;
+    }
+    Object.defineProperty(window,'WM_LOGIN_ENV_LOCK',{value:WM_LOGIN_ENV_LOCK,writable:false,configurable:false});
+    Object.defineProperty(window,'wmVerifyLoginEnvironmentLock_',{value:wmVerifyLoginEnvironmentLock_,writable:false,configurable:false});
+    const DIRECT_ACCESS_RESPONSIBILITY=Object.freeze({
+      owner:'Mapframe.txt',registry:'accessGuard',loginPagePublic:true
+    });
+    function wmVerifyLoginDirectAccessResponsibility_(){
+      return Object.isFrozen(DIRECT_ACCESS_RESPONSIBILITY) &&
+        DIRECT_ACCESS_RESPONSIBILITY.owner==='Mapframe.txt' &&
+        DIRECT_ACCESS_RESPONSIBILITY.registry==='accessGuard';
+    }
+    Object.defineProperty(window,'wmVerifyLoginDirectAccessResponsibility_',{value:wmVerifyLoginDirectAccessResponsibility_,writable:false,configurable:false});
+
+    const GROUPS=Object.freeze({
+      loginApi:Object.freeze(['wmStudentLogin']),
+      sessionIssue:Object.freeze(['wmStudentLogin']),
+      inputValidation:Object.freeze(['wmStudentLogin']),
+      browserStorage:Object.freeze(['wmStudentLogin']),
+      navigation:Object.freeze(['wmOpenLearningMap','wmBuildInitialSetId','wmEncodeStudentPayload']),
+      errorHandling:Object.freeze(['wmStudentLogin']),
+      directAccess:Object.freeze(['wmVerifyLoginDirectAccessResponsibility_']),
+      serverIntegration:Object.freeze(['wmStudentLogin','wmVerifyLoginEnvironmentLock_'])
+    });
+    const LABELS=Object.freeze({loginApi:'로그인 API',sessionIssue:'세션 발급',inputValidation:'입력 검증',browserStorage:'저장소',navigation:'화면 이동',errorHandling:'오류 처리',directAccess:'직접접근',serverIntegration:'서버 연동'});
+    const functionResults={},moduleResults={};let allVerified=true;
+    Object.keys(GROUPS).forEach(function(groupKey){
+      const names=GROUPS[groupKey];let lockedCount=0;
+      names.forEach(function(name){
+        let result=functionResults[name];
+        if(!result){
+          const fn=window[name];result={name:name,locked:false,reason:''};
+          if(typeof fn!=='function')result.reason='함수 없음';
+          else{
+            try{Object.defineProperty(window,name,{value:fn,writable:false,configurable:false,enumerable:true});}catch(error){result.reason=error&&error.message?error.message:'defineProperty 실패';}
+            const d=Object.getOwnPropertyDescriptor(window,name);
+            const replaceBlocked=Reflect.defineProperty(window,name,{value:function WM_LOGIN_TAMPER_TEST(){}})===false;
+            const deleteBlocked=Reflect.deleteProperty(window,name)===false;
+            result.locked=!!d&&d.value===fn&&d.writable===false&&d.configurable===false&&replaceBlocked&&deleteBlocked&&window[name]===fn;
+            if(!result.locked&&!result.reason)result.reason='실제 속성 검증 실패';
+          }
+          functionResults[name]=result;
+        }
+        if(result.locked)lockedCount++;else allVerified=false;
+      });
+      moduleResults[groupKey]=Object.freeze({label:LABELS[groupKey],locked:lockedCount===names.length,lockedCount:lockedCount,totalCount:names.length});
+    });
+    const frozenResults=Object.freeze(moduleResults),frozenFunctions=Object.freeze(functionResults);
+    Object.defineProperty(window,'WM_LOGIN_ACTUAL_LOCK_GROUPS',{value:GROUPS,writable:false,configurable:false});
+    Object.defineProperty(window,'WM_LOGIN_ACTUAL_LOCK_RESULTS',{value:frozenResults,writable:false,configurable:false});
+    Object.defineProperty(window,'WM_LOGIN_ACTUAL_LOCK_FUNCTION_RESULTS',{value:frozenFunctions,writable:false,configurable:false});
+    const display={};Object.keys(frozenResults).forEach(function(key){const x=frozenResults[key];display[x.label]=x.locked?'✅ '+x.lockedCount+'/'+x.totalCount+' ACTUAL LOCK':'❌ '+x.lockedCount+'/'+x.totalCount+' LOCK CHECK';});
+    console.group('🔒 WORD MATE LOGIN ACTUAL FUNCTION LOCK STATUS');
+    console.log('LOCK VERSION : '+VERSION);console.table(display);
+    console.log(allVerified?'🔒 LOGIN ACTUAL FUNCTION ALL LOCK VERIFIED':'⚠️ LOGIN ACTUAL LOCK CHECK REQUIRED');
+    console.log('FULL LOGIN ACTUAL LOCK PROGRESS : 8 / 8 MODULES');
+    console.groupEnd();
+  })();
+
+
+</script>
+<!-- [TEST부스] Login 로그인접속기기전달 789-792 -->

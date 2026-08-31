@@ -1,0 +1,550 @@
+<script>
+/* =========================
+   BOOTH CONFIG
+   ========================= */
+
+const WM_BOOTH_MODE = 'REAL';   // "TEST" 또는 "REAL"
+
+// TEST
+const WM_TEST_LOGIN_PAGE_URL = "https://hsam05.com/test-login";
+const WM_TEST_MAP_PAGE_URL   = "https://word-mate-test.vercel.app/map";
+const WM_TEST_STUDY_PAGE_URL = "https://word-mate-test.vercel.app/study";
+const WM_TEST_API_URL        = "https://script.google.com/macros/s/AKfycbzY6sjKuVJnJ0EmrzkRuhBgsjXhh9Kwt-7NJraIziuTiN3Xjkj-RiVc6Kw2XdmLkg2vdQ/exec";
+
+// REAL
+const WM_REAL_LOGIN_PAGE_URL = "https://hsam05.com/login";
+const WM_REAL_MAP_PAGE_URL   = "https://word-mate-real.vercel.app/map";
+const WM_REAL_STUDY_PAGE_URL = "https://word-mate-real.vercel.app/study";
+const WM_REAL_API_URL        = "https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec";
+
+// ACTIVE
+const WM_LOGIN_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_LOGIN_PAGE_URL : WM_REAL_LOGIN_PAGE_URL;
+const WM_MAP_PAGE_URL   = WM_BOOTH_MODE === "TEST" ? WM_TEST_MAP_PAGE_URL   : WM_REAL_MAP_PAGE_URL;
+const WM_STUDY_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_STUDY_PAGE_URL : WM_REAL_STUDY_PAGE_URL;
+const WM_API_URL        = WM_BOOTH_MODE === "TEST" ? WM_TEST_API_URL        : WM_REAL_API_URL;
+</script>
+
+
+<script>
+window.wmCheckMapLoginAccess = function(){
+  const p = new URLSearchParams(window.location.search || "");
+  const sid = p.get("studentId") || p.get("studentID") || p.get("wmStudentId");
+  const tok = p.get("sessionToken") || p.get("wmSessionToken") || p.get("WM_SESSION_TOKEN");
+  window.WM_MAP_LOGIN_ALLOWED = !!(sid && tok);
+};
+window.wmCheckMapLoginAccess();
+</script>
+
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 -->
+<div id="wm-test-booth-banner" role="status" aria-label="TEST 부스">🧪 TEST 부스</div>
+<style>
+  :root{--wm-test-booth-height:64px;}
+  #wm-test-booth-banner{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100%;
+    height:var(--wm-test-booth-height);
+    box-sizing:border-box;
+    align-items:center;
+    justify-content:center;
+    background:#dc2626;
+    color:#fff;
+    text-align:center;
+    font-size:28px;
+    font-weight:900;
+    line-height:1;
+    padding:0 10px;
+    letter-spacing:-0.02em;
+    font-family:Pretendard, "Noto Sans KR", Arial, sans-serif;
+    z-index:2147483000;
+  }
+  body.wm-test-booth-active{
+    margin-top:var(--wm-test-booth-height) !important;
+  }
+  body.wm-test-booth-active #wm-map-iframe-wrap,
+  body.wm-test-booth-active #wmMapIframe{
+    min-height:calc(100vh - var(--wm-test-booth-height)) !important;
+  }
+  @media (max-width:640px){
+    :root{--wm-test-booth-height:54px;}
+    #wm-test-booth-banner{font-size:22px;}
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  var LOCK_VERSION = 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK_V1.0';
+  var LOCK_DATE = '2026-07-28';
+  var PAGE = "MAPFRAME";
+
+  function wmApplyTestBoothFloatingBanner(){
+    var isTest = String(typeof WM_BOOTH_MODE !== 'undefined' ? WM_BOOTH_MODE : '').toUpperCase() === 'TEST';
+    var banner = document.getElementById('wm-test-booth-banner');
+    if(!banner) return false;
+    banner.style.display = isTest ? 'flex' : 'none';
+    if(document.body){
+      document.body.classList.toggle('wm-test-booth-active', isTest);
+    }
+    return isTest ? banner.style.display === 'flex' : banner.style.display === 'none';
+  }
+
+  function wmGetTestBoothFloatingBannerLockStatus(){
+    var banner = document.getElementById('wm-test-booth-banner');
+    var isTest = String(typeof WM_BOOTH_MODE !== 'undefined' ? WM_BOOTH_MODE : '').toUpperCase() === 'TEST';
+    var descriptor = Object.getOwnPropertyDescriptor(window, 'wmApplyTestBoothFloatingBanner') || {};
+    var registry = window.WM_TEST_BOOTH_FLOATING_BANNER_LOCK;
+    var style = banner && window.getComputedStyle ? window.getComputedStyle(banner) : null;
+    var status = {
+      page: PAGE,
+      environmentTest: isTest,
+      bannerElement: !!banner,
+      bannerText: !!banner && String(banner.textContent || '').trim() === '🧪 TEST 부스',
+      floatingFixed: !!style && style.position === 'fixed',
+      topFixed: !!style && style.top === '0px',
+      fullWidth: !!style && style.left === '0px' && style.right === '0px',
+      visibleInTest: !isTest || (!!style && style.display === 'flex'),
+      bodyOffset: !isTest || !!(document.body && document.body.classList.contains('wm-test-booth-active')),
+      actualFunction: descriptor.value === wmApplyTestBoothFloatingBanner,
+      functionWriteProtected: descriptor.writable === false,
+      functionDeleteProtected: descriptor.configurable === false,
+      registryFrozen: !!registry && Object.isFrozen(registry),
+      exactReference: !!registry && registry.apply === wmApplyTestBoothFloatingBanner
+    };
+    status.verified = Object.keys(status).every(function(key){
+      return ['page','verified'].indexOf(key) !== -1 || status[key] === true;
+    });
+    return status;
+  }
+
+  function wmPrintTestBoothFloatingBannerLockStatus(){
+    var s = wmGetTestBoothFloatingBannerLockStatus();
+    var rows = {
+      'TEST 환경': s.environmentTest,
+      '배너 요소': s.bannerElement,
+      '배너 문구': s.bannerText,
+      '상단 고정(position:fixed)': s.floatingFixed,
+      'top:0': s.topFixed,
+      '좌우 전체폭': s.fullWidth,
+      'TEST 표시': s.visibleInTest,
+      '본문 상단 보정': s.bodyOffset,
+      '실제 실행함수 연결': s.actualFunction,
+      '함수 덮어쓰기 차단': s.functionWriteProtected,
+      '함수 삭제 차단': s.functionDeleteProtected,
+      'Registry 동결': s.registryFrozen,
+      '정확한 함수 참조': s.exactReference
+    };
+    console.group('🔒 WORD MATE TEST BOOTH FLOATING BANNER LOCK STATUS — ' + PAGE);
+    console.log('LOCK VERSION : ' + LOCK_VERSION);
+    console.log('LOCK DATE    : ' + LOCK_DATE);
+    console.table(rows);
+    console.log(s.verified ? '🔒 TEST BOOTH FLOATING BANNER ALL LOCK VERIFIED' : '❌ TEST BOOTH FLOATING BANNER LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window, 'wmApplyTestBoothFloatingBanner', {
+    value: wmApplyTestBoothFloatingBanner,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmGetTestBoothFloatingBannerLockStatus', {
+    value: wmGetTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'wmLogTestBoothFloatingBannerLockStatus', {
+    value: wmPrintTestBoothFloatingBannerLockStatus,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(window, 'WM_TEST_BOOTH_FLOATING_BANNER_LOCK', {
+    value: Object.freeze({
+      version: LOCK_VERSION,
+      date: LOCK_DATE,
+      page: PAGE,
+      apply: wmApplyTestBoothFloatingBanner,
+      status: wmGetTestBoothFloatingBannerLockStatus,
+      log: wmPrintTestBoothFloatingBannerLockStatus
+    }),
+    writable: false,
+    configurable: false
+  });
+
+  function boot(){
+    window.wmApplyTestBoothFloatingBanner();
+    setTimeout(window.wmLogTestBoothFloatingBannerLockStatus, 0);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  }else{
+    boot();
+  }
+  window.addEventListener('load', function(){
+    window.wmApplyTestBoothFloatingBanner();
+    window.wmLogTestBoothFloatingBannerLockStatus();
+  }, {once:true});
+})();
+</script>
+<!-- WM_TEST_BOOTH_FLOATING_BANNER_V1 END --><!-- WM_IMWEB_MAP_IFRAME_PAGE_TEST_REAL_BOOT_260621_V1 -->
+<div id="wm-map-iframe-wrap">
+  <iframe id="wmMapIframe" title="Word Mate 학습맵" allow="fullscreen" loading="eager"></iframe>
+</div>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #wm-map-iframe-wrap {
+    width: 100%;
+    min-height: 100vh;
+    background: #dbeafe;
+  }
+
+  #wmMapIframe {
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    border: 0;
+  }
+</style>
+
+<script>
+const WM_MAP_EXEC_URL = WM_API_URL;
+
+window.wmGetParam = function(name) {
+  const params = new URLSearchParams(window.location.search || "");
+  return String(params.get(name) || "").trim();
+};
+
+window.wmBuildMapIframeUrl = function() {
+  const studentId = window.wmGetParam("studentId") || window.wmGetParam("studentID") || window.wmGetParam("wmStudentId");
+  const studentName = wmGetParam("studentName") || wmGetParam("name") || wmGetParam("wmStudentName");
+  const school = wmGetParam("school");
+  const grade = wmGetParam("grade");
+  const className = wmGetParam("className") || wmGetParam("Class");
+  const teacherName = wmGetParam("teacherName");
+  const learningAssign = wmGetParam("learningAssign") || wmGetParam("level") || wmGetParam("wmLearningAssign");
+  const currentSet = wmGetParam("currentSet") || wmGetParam("setId") || wmGetParam("wmCurrentSet");
+  const mode = window.wmGetParam("mode") || "map";
+  const setId = wmGetParam("set_id") || wmGetParam("setId") || wmGetParam("currentSet");
+  const payload = wmGetParam("wmStudentPayload");
+  const sessionToken = wmGetParam("sessionToken") || wmGetParam("wmSessionToken") || wmGetParam("WM_SESSION_TOKEN");
+  const frameLock = window.WM_MAP_FRAME_ALL_LOCK || {};
+
+  return WM_MAP_EXEC_URL
+    + "?mode=" + encodeURIComponent(mode)
+    + "&set_id=" + encodeURIComponent(setId)
+    + "&studentId=" + encodeURIComponent(studentId)
+    + "&studentID=" + encodeURIComponent(studentId)
+    + "&wmStudentId=" + encodeURIComponent(studentId)
+    + "&studentName=" + encodeURIComponent(studentName)
+    + "&name=" + encodeURIComponent(studentName)
+    + "&wmStudentName=" + encodeURIComponent(studentName)
+    + "&school=" + encodeURIComponent(school)
+    + "&grade=" + encodeURIComponent(grade)
+    + "&className=" + encodeURIComponent(className)
+    + "&Class=" + encodeURIComponent(className)
+    + "&teacherName=" + encodeURIComponent(teacherName)
+    + "&learningAssign=" + encodeURIComponent(learningAssign)
+    + "&level=" + encodeURIComponent(learningAssign)
+    + "&wmLearningAssign=" + encodeURIComponent(learningAssign)
+    + "&currentSet=" + encodeURIComponent(currentSet)
+    + "&setId=" + encodeURIComponent(currentSet || setId)
+    + "&wmCurrentSet=" + encodeURIComponent(currentSet)
+    + "&sessionToken=" + encodeURIComponent(sessionToken)
+    + "&wmSessionToken=" + encodeURIComponent(sessionToken)
+    + "&WM_SESSION_TOKEN=" + encodeURIComponent(sessionToken)
+    + "&wmStudentPayload=" + encodeURIComponent(payload)
+    + "&wmFrameLockVersion=" + encodeURIComponent(String(frameLock.version || ""))
+    + "&wmFrameAccessGuard=" + (frameLock.accessGuard === true ? "1" : "0")
+    + "&wmFrameDataLock=" + (frameLock.frameData === true ? "1" : "0")
+    + "&wmFrameRunLock=" + (frameLock.frameRun === true ? "1" : "0")
+    + "&wmFrameAllLocked=" + (frameLock.allLocked === true ? "1" : "0");
+};
+
+window.wmInitMapIframe = function() {
+  if (window.WM_MAP_LOGIN_ALLOWED === false) {
+    window.location.replace(WM_LOGIN_PAGE_URL);
+    return;
+  }
+  const mode = wmGetParam("mode") || "map";
+
+  if (mode === "study") {
+    const url = WM_STUDY_PAGE_URL + window.location.search;
+    window.location.href = url;
+    return;
+  }
+
+  const iframe = document.getElementById("wmMapIframe");
+  if (!iframe) return;
+  const frameLock = window.WM_MAP_FRAME_ALL_LOCK || {};
+  iframe.name = "WM_MAP_FRAME_LOCK:" + encodeURIComponent(JSON.stringify({
+    version: String(frameLock.version || ""),
+    accessGuard: frameLock.accessGuard === true,
+    frameData: frameLock.frameData === true,
+    frameRun: frameLock.frameRun === true,
+    allLocked: frameLock.allLocked === true
+  }));
+  iframe.src = window.wmBuildMapIframeUrl();
+};
+
+/* ==========================================================
+   🔒 WM MAP FRAME ALL LOCK V1 / 실제 실행 연결 LOCK
+   적용대상: 로그인 접근검사·TEST 배너·파라미터·URL 구성·iframe 실행
+   ========================================================== */
+(function wmApplyMapFrameAllLockV1_(){
+  'use strict';
+
+  const VERSION = 'WM_MAP_FRAME_ALL_LOCK_V1.1';
+  const DATE = '2026-08-19';
+  const GROUPS = Object.freeze({
+    accessGuard: Object.freeze([
+      'wmCheckMapLoginAccess'
+    ]),
+    frameData: Object.freeze([
+      'wmGetParam',
+      'wmBuildMapIframeUrl'
+    ]),
+    frameRun: Object.freeze([
+      'wmApplyTestBoothFloatingBanner',
+      'wmInitMapIframe'
+    ])
+  });
+
+  const results = {};
+  const groupStatus = {};
+  let allLocked = true;
+
+  Object.keys(GROUPS).forEach(function(groupName){
+    let groupLocked = true;
+
+    GROUPS[groupName].forEach(function(name){
+      const fn = window[name];
+      if(typeof fn !== 'function'){
+        results[name] = '❌ 함수 없음';
+        groupLocked = false;
+        allLocked = false;
+        return;
+      }
+
+      try{
+        const current = Object.getOwnPropertyDescriptor(window, name);
+        if(!current || current.configurable !== false || current.writable !== false){
+          Object.defineProperty(window, name, {
+            value: fn,
+            writable: false,
+            configurable: false,
+            enumerable: true
+          });
+        }
+      }catch(err){
+        results[name] = '❌ LOCK 실패: ' + (err && err.message ? err.message : err);
+        groupLocked = false;
+        allLocked = false;
+        return;
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(window, name);
+      const locked = !!descriptor &&
+        descriptor.value === fn &&
+        descriptor.writable === false &&
+        descriptor.configurable === false;
+
+      results[name] = locked ? '✅ ACTUAL LOCK' : '❌ 속성 검증 실패';
+      if(!locked){
+        groupLocked = false;
+        allLocked = false;
+      }
+    });
+
+    groupStatus[groupName] = groupLocked;
+  });
+
+  const registry = Object.freeze({
+    version: VERSION,
+    date: DATE,
+    accessGuard: groupStatus.accessGuard === true,
+    frameData: groupStatus.frameData === true,
+    frameRun: groupStatus.frameRun === true,
+    allLocked: allLocked
+  });
+
+  try{
+    Object.defineProperty(window, 'WM_MAP_FRAME_ALL_LOCK', {
+      value: registry,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+  }catch(err){
+    results.WM_MAP_FRAME_ALL_LOCK = '❌ Registry LOCK 실패';
+    allLocked = false;
+  }
+
+  function printStatus(){
+    console.group('🔒 WORD MATE MAP FRAME ALL LOCK STATUS');
+    console.log('LOCK VERSION : ' + VERSION);
+    console.log('LOCK DATE    : ' + DATE);
+    console.table(results);
+    console.table(groupStatus);
+    console.log(allLocked ? '🔒 MAP FRAME ALL LOCK VERIFIED' : '⚠️ MAP FRAME ALL LOCK CHECK REQUIRED');
+    console.groupEnd();
+  }
+
+  printStatus();
+  document.addEventListener('DOMContentLoaded', printStatus, {once:true});
+})();
+/* ==========================================================
+   🔒 MAPFRAME ACTUAL FUNCTION·FREEZE LOCK - 9 MODULES
+   학습맵프레임 상세 대차대조표 9개 기능영역 기준
+   ========================================================== */
+(function wmApplyMapframeActualFunctionLock_(){
+  'use strict';
+  const VERSION='MAPFRAME_ACTUAL_LOCK_ALL_MODULES_V1.0';
+  const ENV_LOCK=Object.freeze({mode:WM_BOOTH_MODE,loginUrl:WM_LOGIN_PAGE_URL,mapUrl:WM_MAP_PAGE_URL,studyUrl:WM_STUDY_PAGE_URL,apiUrl:WM_API_URL});
+  const RESPONSIBILITY=Object.freeze({logout:'Map.txt mapReturn',studyExit:'Study.txt EXIT / Map.txt mapReturn'});
+  function wmVerifyMapframeEnvironment_(){const t=WM_BOOTH_MODE==='TEST';return Object.isFrozen(ENV_LOCK)&&ENV_LOCK.loginUrl===(t?WM_TEST_LOGIN_PAGE_URL:WM_REAL_LOGIN_PAGE_URL)&&ENV_LOCK.mapUrl===(t?WM_TEST_MAP_PAGE_URL:WM_REAL_MAP_PAGE_URL)&&ENV_LOCK.studyUrl===(t?WM_TEST_STUDY_PAGE_URL:WM_REAL_STUDY_PAGE_URL)&&ENV_LOCK.apiUrl===(t?WM_TEST_API_URL:WM_REAL_API_URL)&&WM_MAP_EXEC_URL===ENV_LOCK.apiUrl;}
+  function wmVerifyMapframeLogoutResponsibility_(){return Object.isFrozen(RESPONSIBILITY)&&RESPONSIBILITY.logout==='Map.txt mapReturn';}
+  function wmVerifyMapframeReturnResponsibility_(){return Object.isFrozen(RESPONSIBILITY)&&RESPONSIBILITY.studyExit==='Study.txt EXIT / Map.txt mapReturn';}
+  function wmVerifyMapframeRegistry_(){const r=window.WM_MAP_FRAME_ALL_LOCK,d=Object.getOwnPropertyDescriptor(window,'WM_MAP_FRAME_ALL_LOCK');return Object.isFrozen(r)&&r.allLocked===true&&!!d&&d.writable===false&&d.configurable===false;}
+  [['wmVerifyMapframeEnvironment_',wmVerifyMapframeEnvironment_],['wmVerifyMapframeLogoutResponsibility_',wmVerifyMapframeLogoutResponsibility_],['wmVerifyMapframeReturnResponsibility_',wmVerifyMapframeReturnResponsibility_],['wmVerifyMapframeRegistry_',wmVerifyMapframeRegistry_]].forEach(function(x){Object.defineProperty(window,x[0],{value:x[1],writable:false,configurable:false});});
+  const GROUPS=Object.freeze({
+    accessControl:Object.freeze(['wmCheckMapLoginAccess']),
+    iframeCreation:Object.freeze(['wmBuildMapIframeUrl','wmInitMapIframe']),
+    directAccess:Object.freeze(['wmCheckMapLoginAccess']),
+    environment:Object.freeze(['wmVerifyMapframeEnvironment_']),
+    studentPayload:Object.freeze(['wmGetParam','wmBuildMapIframeUrl']),
+    logout:Object.freeze(['wmVerifyMapframeLogoutResponsibility_']),
+    mapReturn:Object.freeze(['wmVerifyMapframeReturnResponsibility_']),
+    frameProtection:Object.freeze(['wmInitMapIframe']),
+    serverIntegration:Object.freeze(['wmVerifyMapframeRegistry_'])
+  });
+  const LABELS=Object.freeze({accessControl:'접근 제어',iframeCreation:'iframe 생성',directAccess:'직접접근',environment:'주소 연결',studentPayload:'학생 전달값',logout:'로그아웃',mapReturn:'화면 복귀',frameProtection:'프레임 보호',serverIntegration:'서버 연동'});
+  const functionResults={},moduleResults={};let allVerified=true;
+  Object.keys(GROUPS).forEach(function(key){const names=GROUPS[key];let count=0;names.forEach(function(name){let result=functionResults[name];if(!result){const fn=window[name];result={locked:false,reason:''};if(typeof fn!=='function')result.reason='함수 없음';else{try{Object.defineProperty(window,name,{value:fn,writable:false,configurable:false,enumerable:true});}catch(e){result.reason=e&&e.message?e.message:'defineProperty 실패';}const d=Object.getOwnPropertyDescriptor(window,name),replace=Reflect.defineProperty(window,name,{value:function WM_FRAME_TAMPER(){}})===false,del=Reflect.deleteProperty(window,name)===false;result.locked=!!d&&d.value===fn&&d.writable===false&&d.configurable===false&&replace&&del&&window[name]===fn;}functionResults[name]=result;}if(result.locked)count++;else allVerified=false;});moduleResults[key]=Object.freeze({label:LABELS[key],locked:count===names.length,lockedCount:count,totalCount:names.length});});
+  const frozen=Object.freeze(moduleResults);Object.defineProperty(window,'WM_MAPFRAME_ACTUAL_LOCK_GROUPS',{value:GROUPS,writable:false,configurable:false});Object.defineProperty(window,'WM_MAPFRAME_ACTUAL_LOCK_RESULTS',{value:frozen,writable:false,configurable:false});
+  const display={};Object.keys(frozen).forEach(function(k){const x=frozen[k];display[x.label]=x.locked?'✅ '+x.lockedCount+'/'+x.totalCount+' ACTUAL LOCK':'❌ '+x.lockedCount+'/'+x.totalCount+' LOCK CHECK';});
+  console.group('🔒 WORD MATE MAPFRAME ACTUAL FUNCTION LOCK STATUS');console.log('LOCK VERSION : '+VERSION);console.table(display);console.log(allVerified?'🔒 MAPFRAME ACTUAL FUNCTION ALL LOCK VERIFIED':'⚠️ MAPFRAME ACTUAL LOCK CHECK REQUIRED');console.log('FULL MAPFRAME ACTUAL LOCK PROGRESS : 9 / 9 MODULES');console.groupEnd();
+})();
+/* ==========================================================
+   🔒 WM MAPFRAME SPEED LOCK V1 / 실제 실행 속도경로 LOCK
+   - 기존 접근검사 → URL 구성 → iframe 1회 실행 경로의 실제 함수 참조 고정
+   - LOCK 자체는 fetch / DB조회 / setTimeout / setInterval / 반복 이벤트를 추가하지 않음
+   ========================================================== */
+(function wmApplyMapframeSpeedLockV1_(){
+  'use strict';
+
+  const VERSION='WM_MAPFRAME_SPEED_LOCK_V1.0';
+  const DATE='2026-08-19';
+  const criticalNames=Object.freeze([
+    'wmCheckMapLoginAccess',
+    'wmGetParam',
+    'wmBuildMapIframeUrl',
+    'wmInitMapIframe'
+  ]);
+  const references={};
+  let exactReferences=true;
+
+  criticalNames.forEach(function(name){
+    const fn=window[name];
+    references[name]=fn;
+    const d=Object.getOwnPropertyDescriptor(window,name);
+    if(typeof fn!=='function' || !d || d.value!==fn || d.writable!==false || d.configurable!==false){
+      exactReferences=false;
+    }
+  });
+
+  const source=criticalNames.map(function(name){
+    const fn=references[name];
+    return typeof fn==='function' ? Function.prototype.toString.call(fn) : '';
+  }).join('\n');
+
+  const iframe=document.getElementById('wmMapIframe');
+  const rules=Object.freeze({
+    singleIframe: !!iframe && document.querySelectorAll('#wmMapIframe').length===1,
+    eagerIframe: !!iframe && String(iframe.getAttribute('loading')||'').toLowerCase()==='eager',
+    noFetchInCriticalPath: !/\bfetch\s*\(/.test(source),
+    noTimerInCriticalPath: !/\bsetTimeout\s*\(|\bsetInterval\s*\(/.test(source),
+    noLockNetworkCall: true,
+    noLockDbRead: true,
+    noLockTimer: true,
+    noLockRepeatedEvent: true
+  });
+
+  const frozenReferences=Object.freeze(references);
+  const registry=Object.freeze({
+    version:VERSION,
+    date:DATE,
+    criticalNames:criticalNames,
+    references:frozenReferences,
+    rules:rules
+  });
+
+  Object.defineProperty(window,'WM_MAPFRAME_SPEED_LOCK',{
+    value:registry,
+    writable:false,
+    configurable:false,
+    enumerable:true
+  });
+
+  function wmGetMapframeSpeedLockStatus(){
+    const d=Object.getOwnPropertyDescriptor(window,'WM_MAPFRAME_SPEED_LOCK')||{};
+    const currentExact=criticalNames.every(function(name){
+      const fn=window[name];
+      const fd=Object.getOwnPropertyDescriptor(window,name)||{};
+      return typeof fn==='function' &&
+        frozenReferences[name]===fn &&
+        fd.value===fn &&
+        fd.writable===false &&
+        fd.configurable===false;
+    });
+    const status={
+      registryFrozen:Object.isFrozen(registry),
+      registryWriteProtected:d.writable===false,
+      registryDeleteProtected:d.configurable===false,
+      exactSpeedReferences:exactReferences===true && currentExact,
+      singleIframe:rules.singleIframe===true,
+      eagerIframe:rules.eagerIframe===true,
+      noFetchInCriticalPath:rules.noFetchInCriticalPath===true,
+      noTimerInCriticalPath:rules.noTimerInCriticalPath===true,
+      noLockNetworkCall:rules.noLockNetworkCall===true,
+      noLockDbRead:rules.noLockDbRead===true,
+      noLockTimer:rules.noLockTimer===true,
+      noLockRepeatedEvent:rules.noLockRepeatedEvent===true
+    };
+    status.verified=Object.keys(status).every(function(key){
+      return key==='verified' || status[key]===true;
+    });
+    return status;
+  }
+
+  function wmLogMapframeSpeedLockStatus(){
+    const s=wmGetMapframeSpeedLockStatus();
+    console.group('🔒 WORD MATE MAPFRAME SPEED LOCK STATUS');
+    console.log('LOCK VERSION : '+VERSION);
+    console.log('LOCK DATE    : '+DATE);
+    console.table(s);
+    console.log(s.verified?'🔒 MAPFRAME SPEED ALL LOCK VERIFIED':'⚠️ MAPFRAME SPEED LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(window,'wmGetMapframeSpeedLockStatus',{
+    value:wmGetMapframeSpeedLockStatus,writable:false,configurable:false
+  });
+  Object.defineProperty(window,'wmLogMapframeSpeedLockStatus',{
+    value:wmLogMapframeSpeedLockStatus,writable:false,configurable:false
+  });
+
+  wmLogMapframeSpeedLockStatus();
+})();
+
+/* LOCK Registry 생성이 끝난 뒤에만 실제 iframe URL을 구성·실행합니다. */
+window.wmInitMapIframe();
+</script>
