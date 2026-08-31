@@ -2596,8 +2596,8 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     }
     function wmRestoreLmsAuth(){
       try{
-        localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY);
-        document.body.classList.remove('wm-lms-authenticated');
+        const saved = JSON.parse(localStorage.getItem(WM_LMS_AUTH_STORAGE_KEY) || 'null');
+        if(saved && saved.teacher && saved.teacher.교사ID) wmApplyLmsAuth(saved.teacher);
       }catch(err){ localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY); }
     }
     /* WM_LMS_TEACHER_LOGIN_CALL_FIX_V2
@@ -3310,7 +3310,12 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       return yy+'-'+mm+'-'+dd+' '+Number(match[4])+':'+String(Number(match[5])).padStart(2,'0');
     }
 
+    /* WM_SET_ID_DATE_WEEK_SEPARATION_RULE_V1
+       Set_ID: WM2003-1-5 / 2003-1-5 = 세트번호. 날짜·주차로 해석 금지.
+       학습날짜: YYYY-MM-DD 계열만 사용. 리포트주차: YYYY-MM-N주차 값만 사용. */
     function displayCellValue(value, header){
+      if(header === 'Set_ID') return normalizeSetIdText(value);
+      if(header === '리포트주차') return String(value === undefined || value === null ? '' : value).trim();
       if(header === '학습날짜') return formatStudyDateMinute(value);
       if(['이전일','등록일','최근결제일'].includes(header)) return formatKoreaDateDot(value);
       return formatKoreaDate(value);
@@ -3321,8 +3326,27 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         .trim()
         .replace(/[‐‑‒–—―−－]/g,'-')
         .replace(/\s+/g,'');
-      const match = raw.match(/\d{1,2}-\d{1,2}-\d{1,2}/);
-      return match ? match[0] : raw;
+
+      let match = raw.match(/^WM(\d{1,2})-(\d{1,2})-(\d{1,2})$/i);
+      if(match) return 'WM' + Number(match[1]) + '-' + Number(match[2]) + '-' + Number(match[3]);
+
+      match = raw.match(/^20(\d{2})-(\d{1,2})-(\d{1,2})$/);
+      if(match){
+        const level = Number(match[1]);
+        if(level >= 3 && level <= 13){
+          return 'WM' + level + '-' + Number(match[2]) + '-' + Number(match[3]);
+        }
+      }
+
+      match = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{1,2})$/);
+      if(match){
+        const level = Number(match[1]);
+        if(level >= 3 && level <= 13){
+          return 'WM' + level + '-' + Number(match[2]) + '-' + Number(match[3]);
+        }
+      }
+
+      return raw;
     }
 
     function looksLikeSetId(value){
@@ -6381,7 +6405,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function reportDetailDate(row){
-      return reportDetailFirst(row, ['학습날짜','Study_Date','학습일','날짜','date','리포트주차','Report_Week']);
+      return reportDetailFirst(row, ['학습날짜','Study_Date','학습일','날짜','date']);
     }
 
     function reportDetailSetId(row){
@@ -7338,36 +7362,47 @@ function extractRecordRowsFromResponse(data){
     }
 
     async function loadReports(){
-      wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 완료 세트 조회');
+      wmLockStatusMessage('ReportDB_V2_LOCK','4-1.성적표생성_DB 생성·조회');
       const tbody = document.getElementById('reportManageTbody');
       setManageLoading('reports', true);
-      if(tbody) tbody.innerHTML = '<tr><td colspan="14"><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>완료 세트 조회 중입니다.</span></div></td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="14"><div class="wm-report-detail-loading"><span class="wm-loading-spinner"></span><span>성적표생성_DB 동기화 중입니다.</span></div></td></tr>';
 
       try{
-        let rows = [];
-        const urls = [
-          WM_APPS_SCRIPT_URL + '?mode=records&initial=1&limit=25&ts=' + Date.now() + wmLmsActorQuery(),
-          WM_APPS_SCRIPT_URL + '?action=learningRecords&initial=1&limit=25&ts=' + Date.now() + wmLmsActorQuery()
-        ];
-
-        for(const url of urls){
-          rows = await wmFetchLearningRecordRows(url);
-          if(rows.length) break;
+        const initUrl = WM_APPS_SCRIPT_URL
+          + '?mode=initializeReportsFromLearningRecords'
+          + '&action=initializeReportsFromLearningRecords'
+          + '&ts=' + Date.now()
+          + wmLmsActorQuery();
+        const initResponse = await fetch(initUrl,{method:'GET',cache:'no-store'});
+        const initText = await initResponse.text();
+        let initResult = null;
+        try{ initResult = JSON.parse(initText); }catch(parseError){}
+        if(!initResponse.ok || !initResult || initResult.success !== true){
+          throw new Error(initResult && initResult.message ? initResult.message : '4-1.성적표생성_DB 생성 실패');
         }
 
-        if(!rows.length){
-          rows = await readSheetRows(['2.학습기록_DB','학습기록_DB','records']);
+        const reportUrl = WM_APPS_SCRIPT_URL
+          + '?mode=reports'
+          + '&action=reports'
+          + '&ts=' + Date.now()
+          + wmLmsActorQuery();
+        const reportResponse = await fetch(reportUrl,{method:'GET',cache:'no-store'});
+        const reportText = await reportResponse.text();
+        let reportResult = null;
+        try{ reportResult = JSON.parse(reportText); }catch(parseError){}
+        if(!reportResponse.ok || !reportResult || reportResult.success !== true){
+          throw new Error(reportResult && reportResult.message ? reportResult.message : '4-1.성적표생성_DB 조회 실패');
         }
 
-        WM_REPORT_MANAGE_ROWS = wmNormalizeCompletedSetRows(rows);
+        WM_REPORT_MANAGE_ROWS = extractReportRowsFromResponse(reportResult).filter(isValidReportDbRow);
         WM_REPORT_MANAGE_PAGE = 1;
         renderReportManageRows();
         setManageLoading('reports', false);
-        console.log('성적표 완료세트 표시 성공:', WM_REPORT_MANAGE_ROWS.length, WM_REPORT_MANAGE_ROWS);
+        console.log('4-1.성적표생성_DB 연결 성공:', WM_REPORT_MANAGE_ROWS.length, initResult);
         return WM_REPORT_MANAGE_ROWS;
       }catch(err){
-        console.error('성적표 완료세트 조회 실패', err);
-        if(tbody) tbody.innerHTML = '<tr><td colspan="14">완료 세트 조회 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
+        console.error('4-1.성적표생성_DB 생성·조회 실패', err);
+        if(tbody) tbody.innerHTML = '<tr><td colspan="14">성적표생성_DB 실패: '+escapeHtml(err && err.message ? err.message : err)+'</td></tr>';
         setManageLoading('reports', false);
         return [];
       }
@@ -7402,7 +7437,7 @@ function extractRecordRowsFromResponse(data){
             return '<td>'+(rowIndex + 1)+'</td>';
           }
           if(header === '리포트주차'){
-            return '<td><button type="button" class="wm-action-btn sub" disabled aria-disabled="true">리포트주차</button></td>';
+            return '<td>'+escapeHtml(displayCellValue(row[header], header))+'</td>';
           }
           if(header === '성적표보기'){
             return '<td><div class="wm-report-button-group"><button type="button" class="wm-action-btn" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button><button type="button" class="wm-recent-report-btn" onclick="openRecentReportDetail(\''+escapeJs(studentId)+'\')">최근성적표보기</button></div></td>';
