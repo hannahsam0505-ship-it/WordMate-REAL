@@ -464,7 +464,9 @@
 #wmRecentReportModal .wm-report-preview-modal-card{width:min(1120px,96vw);max-height:calc(100vh - 94px);background:#fff;border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.35);overflow:hidden;display:flex;flex-direction:column}
 #wmRecentReportModal .wm-report-preview-modal-head{position:relative;top:auto;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto;background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 16px}
 #wmRecentReportModal .wm-report-preview-modal-title{font-size:16px;font-weight:950;color:#173b75;white-space:nowrap}
+#wmRecentReportModal .wm-report-preview-modal-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 #wmRecentReportModal .wm-recent-report-select{min-width:150px;border:1px solid #9fbce8;border-radius:9px;background:#fff;color:#173b75;padding:8px 10px;font-size:13px;font-weight:900}
+#wmRecentReportModal .wm-report-print-button{border:1px solid #0d55c8;background:#0d55c8;color:#fff;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap}
 #wmRecentReportModal .wm-action-btn.sub{border:1px solid #e5e7eb;background:#f3f4f6;color:#1f2937;border-radius:12px;padding:11px 15px;font-weight:900;cursor:pointer}
 #wmRecentReportModal .wm-report-preview-modal-body{flex:1 1 auto;min-height:140px;padding:18px;background:#eaf0f8;display:flex;justify-content:center;overflow:auto}
 #wmRecentReportModal .wm-report-preview-modal-body .wmr-sheet{margin:0 auto}
@@ -474,6 +476,17 @@
 body.wm-report-preview-open{overflow:hidden}
 @keyframes wmSharedRecentReportSpin{to{transform:rotate(360deg)}}
 @media(max-width:720px){#wmRecentReportModal{padding:64px 8px 8px}#wmRecentReportModal .wm-report-preview-modal-body{padding:8px;overflow:auto;justify-content:flex-start}}
+@media print{
+  body.wm-report-preview-open>*:not(#wmRecentReportModal){display:none!important}
+  #wmRecentReportModal{position:static!important;inset:auto!important;display:block!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  #wmRecentReportModal .wm-report-preview-modal-card{width:210mm!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  #wmRecentReportModal .wm-report-preview-modal-head{display:none!important}
+  #wmRecentReportModal .wm-report-preview-modal-body{display:block!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  #wmRecentReportModal .wm-report-preview-modal-body .wmr-sheet{
+    margin:0 auto!important;
+    zoom:.985;
+  }
+}
 `;
 
   const WM_SHARED_RECENT_MODAL_HTML = `
@@ -481,8 +494,11 @@ body.wm-report-preview-open{overflow:hidden}
   <div class="wm-report-preview-modal-card">
     <div class="wm-report-preview-modal-head">
       <div id="wmRecentReportModalTitle" class="wm-report-preview-modal-title">최근성적표보기</div>
-      <select id="wmRecentReportMonthSelect" class="wm-recent-report-select" aria-label="최근성적표 월 선택" onchange="changeRecentReportMonth()"></select>
-      <button type="button" class="wm-action-btn sub" aria-label="최근성적표 닫기" onclick="closeRecentReportModal()">×</button>
+      <div class="wm-report-preview-modal-actions">
+        <select id="wmRecentReportMonthSelect" class="wm-recent-report-select" aria-label="최근성적표 월 선택" onchange="changeRecentReportMonth()"></select>
+        <button type="button" class="wm-report-print-button" onclick="window.print()">인쇄하기</button>
+        <button type="button" class="wm-action-btn sub" aria-label="최근성적표 닫기" onclick="closeRecentReportModal()">×</button>
+      </div>
     </div>
     <div id="wmRecentReportModalBody" class="wm-report-preview-modal-body"></div>
   </div>
@@ -523,13 +539,291 @@ body.wm-report-preview-open{overflow:hidden}
     document.body.classList.remove('wm-report-preview-open');
   }
 
-  root.WMSharedRecentReport = Object.freeze({
+  /* ============================================================
+     🔒 WM_SHARED_RECENT_REPORT_FUNCTION_SPEED_LOCK_V1
+     공통렌더러 기능·디자인·속도 실제 참조 LOCK
+     - 기존 WM_REPORT_TEMPLATE_LOCK_V3 CSS/문구/배치 변경 없음
+     - iframe/API/DB 호출/타이머 추가 없음
+     - 기존 동기 렌더 경로 exact reference 보호
+  ============================================================ */
+  function renderSharedRecentReport(reportData){
+    return wmBuildSharedActualReportHtml(WM_SHARED_TEMPLATE_HTML, reportData || {});
+  }
+
+  const WM_SHARED_REPORT_LOCK_VERSION = 'WM_SHARED_RECENT_REPORT_LOCK_V1.0';
+  const WM_SHARED_REPORT_LOCK_DATE = '2026-08-19';
+
+  const WM_SHARED_REPORT_FUNCTIONS = Object.freeze({
+    escapeHtml: escapeHtml,
+    formatStudyDateMinute: formatStudyDateMinute,
+    buildGradeComment: wmBuildGradeCommentFromRow,
+    bindGradeGuide: wmBindGradeGuide,
+    bindGradeComment: bindReportGradeComment,
+    buildHtml: wmBuildSharedActualReportHtml,
+    bindSingleValues: bindMonthlyReportSingleValues,
+    appendCell: appendMonthlyReportCell,
+    formatPeriod: wmFormatMonthlyTotalPeriod,
+    renderWeeklyTable: renderMonthlyReportWeeklyTable,
+    renderDetailTable: renderMonthlyReportDetailTable,
+    renderScoreChart: renderMonthlyReportScoreChart,
+    renderLevelProgress: renderMonthlyReportLevelProgress,
+    normalizeValidation: normalizeMonthlyReportValidationValue,
+    validateActualData: validateMonthlyReportActualData,
+    prepareModal: prepareModal,
+    openModal: openModal,
+    closeModal: closeModal,
+    render: renderSharedRecentReport
+  });
+
+  const WM_SHARED_REPORT_DESIGN_FORMULA = Object.freeze({
+    templateLock: 'WM_REPORT_TEMPLATE_LOCK_V3',
+    templateAttribute: 'data-wmr-template-lock="V1"',
+    templateLength: 124659,
+    modalStyleLength: 3480,
+    modalHtmlLength: 900
+  });
+
+  const WM_SHARED_REPORT_API = Object.freeze({
     version: 'V3',
     prepareModal: prepareModal,
     openModal: openModal,
     closeModal: closeModal,
-    render: function(reportData){
-      return wmBuildSharedActualReportHtml(WM_SHARED_TEMPLATE_HTML, reportData || {});
-    }
+    render: renderSharedRecentReport
   });
+
+  const WM_SHARED_REPORT_FUNCTION_LOCK = Object.freeze({
+    version: WM_SHARED_REPORT_LOCK_VERSION,
+    date: WM_SHARED_REPORT_LOCK_DATE,
+    functions: WM_SHARED_REPORT_FUNCTIONS,
+    design: WM_SHARED_REPORT_DESIGN_FORMULA
+  });
+
+  const WM_SHARED_REPORT_SPEED_LOCK = Object.freeze({
+    version: 'WM_SHARED_RECENT_REPORT_SPEED_LOCK_V1.0',
+    date: WM_SHARED_REPORT_LOCK_DATE,
+    render: renderSharedRecentReport,
+    buildHtml: wmBuildSharedActualReportHtml,
+    bindSingleValues: bindMonthlyReportSingleValues,
+    validateActualData: validateMonthlyReportActualData,
+    prepareModal: prepareModal,
+    synchronousRender: true,
+    networkRequest: false,
+    iframe: false,
+    timer: false
+  });
+
+  function wmSharedReportDescriptorLocked_(name,value){
+    const d=Object.getOwnPropertyDescriptor(root,name)||{};
+    return d.value===value && d.writable===false && d.configurable===false;
+  }
+
+  function wmGetSharedRecentReportLockStatus_(){
+    const api=root.WMSharedRecentReport;
+    const lock=root.WM_SHARED_RECENT_REPORT_LOCK;
+    const design=lock&&lock.design||{};
+    const functions=lock&&lock.functions||{};
+    const exactReferences=
+      functions.escapeHtml===escapeHtml &&
+      functions.formatStudyDateMinute===formatStudyDateMinute &&
+      functions.buildGradeComment===wmBuildGradeCommentFromRow &&
+      functions.bindGradeGuide===wmBindGradeGuide &&
+      functions.bindGradeComment===bindReportGradeComment &&
+      functions.buildHtml===wmBuildSharedActualReportHtml &&
+      functions.bindSingleValues===bindMonthlyReportSingleValues &&
+      functions.appendCell===appendMonthlyReportCell &&
+      functions.formatPeriod===wmFormatMonthlyTotalPeriod &&
+      functions.renderWeeklyTable===renderMonthlyReportWeeklyTable &&
+      functions.renderDetailTable===renderMonthlyReportDetailTable &&
+      functions.renderScoreChart===renderMonthlyReportScoreChart &&
+      functions.renderLevelProgress===renderMonthlyReportLevelProgress &&
+      functions.normalizeValidation===normalizeMonthlyReportValidationValue &&
+      functions.validateActualData===validateMonthlyReportActualData &&
+      functions.prepareModal===prepareModal &&
+      functions.openModal===openModal &&
+      functions.closeModal===closeModal &&
+      functions.render===renderSharedRecentReport;
+
+    const status={
+      apiFrozen: !!api && Object.isFrozen(api),
+      apiWriteProtected: wmSharedReportDescriptorLocked_('WMSharedRecentReport',WM_SHARED_REPORT_API),
+      registryFrozen: !!lock && Object.isFrozen(lock) && Object.isFrozen(functions) && Object.isFrozen(design),
+      registryWriteProtected: wmSharedReportDescriptorLocked_('WM_SHARED_RECENT_REPORT_LOCK',WM_SHARED_REPORT_FUNCTION_LOCK),
+      exactReferences: exactReferences,
+      renderReference: !!api && api.render===renderSharedRecentReport,
+      modalReferences: !!api && api.prepareModal===prepareModal && api.openModal===openModal && api.closeModal===closeModal,
+      templateLockMarker: WM_SHARED_TEMPLATE_HTML.indexOf(design.templateLock)>=0,
+      templateLockAttribute: WM_SHARED_TEMPLATE_HTML.indexOf(design.templateAttribute)>=0,
+      templateLength: WM_SHARED_TEMPLATE_HTML.length===design.templateLength,
+      modalStyleLength: WM_SHARED_RECENT_MODAL_STYLE.length===design.modalStyleLength,
+      modalHtmlLength: WM_SHARED_RECENT_MODAL_HTML.length===design.modalHtmlLength
+    };
+    status.verified=Object.keys(status).every(function(key){
+      return key==='verified' || status[key]===true;
+    });
+    return Object.freeze(status);
+  }
+
+  function wmGetSharedRecentReportSpeedLockStatus_(){
+    const speed=root.WM_SHARED_RECENT_REPORT_SPEED_LOCK;
+    const functionSources=Object.keys(WM_SHARED_REPORT_FUNCTIONS).map(function(key){
+      return Function.prototype.toString.call(WM_SHARED_REPORT_FUNCTIONS[key]);
+    }).join('\n');
+    const noNetwork=!/(?:\bfetch\s*\(|XMLHttpRequest|google\.script\.run)/.test(functionSources);
+    const noIframe=!/<iframe\b/i.test(functionSources);
+    const noTimer=!/(?:setTimeout|setInterval|requestAnimationFrame)\s*\(/.test(functionSources);
+    const status={
+      registryFrozen: !!speed && Object.isFrozen(speed),
+      registryWriteProtected: wmSharedReportDescriptorLocked_('WM_SHARED_RECENT_REPORT_SPEED_LOCK',WM_SHARED_REPORT_SPEED_LOCK),
+      renderReference: !!speed && speed.render===renderSharedRecentReport && root.WMSharedRecentReport.render===renderSharedRecentReport,
+      buildReference: !!speed && speed.buildHtml===wmBuildSharedActualReportHtml && speed.bindSingleValues===bindMonthlyReportSingleValues,
+      validationReference: !!speed && speed.validateActualData===validateMonthlyReportActualData,
+      modalPrepareReference: !!speed && speed.prepareModal===prepareModal,
+      synchronousRender: !!speed && speed.synchronousRender===true && renderSharedRecentReport.constructor.name!=='AsyncFunction',
+      noNetwork: noNetwork && speed.networkRequest===false,
+      noIframe: noIframe && speed.iframe===false,
+      noTimer: noTimer && speed.timer===false
+    };
+    status.verified=Object.keys(status).every(function(key){
+      return key==='verified' || status[key]===true;
+    });
+    return Object.freeze(status);
+  }
+
+  function wmLogSharedRecentReportLockStatus_(){
+    const s=wmGetSharedRecentReportLockStatus_();
+    console.group('🔒 WORD MATE SHARED REPORT LOCK STATUS');
+    console.log('LOCK VERSION : '+WM_SHARED_REPORT_LOCK_VERSION);
+    console.log('LOCK DATE    : '+WM_SHARED_REPORT_LOCK_DATE);
+    console.table(s);
+    console.log(s.verified?'🔒 SHARED REPORT ALL LOCK VERIFIED':'❌ SHARED REPORT LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  function wmLogSharedRecentReportSpeedLockStatus_(){
+    const s=wmGetSharedRecentReportSpeedLockStatus_();
+    console.group('🔒 WORD MATE SHARED REPORT SPEED LOCK STATUS');
+    console.log('LOCK VERSION : '+WM_SHARED_REPORT_SPEED_LOCK.version);
+    console.log('LOCK DATE    : '+WM_SHARED_REPORT_SPEED_LOCK.date);
+    console.table(s);
+    console.log(s.verified?'🔒 SHARED REPORT SPEED ALL LOCK VERIFIED':'❌ SHARED REPORT SPEED LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(root,'WMSharedRecentReport',{
+    value: WM_SHARED_REPORT_API,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(root,'WM_SHARED_RECENT_REPORT_LOCK',{
+    value: WM_SHARED_REPORT_FUNCTION_LOCK,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(root,'WM_SHARED_RECENT_REPORT_SPEED_LOCK',{
+    value: WM_SHARED_REPORT_SPEED_LOCK,
+    writable: false,
+    configurable: false,
+    enumerable: true
+  });
+  Object.defineProperty(root,'wmGetSharedRecentReportLockStatus',{
+    value: wmGetSharedRecentReportLockStatus_,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(root,'wmGetSharedRecentReportSpeedLockStatus',{
+    value: wmGetSharedRecentReportSpeedLockStatus_,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(root,'wmLogSharedRecentReportLockStatus',{
+    value: wmLogSharedRecentReportLockStatus_,
+    writable: false,
+    configurable: false
+  });
+  Object.defineProperty(root,'wmLogSharedRecentReportSpeedLockStatus',{
+    value: wmLogSharedRecentReportSpeedLockStatus_,
+    writable: false,
+    configurable: false
+  });
+
+  /* ============================================================
+     🔒 WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK_V1
+     성적표 인쇄 A4 포맷 전용 LOCK
+     - 기존 렌더·디자인·속도 LOCK 수정 없음
+     - window.print 전역 함수 수정 없음
+     - API/DB/iframe/타이머/이벤트 추가 없음
+  ============================================================ */
+  const WM_SHARED_REPORT_PRINT_FORMAT = Object.freeze({
+    pageSize:'A4 portrait',
+    pageMargin:'0',
+    sheetWidth:'210mm',
+    sheetHeight:'297mm',
+    modalCardWidth:'210mm',
+    modalSheetZoom:'.985'
+  });
+
+  const WM_SHARED_REPORT_PRINT_LOCK = Object.freeze({
+    version:'WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK_V1.0',
+    date:'2026-08-27',
+    format:WM_SHARED_REPORT_PRINT_FORMAT
+  });
+
+  function wmSharedReportPrintDescriptorLocked_(name,value){
+    const d=Object.getOwnPropertyDescriptor(root,name)||{};
+    return d.value===value && d.writable===false && d.configurable===false;
+  }
+
+  function wmGetSharedRecentReportPrintA4FormatLockStatus_(){
+    const template=WM_SHARED_TEMPLATE_HTML.replace(/\s+/g,'');
+    const modalStyle=WM_SHARED_RECENT_MODAL_STYLE.replace(/\s+/g,'');
+    const modalHtml=WM_SHARED_RECENT_MODAL_HTML.replace(/\s+/g,'');
+    const lock=root.WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK;
+
+    const status={
+      registryFrozen:!!lock && Object.isFrozen(lock) && Object.isFrozen(lock.format),
+      registryWriteProtected:wmSharedReportPrintDescriptorLocked_('WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK',WM_SHARED_REPORT_PRINT_LOCK),
+      templateA4:template.indexOf('@page{size:A4portrait;margin:0}')!==-1,
+      sheetA4:template.indexOf('.wmr-sheet{width:210mm;height:297mm;margin:0;border-radius:0;box-shadow:none;page-break-after:avoid}')!==-1,
+      modalA4:modalStyle.indexOf('.wm-report-preview-modal-card{width:210mm!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}')!==-1,
+      modalZoom:modalStyle.indexOf('#wmRecentReportModal.wm-report-preview-modal-body.wmr-sheet{margin:0auto!important;zoom:.985;}')!==-1,
+      printButton:modalHtml.indexOf('class="wm-report-print-button"onclick="window.print()"')!==-1
+    };
+    status.verified=Object.keys(status).every(function(key){
+      return key==='verified' || status[key]===true;
+    });
+    return Object.freeze(status);
+  }
+
+  function wmLogSharedRecentReportPrintA4FormatLockStatus_(){
+    const s=wmGetSharedRecentReportPrintA4FormatLockStatus_();
+    console.group('🔒 WORD MATE SHARED REPORT PRINT A4 FORMAT LOCK STATUS');
+    console.log('LOCK VERSION : '+WM_SHARED_REPORT_PRINT_LOCK.version);
+    console.log('LOCK DATE    : '+WM_SHARED_REPORT_PRINT_LOCK.date);
+    console.table(s);
+    console.log(s.verified?'🔒 SHARED REPORT PRINT A4 FORMAT LOCK VERIFIED':'❌ SHARED REPORT PRINT A4 FORMAT LOCK CHECK REQUIRED');
+    console.groupEnd();
+    return s;
+  }
+
+  Object.defineProperty(root,'WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK',{
+    value:WM_SHARED_REPORT_PRINT_LOCK,
+    writable:false,
+    configurable:false,
+    enumerable:true
+  });
+  Object.defineProperty(root,'wmGetSharedRecentReportPrintA4FormatLockStatus',{
+    value:wmGetSharedRecentReportPrintA4FormatLockStatus_,
+    writable:false,
+    configurable:false
+  });
+  Object.defineProperty(root,'wmLogSharedRecentReportPrintA4FormatLockStatus',{
+    value:wmLogSharedRecentReportPrintA4FormatLockStatus_,
+    writable:false,
+    configurable:false
+  });
+
 })(window);
