@@ -319,6 +319,24 @@ WMDC_CURRENT_SET_RUN_AND_AUX_TESTS_V2 적용: 현재세트실행 상단 고정�
   word-break:break-word;
 }
 
+/* WM_DEV_BLUE_UI_V1_20260825
+   DEV CENTER 제어영역만 블루 계열로 통일.
+   실제 Study iframe/Study 원본 화면에는 적용하지 않음. */
+#wmdc-root .dev-header{
+  background:#0c4fb8;
+}
+#wmdc-root .status-item,
+#wmdc-root .wmdc-course-badge{
+  background:#1d4ed8;
+}
+#wmdc-root .dev-wrap button,
+#wmdc-root .dev-wrap .wmdc-lms-link-btn{
+  background:#2563eb !important;
+  border-color:#2563eb !important;
+  color:#fff !important;
+}
+
+
 
 #wmdc-root .dev-player{
   border:2px solid #2563eb;
@@ -1712,7 +1730,7 @@ window.addEventListener('load',function wmApplyDevActualFunctionLock_(){
 
     <div class="wmdc-dev-center-topbar">
       <div class="wmdc-dev-center-label">DEV 센터</div>
-      <a class="wmdc-lms-link-btn" id="wmdc-lms-link-btn" href="/test-lms" target="_top">LMS연동</a>
+      <a class="wmdc-lms-link-btn" id="wmdc-lms-link-btn" href="/lms" target="_top">LMS연동</a>
     </div>
 
     <div class="wmdc-tab-panel is-active" id="wmdc-tab-dev" data-wmdc-tab-panel="dev">
@@ -8938,6 +8956,16 @@ renderStart();
   color:initial;
   background:linear-gradient(180deg,#eef6ff 0%,#dbeafe 100%);
 }
+#wmdc-root .wmdc-study-live-frame{
+  display:block;
+  width:100%;
+  height:100vh;
+  min-height:760px;
+  margin:0;
+  padding:0;
+  border:0;
+  background:transparent;
+}
 #wmdc-root .wmdc-test-selector{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -10147,6 +10175,70 @@ renderStart();
     return true;
   }
 
+  /* WM_DEV_STUDY_LIVE_SYNC_V1_20260825
+     빠른 이동테스트의 실제 화면은 DEV 내부 복제본이 아니라 현재 배포된 /study를 직접 엽니다.
+     따라서 Study 화면이 바뀌면 DEV 파일 재복사 없이 다음 실행부터 그대로 반영됩니다. */
+  function wmdcBuildLiveStudyUrl(step,testIndex){
+    var url=new URL(WM_STUDY_URL,window.location.href);
+    url.searchParams.set('wmDevReview','1');
+    url.searchParams.set('wmDevStep',String(step || '1'));
+    url.searchParams.set('set_id',wmdcGetSetId());
+    if(String(step)==='6' && testIndex!==undefined && testIndex!==null){
+      url.searchParams.set('wmDevTestIndex',String(Number(testIndex) || 0));
+    }
+    url.searchParams.set('wmDevTs',String(Date.now()));
+    return url.href;
+  }
+
+  function wmdcMountLiveStudyFrame(step,testIndex){
+    var player=wmdcById('wmdc-dev-step-player');
+    if(!player) return false;
+
+    wmdcUnmountStudentApp();
+    player.className='wmdc-study-host';
+    player.innerHTML='';
+
+    var frame=document.createElement('iframe');
+    frame.id='wmdc-live-study-frame';
+    frame.className='wmdc-study-live-frame';
+    frame.title='현재 Study 원본 DEV 빠른 이동테스트';
+    frame.setAttribute('allow','fullscreen');
+    frame.src=wmdcBuildLiveStudyUrl(step,testIndex);
+    player.appendChild(frame);
+
+    window.WMDC_STUDY_SCREEN_ACTIVE=true;
+    var topNav=document.querySelector('#wmdc-root .wmdc-set-nav[data-wmdc-nav="top"]');
+    if(topNav) topNav.classList.remove('wmdc-nav-docked');
+    var navSpacer=document.querySelector('#wmdc-root .wmdc-set-nav-spacer');
+    if(navSpacer) navSpacer.classList.remove('is-active');
+    return true;
+  }
+
+  function wmdcHandleLiveStudyMessage(event){
+    if(event.origin !== window.location.origin) return;
+    var data=event.data || {};
+    if(data.type !== 'WM_DEV_STUDY_LIVE_REVIEW') return;
+
+    if(String(data.status || '').toUpperCase() === 'SUCCESS'){
+      wmdcSetText('wmdc-status-real-db','REAL DB : SUCCESS');
+      wmdcSetText('wmdc-status-result','RESULT : SUCCESS');
+      wmdcSetText('wmdc-status-cause','CAUSE : OK');
+      wmdcSetPreviewLoading(false);
+      wmdcLog('[DEV LIVE STUDY] 현재 /study 원본 렌더링 완료 · ' + String(data.setId || '') + ' · Step=' + String(data.step || ''));
+    }else if(String(data.status || '').toUpperCase() === 'FAIL'){
+      wmdcSetText('wmdc-status-real-db','REAL DB : FAIL');
+      wmdcSetText('wmdc-status-result','RESULT : FAIL');
+      wmdcSetText('wmdc-status-cause','CAUSE : FAIL');
+      wmdcSetPreviewLoading(false);
+      wmdcLog('[DEV LIVE STUDY ERROR] ' + String(data.detail || 'Study 원본 렌더링 실패'));
+    }
+  }
+
+  if(!window.__WMDC_LIVE_STUDY_MESSAGE_BOUND){
+    window.__WMDC_LIVE_STUDY_MESSAGE_BOUND=true;
+    window.addEventListener('message',wmdcHandleLiveStudyMessage);
+  }
+
   function wmdcSetPlayerMessage(message){
     wmdcUnmountStudentApp();
     var player = wmdcById('wmdc-dev-step-player');
@@ -10300,21 +10392,56 @@ renderStart();
     selector.innerHTML = '';
   }
 
+  function wmdcSwitchLiveStudyTestInPlace_(selectedIndex){
+    var frame=wmdcById('wmdc-live-study-frame');
+    if(!frame || !frame.contentWindow) return false;
+
+    try{
+      var studyWindow=frame.contentWindow;
+      if(studyWindow.location.origin !== window.location.origin) return false;
+
+      var liveUrl=new URL(studyWindow.location.href);
+      if(liveUrl.searchParams.get('wmDevReview') !== '1') return false;
+      if(liveUrl.searchParams.get('wmDevStep') !== '6') return false;
+      if(String(liveUrl.searchParams.get('set_id') || '') !== String(wmdcGetSetId())) return false;
+
+      var targetIndex=Math.max(0,Number(selectedIndex) || 0);
+      var switched=studyWindow.eval(
+        '(function(targetIndex){' +
+          'if(typeof getTestList!=="function"||typeof render!=="function"||typeof shuffle!=="function")return false;' +
+          'if(typeof originalWords==="undefined"||!Array.isArray(originalWords)||originalWords.length===0)return false;' +
+          'var tests=getTestList();' +
+          'if(!tests.length)return false;' +
+          'targetIndex=Math.max(0,Math.min(Number(targetIndex)||0,tests.length-1));' +
+          'if(typeof testIndex!=="undefined"&&targetIndex===testIndex+1&&typeof goNextTest==="function"){' +
+            'goNextTest();' +
+          '}else{' +
+            'testIndex=targetIndex;' +
+            'isRetest=false;' +
+            'testWords=shuffle(originalWords);' +
+            'stage=7;' +
+            'render();' +
+          '}' +
+          'return true;' +
+        '})(' + targetIndex + ')'
+      );
+
+      if(switched !== true) return false;
+      liveUrl.searchParams.set('wmDevTestIndex',String(targetIndex));
+      studyWindow.history.replaceState(null,'',liveUrl.pathname + liveUrl.search);
+      return true;
+    }catch(error){
+      wmdcLog('[DEV TEST SWITCH ERROR] 현재 Study 내부 TEST 즉시전환 실패 · ' + (error && error.message ? error.message : String(error)));
+      return false;
+    }
+  }
+
   function wmdcRunSelectedTest(selectedIndex){
     var tests = getTestList();
-    if(!tests.length || !Array.isArray(originalWords) || !originalWords.length){ return; }
+    if(!tests.length){ return; }
     var nextIndex = Math.max(0, Math.min(Number(selectedIndex) || 0, tests.length - 1));
-    if(!wmdcMountStudentApp()){ return; }
-
-    testIndex = nextIndex;
-    stage = 7;
-    testWords = shuffle(originalWords);
-    isRetest = false;
-    currentTestResults = [];
-    currentTestWrongs = [];
-    activeTestQuestionIndex = null;
-    renderTest();
-    afterScreenRender();
+    var switchedInPlace = wmdcSwitchLiveStudyTestInPlace_(nextIndex);
+    if(!switchedInPlace && !wmdcMountLiveStudyFrame('6', nextIndex)){ return; }
 
     var selector = wmdcById('wmdc-test-selector');
     if(selector){
@@ -10324,9 +10451,13 @@ renderStart();
       }
     }
     var title = wmdcById('wmdc-quick-title');
-    if(title){ title.textContent = 'DEV 빠른 이동 테스트 실행 · ' + wmdcMakeCourseLabel(currentSetId) + ' · ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex); }
+    if(title){ title.textContent = 'DEV 빠른 이동 테스트 실행 · ' + wmdcMakeCourseLabel(wmdcGetSetId()) + ' · ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex); }
     wmdcSetText('wmdc-status-step', 'STEP : ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex));
-    wmdcLog('[DEV TEST RUN] ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex) + ' 실제 Study 렌더링 완료');
+    wmdcSetText('wmdc-status-real-db', switchedInPlace ? 'REAL DB : SUCCESS' : 'REAL DB : LOADING');
+    wmdcSetText('wmdc-status-result', switchedInPlace ? 'RESULT : SUCCESS' : 'RESULT : READY');
+    wmdcLog(switchedInPlace
+      ? '[DEV TEST SWITCH] 현재 Study 내부 TEST 즉시전환 · ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex)
+      : '[DEV TEST RUN] 현재 /study 원본 TEST 최초 실행 시작 · ' + wmdcGetTestSelectorLabel(tests[nextIndex], nextIndex));
   }
 
   function wmdcShowTestSelector(){
@@ -10399,89 +10530,15 @@ renderStart();
     wmdcSetText('wmdc-status-cause', 'CAUSE : OK');
 
     wmdcLog('====================================');
-    wmdcLog('[DEV STEP RUN] 실제 학생학습화면 Step 실행 시작');
-    wmdcLog('[DEV STEP RUN] Set_ID=' + setId + ' / Step=' + stepName);
+    wmdcLog('[DEV LIVE STEP] 현재 /study 원본 실행 시작');
+    wmdcLog('[DEV LIVE STEP] Set_ID=' + setId + ' / Step=' + stepName);
 
-    wmdcSetPlayerMessage(wmdcLoadingMessage('선택한 Step을 불러오는 중입니다', '잠시만 기다려주세요.'));
-    if(currentSetId !== setId || !isDbReady || !Array.isArray(originalWords) || originalWords.length === 0){
-      wmdcSetPreviewLoading(true, '선택한 세트 DB 확인중', '잠시만 기다려주세요.');
-    }
-
-    try{
-      if(currentSetId !== setId || !isDbReady || !Array.isArray(originalWords) || originalWords.length === 0){
-        var ok = await wmdcLoadActualDbForPreview(setId);
-        if(!ok){
-          wmdcSetText('wmdc-status-real-db', 'REAL DB : FAIL');
-          wmdcSetText('wmdc-status-result', 'RESULT : FAIL');
-          wmdcSetText('wmdc-status-cause', 'CAUSE : FAIL');
-          wmdcSetPreviewLoading(false);
-          wmdcLog('[DEV STEP ERROR] 실제 학생학습화면 loadSetFromDB 실패');
-          return;
-        }
-      } else {
-        wmdcApplyPreviewFromLoadedWords();
-      }
-
-      if(!wmdcMountStudentApp()){
-        wmdcLog('[DEV STEP ERROR] wordmate-app 또는 실행영역을 찾지 못했습니다.');
-        return;
-      }
-
-      learningStartTime = Date.now();
-      completedSteps = [];
-      currentWords = shuffle(originalWords);
-      index = 0;
-
-      if(String(step) === '1'){
-        stage = 1;
-        renderFlashCard();
-      } else if(String(step) === '2'){
-        stage = 2;
-        renderStep2();
-      } else if(String(step) === '3'){
-        stage = 3;
-        renderStep3();
-      } else if(String(step) === '4'){
-        stage = 4;
-        memoryPhase = 0;
-        memoryCount = 0;
-        renderMemory();
-      } else if(String(step) === '5'){
-        stage = 6;
-        renderOneMoreFlashCard();
-      } else if(String(step) === '6'){
-        stage = 7;
-        testIndex = 0;
-        testWords = shuffle(originalWords);
-        renderTest();
-      } else if(String(step) === 'complete'){
-        stage = 8;
-        renderFinalResult();
-      } else {
-        stage = 1;
-        renderFlashCard();
-      }
-
-      afterScreenRender();
-
-      wmdcSetText('wmdc-status-real-db', 'REAL DB : SUCCESS');
-      wmdcSetText('wmdc-status-result', 'RESULT : SUCCESS');
-      wmdcSetText('wmdc-status-cause', 'CAUSE : OK');
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          wmdcSetPreviewLoading(false);
-        });
-      });
-      wmdcLog('[DEV STEP RUN] 실제 학생학습화면 Step 렌더링 완료');
-      wmdcLog('[DEV STEP RUN] 실제 render 함수 원본 사용 완료');
-    } catch(error){
+    if(!wmdcMountLiveStudyFrame(step)){
       wmdcSetText('wmdc-status-real-db', 'REAL DB : FAIL');
       wmdcSetText('wmdc-status-result', 'RESULT : FAIL');
       wmdcSetText('wmdc-status-cause', 'CAUSE : FAIL');
-      wmdcSetPreviewLoading(false);
-      wmdcSetPlayerMessage('Step 실행 실패: ' + (error && error.message ? error.message : String(error)));
-      wmdcLog('[DEV STEP ERROR] ' + (error && error.message ? error.message : String(error)));
-      console.error(error);
+      wmdcLog('[DEV LIVE STEP ERROR] iframe 실행영역을 찾지 못했습니다.');
+      return;
     }
   }
 
@@ -10653,13 +10710,23 @@ renderStart();
       wmdcAnalyzeActualAudioQa:wmdcAnalyzeActualAudioQa,
       wmdcPlayActualStudyAudio:wmdcPlayActualStudyAudio,
       wmdcSetHumanQa:wmdcSetHumanQa
+    }),
+    LIVE_STUDY:Object.freeze({
+      wmdcBuildLiveStudyUrl:wmdcBuildLiveStudyUrl,
+      wmdcMountLiveStudyFrame:wmdcMountLiveStudyFrame,
+      wmdcSwitchLiveStudyTestInPlace_:wmdcSwitchLiveStudyTestInPlace_,
+      wmdcRunSelectedTest:wmdcRunSelectedTest
     })
   });
   function wmVerifyDevAudioQaPrivateLock(){
     return Object.isFrozen(WM_DEV_AUDIO_QA_PRIVATE_LOCK) &&
       Object.isFrozen(WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA) &&
+      Object.isFrozen(WM_DEV_AUDIO_QA_PRIVATE_LOCK.LIVE_STUDY) &&
       Object.keys(WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA).every(function(name){
         return typeof WM_DEV_AUDIO_QA_PRIVATE_LOCK.AUDIO_QA[name] === 'function';
+      }) &&
+      Object.keys(WM_DEV_AUDIO_QA_PRIVATE_LOCK.LIVE_STUDY).every(function(name){
+        return typeof WM_DEV_AUDIO_QA_PRIVATE_LOCK.LIVE_STUDY[name] === 'function';
       });
   }
   Object.defineProperty(window,'WM_DEV_AUDIO_QA_PRIVATE_LOCK',{value:WM_DEV_AUDIO_QA_PRIVATE_LOCK,writable:false,configurable:false});
