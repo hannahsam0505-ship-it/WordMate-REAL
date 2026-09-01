@@ -1,4 +1,4 @@
-<!-- [REAL부스] Map A4한장 성공공식복구 6709-6651 -->
+<!-- [REAL부스] Map TEST정상인쇄동일승격 6678-6678 -->
 <!-- ==========================================================
    🧪 WORD MATE Map.html - TEST / REAL 전환 설정
    ==========================================================
@@ -1818,8 +1818,8 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 @media print{
-  html,
-  body{
+  html.wm-map-record-print,
+  body.wm-map-record-print{
     margin:0 !important;
     padding:0 !important;
     width:100% !important;
@@ -1829,20 +1829,24 @@ body.wm-map-loading-active #wm-learning-record-widget{
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
-  body{
+  body.wm-map-record-print{
     display:flex !important;
-    align-items:center !important;
+    align-items:flex-start !important;
     justify-content:center !important;
   }
-
-  body.wm-test-booth-active{margin-top:0 !important;}
-  #wm-test-booth-banner,
-  .wm-map-wrong-modal,
-  .wm-homework-search-notice-modal{
+  body.wm-map-record-print > *:not(#wm-map-root),
+  body.wm-map-record-print #wmRecentReportModal{
     display:none !important;
   }
 
-  #wm-map-root{
+  body.wm-map-record-print.wm-test-booth-active{margin-top:0 !important;}
+  body.wm-map-record-print #wm-test-booth-banner,
+  body.wm-map-record-print .wm-map-wrong-modal,
+  body.wm-map-record-print .wm-homework-search-notice-modal{
+    display:none !important;
+  }
+
+  body.wm-map-record-print #wm-map-root{
     width:1320px !important;
     max-width:1320px !important;
     margin:0 auto !important;
@@ -1853,49 +1857,54 @@ body.wm-map-loading-active #wm-learning-record-widget{
     box-sizing:border-box !important;
     overflow:visible !important;
     zoom:.51;
+    break-inside:avoid-page !important;
+    page-break-inside:avoid !important;
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+  }
+  body.wm-map-record-print #wm-map-root{
+    zoom:var(--wm-map-record-print-zoom,.51) !important;
+  }
+
+  body.wm-map-record-print #wm-map-root,
+  body.wm-map-record-print #wm-map-root *{
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
 
-  #wm-map-root,
-  #wm-map-root *{
-    -webkit-print-color-adjust:exact !important;
-    print-color-adjust:exact !important;
-  }
+  body.wm-map-record-print .student-info-row{gap:10px !important;}
+  body.wm-map-record-print .student-info-row-main{grid-template-columns:25fr 25fr 25fr 25fr !important;}
+  body.wm-map-record-print .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
 
-  .student-info-row{gap:10px !important;}
-  .student-info-row-main{grid-template-columns:25fr 25fr 25fr 25fr !important;}
-  .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
-
-  .filter-box{
+  body.wm-map-record-print .filter-box{
     grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto auto !important;
   }
 
-  .wm-map-report-buttons{
+  body.wm-map-record-print .wm-map-report-buttons{
     width:auto !important;
     margin-left:auto !important;
   }
-  .wm-report-view-button{
+  body.wm-map-record-print .wm-report-view-button{
     flex:0 0 auto !important;
     width:180px !important;
   }
 
-  .record-summary{grid-template-columns:repeat(5,1fr) !important;}
-  .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
+  body.wm-map-record-print .record-summary{grid-template-columns:repeat(5,1fr) !important;}
+  body.wm-map-record-print .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
 
-  .homework-table-scroll{
+  body.wm-map-record-print .homework-table-scroll{
     max-height:690px !important;
     overflow:hidden !important;
   }
-  .detail-box{
+  body.wm-map-record-print .detail-box{
     overflow:hidden !important;
   }
-  .homework-scroll-top-fixed,
-  .homework-scroll-bottom-fixed{
+  body.wm-map-record-print .homework-scroll-top-fixed,
+  body.wm-map-record-print .homework-scroll-bottom-fixed{
     display:none !important;
   }
 
-  .homework-table{
+  body.wm-map-record-print .homework-table{
     width:100% !important;
     min-width:1180px !important;
     --wm-sticky-col-1:78px;
@@ -1905,25 +1914,25 @@ body.wm-map-loading-active #wm-learning-record-widget{
     white-space:nowrap !important;
   }
 
-  .homework-table th,
-  .homework-table td{
+  body.wm-map-record-print .homework-table th,
+  body.wm-map-record-print .homework-table td{
     position:static !important;
     left:auto !important;
     right:auto !important;
   }
-  .homework-table thead{display:table-header-group;}
-  .homework-table tr{
+  body.wm-map-record-print .homework-table thead{display:table-header-group;}
+  body.wm-map-record-print .homework-table tr{
     break-inside:avoid;
     page-break-inside:avoid;
   }
 
-  .student-top-card,
-  .progress-area,
-  .map-guide,
-  .set-row,
-  .wm-homework-control-box,
-  .record-summary div,
-  .learning-detail-box{
+  body.wm-map-record-print .student-top-card,
+  body.wm-map-record-print .progress-area,
+  body.wm-map-record-print .map-guide,
+  body.wm-map-record-print .set-row,
+  body.wm-map-record-print .wm-homework-control-box,
+  body.wm-map-record-print .record-summary div,
+  body.wm-map-record-print .learning-detail-box{
     break-inside:avoid;
     page-break-inside:avoid;
   }
@@ -5688,9 +5697,27 @@ function printRecords(){
     : (level >= 10 && level <= 13) ? '.47'
     : '';
   const root = document.getElementById('wm-map-root');
-  if(root && printZoom) root.style.setProperty('zoom', printZoom, 'important');
-  window.print();
-  if(root && printZoom) root.style.removeProperty('zoom');
+  const html = document.documentElement;
+  const body = document.body;
+
+  function cleanupPrintLayout(){
+    if(root) root.style.removeProperty('--wm-map-record-print-zoom');
+    if(html) html.classList.remove('wm-map-record-print');
+    if(body) body.classList.remove('wm-map-record-print');
+  }
+
+  if(html) html.classList.add('wm-map-record-print');
+  if(body) body.classList.add('wm-map-record-print');
+  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
+
+  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
+  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+  try{
+    window.print();
+  }catch(err){
+    cleanupPrintLayout();
+    throw err;
+  }
 }
 
 function wmInitHomeworkSearchEnterKey(){
@@ -6648,4 +6675,4 @@ wmInitPublishedReportModal_();
 wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
-<!-- [REAL부스] Map A4한장 성공공식복구 6709-6651 -->
+<!-- [REAL부스] Map TEST정상인쇄동일승격 6678-6678 -->
