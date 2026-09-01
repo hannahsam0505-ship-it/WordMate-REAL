@@ -5733,11 +5733,10 @@ function printRecords(){
         const MILLIMETERS_PER_INCH=25.4;
         const printableWidth=(A4_WIDTH_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
         const printableHeight=(A4_HEIGHT_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
-        const contentWidth=root.scrollWidth;
         const contentHeight=root.scrollHeight;
-        if(contentWidth>0&&contentHeight>0){
+        if(contentHeight>0){
           const printZoom=Math.min(
-            printableWidth/contentWidth,
+            printableWidth/1320,
             printableHeight/contentHeight
           );
           root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,Math.min(1,printZoom)).toFixed(4));
@@ -5745,7 +5744,11 @@ function printRecords(){
       }
       window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
       try{ window.print(); }
-      catch(err){ cleanupPrintLayout(); throw err; }
+      catch(err){
+        window.removeEventListener('afterprint', cleanupPrintLayout);
+        cleanupPrintLayout();
+        throw err;
+      }
     });
   });
 }
