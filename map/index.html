@@ -1831,7 +1831,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
   }
   body.wm-map-record-print{
     display:flex !important;
-    align-items:flex-start !important;
+    align-items:var(--wm-map-record-print-align,flex-start) !important;
     justify-content:center !important;
   }
   body.wm-map-record-print > *:not(#wm-map-root),
@@ -5702,14 +5702,14 @@ function printRecords(){
 
   function applyPrintLayout(){
     if(html) html.classList.add('wm-map-record-print');
-    if(body) body.classList.add('wm-map-record-print');
+    if(body){ body.classList.add('wm-map-record-print'); body.style.setProperty('--wm-map-record-print-align', wmMobileTabletPrint ? 'flex-start' : 'center'); }
     if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
   }
 
   function cleanupPrintLayout(){
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
     if(html) html.classList.remove('wm-map-record-print');
-    if(body) body.classList.remove('wm-map-record-print');
+    if(body){ body.classList.remove('wm-map-record-print'); body.style.removeProperty('--wm-map-record-print-align'); }
   }
 
   const wmMobileTabletPrint = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse), screen and (max-width: 768px)').matches);
