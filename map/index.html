@@ -5719,9 +5719,9 @@ function printRecords(){
         );
         root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,printZoom).toFixed(4));
       }
-      window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
-      window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-      window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+      window.addEventListener('afterprint', cleanupPrintLayout);
+      window.addEventListener('pointerdown', cleanupPrintLayout, true);
+      window.addEventListener('keydown', cleanupPrintLayout, true);
       try{ window.print(); }
       catch(err){ cleanupPrintLayout(); throw err; }
     });
