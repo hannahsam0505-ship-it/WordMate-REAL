@@ -5693,8 +5693,6 @@ function printRecords(){
 
   function cleanupPrintLayout(){
     window.removeEventListener('afterprint', cleanupPrintLayout);
-    window.removeEventListener('pointerdown', cleanupPrintLayout, true);
-    window.removeEventListener('keydown', cleanupPrintLayout, true);
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
     if(html) html.classList.remove('wm-map-record-print');
     if(body) body.classList.remove('wm-map-record-print');
@@ -5724,8 +5722,6 @@ function printRecords(){
         }
       }
       window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
-      window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-      window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
       try{ window.print(); }
       catch(err){ cleanupPrintLayout(); throw err; }
     });
