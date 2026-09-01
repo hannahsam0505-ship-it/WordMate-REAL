@@ -7408,6 +7408,22 @@ function extractRecordRowsFromResponse(data){
       }
     }
 
+    async function wmCopyReportUrl(reportUrl, button){
+      const url = String(reportUrl || '').trim();
+      if(!url) return false;
+      try{
+        await navigator.clipboard.writeText(url);
+      }catch(err){
+        window.prompt('성적표 URL을 복사해 주세요.', url);
+        return false;
+      }
+      if(button){
+        button.textContent = '복사완료';
+        setTimeout(()=>{ button.textContent = 'URL복사'; }, 1000);
+      }
+      return true;
+    }
+
     function renderReportManageRows(){
       wmLockStatusMessage('ReportDB_V2_LOCK','성적표조회 일련번호·목록 렌더링');
       const tbody = document.getElementById('reportManageTbody');
@@ -7432,6 +7448,7 @@ function extractRecordRowsFromResponse(data){
         const rowIndex = start + index;
         const reportId = String(getReportIdForDisplay(row, rowIndex, rows) || row['리포트ID'] || '').trim();
         const studentId = reportDetailStudentId(row);
+        const reportUrl = String(cellValue(row, headerAliases('성적표보기')) || '').trim();
         return '<tr data-report-id="'+escapeHtml(reportId)+'">'+WM_REPORT_HEADERS.map(header=>{
           if(header === '일련번호'){
             return '<td>'+(rowIndex + 1)+'</td>';
@@ -7440,7 +7457,8 @@ function extractRecordRowsFromResponse(data){
             return '<td>'+escapeHtml(displayCellValue(row[header], header))+'</td>';
           }
           if(header === '성적표보기'){
-            return '<td><div class="wm-report-button-group"><button type="button" class="wm-action-btn" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button><button type="button" class="wm-recent-report-btn" onclick="openRecentReportDetail(\''+escapeJs(studentId)+'\')">최근성적표보기</button></div></td>';
+            const copyButton = reportUrl ? '<button type="button" class="wm-recent-report-btn" onclick="wmCopyReportUrl(\''+escapeJs(reportUrl)+'\',this)">URL복사</button>' : '';
+            return '<td><div class="wm-report-button-group"><button type="button" class="wm-action-btn" onclick="openReportDetail(\''+reportId+'\')">성적표보기</button><button type="button" class="wm-recent-report-btn" onclick="openRecentReportDetail(\''+escapeJs(studentId)+'\')">최근성적표보기</button>'+copyButton+'</div></td>';
           }
           if(header === 'Teacher’s Comment' || header === '격려메시지'){
             return '<td></td>';
