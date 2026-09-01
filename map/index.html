@@ -1818,6 +1818,28 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 @media print{
+  /* Print preview can evaluate the mobile viewport query after the transient
+     print class has been cleared. Keep this Map-only output in desktop form. */
+  #wm-map-root{
+    width:1320px !important;
+    min-width:1320px !important;
+    max-width:1320px !important;
+    margin:0 auto !important;
+    padding:24px 24px 44px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+    zoom:var(--wm-map-record-print-zoom,.51) !important;
+  }
+  #wm-map-root .student-info-row-main{grid-template-columns:repeat(4,1fr) !important;}
+  #wm-map-root .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
+  #wm-map-root .filter-box{grid-template-columns:repeat(6,1fr) auto auto !important;}
+  #wm-map-root .record-summary{grid-template-columns:repeat(5,1fr) !important;}
+  #wm-map-root .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
+  #wm-map-root .homework-table-scroll,
+  #wm-map-root .detail-box{overflow:hidden !important;}
+  #wm-map-root .homework-scroll-top-fixed,
+  #wm-map-root .homework-scroll-bottom-fixed{display:none !important;}
+
   html.wm-map-record-print,
   body.wm-map-record-print{
     margin:0 !important;
@@ -1855,17 +1877,13 @@ body.wm-map-loading-active #wm-learning-record-widget{
     background:#D8EEFF !important;
     border-radius:28px !important;
     box-sizing:border-box !important;
-    overflow:visible !important;
-    zoom:.51;
+    overflow:hidden !important;
+    zoom:var(--wm-map-record-print-zoom,.51) !important;
     break-inside:avoid-page !important;
     page-break-inside:avoid !important;
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
-  body.wm-map-record-print #wm-map-root{
-    zoom:var(--wm-map-record-print-zoom,.51) !important;
-  }
-
   body.wm-map-record-print #wm-map-root,
   body.wm-map-record-print #wm-map-root *{
     -webkit-print-color-adjust:exact !important;
@@ -5691,16 +5709,12 @@ async function wmLogout(){
 }
 
 function printRecords(){
-  const level = Number(currentLevelNumber);
-  const printZoom = (level >= 3 && level <= 6) ? '.51'
-    : (level >= 7 && level <= 9) ? '.49'
-    : (level >= 10 && level <= 13) ? '.47'
-    : '';
   const root = document.getElementById('wm-map-root');
   const html = document.documentElement;
   const body = document.body;
 
   function cleanupPrintLayout(){
+    window.removeEventListener('afterprint', cleanupPrintLayout);
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
     if(html) html.classList.remove('wm-map-record-print');
     if(body) body.classList.remove('wm-map-record-print');
@@ -5708,16 +5722,35 @@ function printRecords(){
 
   if(html) html.classList.add('wm-map-record-print');
   if(body) body.classList.add('wm-map-record-print');
-  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
-
-  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
-  try{
-    window.print();
-  }catch(err){
-    cleanupPrintLayout();
-    throw err;
-  }
+  if(root) void root.offsetHeight;
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      if(root){
+        const A4_WIDTH_MM=210;
+        const A4_HEIGHT_MM=297;
+        const PAGE_MARGIN_MM=7;
+        const CSS_PIXELS_PER_INCH=96;
+        const MILLIMETERS_PER_INCH=25.4;
+        const printableWidth=(A4_WIDTH_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
+        const printableHeight=(A4_HEIGHT_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
+        const contentHeight=root.scrollHeight;
+        if(contentHeight>0){
+          const printZoom=Math.min(
+            printableWidth/1320,
+            printableHeight/contentHeight
+          );
+          root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,Math.min(1,printZoom)).toFixed(4));
+        }
+      }
+      window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+      try{ window.print(); }
+      catch(err){
+        window.removeEventListener('afterprint', cleanupPrintLayout);
+        cleanupPrintLayout();
+        throw err;
+      }
+    });
+  });
 }
 
 function wmInitHomeworkSearchEnterKey(){
