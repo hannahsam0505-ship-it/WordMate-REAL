@@ -5692,6 +5692,9 @@ function printRecords(){
   const body = document.body;
 
   function cleanupPrintLayout(){
+    window.removeEventListener('afterprint', cleanupPrintLayout);
+    window.removeEventListener('pointerdown', cleanupPrintLayout, true);
+    window.removeEventListener('keydown', cleanupPrintLayout, true);
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
     if(html) html.classList.remove('wm-map-record-print');
     if(body) body.classList.remove('wm-map-record-print');
@@ -5699,26 +5702,29 @@ function printRecords(){
 
   if(html) html.classList.add('wm-map-record-print');
   if(body) body.classList.add('wm-map-record-print');
+  if(root) void root.offsetHeight;
   requestAnimationFrame(function(){
-    if(root){
-      const A4_WIDTH_MM=210;
-      const A4_HEIGHT_MM=297;
-      const PAGE_MARGIN_MM=7;
-      const CSS_PIXELS_PER_INCH=96;
-      const MILLIMETERS_PER_INCH=25.4;
-      const printableWidth=(A4_WIDTH_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
-      const printableHeight=(A4_HEIGHT_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
-      const printZoom=Math.min(
-        printableWidth/root.offsetWidth,
-        printableHeight/root.scrollHeight
-      );
-      root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,printZoom).toFixed(4));
-    }
-    window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
-    window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-    window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
-    try{ window.print(); }
-    catch(err){ cleanupPrintLayout(); throw err; }
+    requestAnimationFrame(function(){
+      if(root){
+        const A4_WIDTH_MM=210;
+        const A4_HEIGHT_MM=297;
+        const PAGE_MARGIN_MM=7;
+        const CSS_PIXELS_PER_INCH=96;
+        const MILLIMETERS_PER_INCH=25.4;
+        const printableWidth=(A4_WIDTH_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
+        const printableHeight=(A4_HEIGHT_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
+        const printZoom=Math.min(
+          printableWidth/root.offsetWidth,
+          printableHeight/root.scrollHeight
+        );
+        root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,printZoom).toFixed(4));
+      }
+      window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+      window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
+      window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+      try{ window.print(); }
+      catch(err){ cleanupPrintLayout(); throw err; }
+    });
   });
 }
 
