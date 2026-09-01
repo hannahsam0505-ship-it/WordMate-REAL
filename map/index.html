@@ -5712,8 +5712,14 @@ function printRecords(){
     if(body) body.classList.remove('wm-map-record-print');
   }
 
+  const wmMobileTabletPrint = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse), screen and (max-width: 768px)').matches);
   window.addEventListener('beforeprint', applyPrintLayout, {once:true});
-  window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+  if(wmMobileTabletPrint){
+    window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
+    window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+  }else{
+    window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+  }
   applyPrintLayout();
   try{
     window.print();
