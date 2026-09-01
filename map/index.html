@@ -1,4 +1,4 @@
-<!-- [TEST부스] Map 학습기록최근15개날짜제한제거 6661-6648 -->
+<!-- [REAL부스] Map A4한장 성공공식복구 6709-6651 -->
 <!-- ==========================================================
    🧪 WORD MATE Map.html - TEST / REAL 전환 설정
    ==========================================================
@@ -1818,8 +1818,8 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 @media print{
-  html.wm-map-record-print,
-  body.wm-map-record-print{
+  html,
+  body{
     margin:0 !important;
     padding:0 !important;
     width:100% !important;
@@ -1829,24 +1829,20 @@ body.wm-map-loading-active #wm-learning-record-widget{
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
-  body.wm-map-record-print{
+  body{
     display:flex !important;
-    align-items:flex-start !important;
+    align-items:center !important;
     justify-content:center !important;
   }
-  body.wm-map-record-print > *:not(#wm-map-root),
-  body.wm-map-record-print #wmRecentReportModal{
+
+  body.wm-test-booth-active{margin-top:0 !important;}
+  #wm-test-booth-banner,
+  .wm-map-wrong-modal,
+  .wm-homework-search-notice-modal{
     display:none !important;
   }
 
-  body.wm-map-record-print.wm-test-booth-active{margin-top:0 !important;}
-  body.wm-map-record-print #wm-test-booth-banner,
-  body.wm-map-record-print .wm-map-wrong-modal,
-  body.wm-map-record-print .wm-homework-search-notice-modal{
-    display:none !important;
-  }
-
-  body.wm-map-record-print #wm-map-root{
+  #wm-map-root{
     width:1320px !important;
     max-width:1320px !important;
     margin:0 auto !important;
@@ -1857,54 +1853,49 @@ body.wm-map-loading-active #wm-learning-record-widget{
     box-sizing:border-box !important;
     overflow:visible !important;
     zoom:.51;
-    break-inside:avoid-page !important;
-    page-break-inside:avoid !important;
-    -webkit-print-color-adjust:exact !important;
-    print-color-adjust:exact !important;
-  }
-  body.wm-map-record-print #wm-map-root{
-    zoom:var(--wm-map-record-print-zoom,.51) !important;
-  }
-
-  body.wm-map-record-print #wm-map-root,
-  body.wm-map-record-print #wm-map-root *{
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
 
-  body.wm-map-record-print .student-info-row{gap:10px !important;}
-  body.wm-map-record-print .student-info-row-main{grid-template-columns:25fr 25fr 25fr 25fr !important;}
-  body.wm-map-record-print .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
+  #wm-map-root,
+  #wm-map-root *{
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+  }
 
-  body.wm-map-record-print .filter-box{
+  .student-info-row{gap:10px !important;}
+  .student-info-row-main{grid-template-columns:25fr 25fr 25fr 25fr !important;}
+  .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
+
+  .filter-box{
     grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto auto !important;
   }
 
-  body.wm-map-record-print .wm-map-report-buttons{
+  .wm-map-report-buttons{
     width:auto !important;
     margin-left:auto !important;
   }
-  body.wm-map-record-print .wm-report-view-button{
+  .wm-report-view-button{
     flex:0 0 auto !important;
     width:180px !important;
   }
 
-  body.wm-map-record-print .record-summary{grid-template-columns:repeat(5,1fr) !important;}
-  body.wm-map-record-print .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
+  .record-summary{grid-template-columns:repeat(5,1fr) !important;}
+  .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
 
-  body.wm-map-record-print .homework-table-scroll{
+  .homework-table-scroll{
     max-height:690px !important;
     overflow:hidden !important;
   }
-  body.wm-map-record-print .detail-box{
+  .detail-box{
     overflow:hidden !important;
   }
-  body.wm-map-record-print .homework-scroll-top-fixed,
-  body.wm-map-record-print .homework-scroll-bottom-fixed{
+  .homework-scroll-top-fixed,
+  .homework-scroll-bottom-fixed{
     display:none !important;
   }
 
-  body.wm-map-record-print .homework-table{
+  .homework-table{
     width:100% !important;
     min-width:1180px !important;
     --wm-sticky-col-1:78px;
@@ -1914,25 +1905,25 @@ body.wm-map-loading-active #wm-learning-record-widget{
     white-space:nowrap !important;
   }
 
-  body.wm-map-record-print .homework-table th,
-  body.wm-map-record-print .homework-table td{
+  .homework-table th,
+  .homework-table td{
     position:static !important;
     left:auto !important;
     right:auto !important;
   }
-  body.wm-map-record-print .homework-table thead{display:table-header-group;}
-  body.wm-map-record-print .homework-table tr{
+  .homework-table thead{display:table-header-group;}
+  .homework-table tr{
     break-inside:avoid;
     page-break-inside:avoid;
   }
 
-  body.wm-map-record-print .student-top-card,
-  body.wm-map-record-print .progress-area,
-  body.wm-map-record-print .map-guide,
-  body.wm-map-record-print .set-row,
-  body.wm-map-record-print .wm-homework-control-box,
-  body.wm-map-record-print .record-summary div,
-  body.wm-map-record-print .learning-detail-box{
+  .student-top-card,
+  .progress-area,
+  .map-guide,
+  .set-row,
+  .wm-homework-control-box,
+  .record-summary div,
+  .learning-detail-box{
     break-inside:avoid;
     page-break-inside:avoid;
   }
@@ -5692,63 +5683,14 @@ async function wmLogout(){
 
 function printRecords(){
   const level = Number(currentLevelNumber);
-  const baseZoom = (level >= 3 && level <= 6) ? .51
-    : (level >= 7 && level <= 9) ? .49
-    : (level >= 10 && level <= 13) ? .47
-    : .47;
+  const printZoom = (level >= 3 && level <= 6) ? '.51'
+    : (level >= 7 && level <= 9) ? '.49'
+    : (level >= 10 && level <= 13) ? '.47'
+    : '';
   const root = document.getElementById('wm-map-root');
-  const html = document.documentElement;
-  const body = document.body;
-
-  function cleanupPrintLayout(){
-    if(root) root.style.removeProperty('--wm-map-record-print-zoom');
-    if(html) html.classList.remove('wm-map-record-print');
-    if(body) body.classList.remove('wm-map-record-print');
-  }
-
-  if(!root){
-    window.print();
-    return;
-  }
-
-  if(html) html.classList.add('wm-map-record-print');
-  if(body) body.classList.add('wm-map-record-print');
-
-  /* 인쇄 계산은 항상 PC 1320px 레이아웃을 먼저 만든 뒤 A4 한 장에 맞춥니다. */
-  root.style.setProperty('--wm-map-record-print-zoom', '1');
-
-  const runPrint = function(){
-    const pxPerMm = 96 / 25.4;
-    const printableWidthPx = 196 * pxPerMm;  // A4 210mm - 좌우 7mm
-    const printableHeightPx = 283 * pxPerMm; // A4 297mm - 상하 7mm
-    const rootWidth = Math.max(root.scrollWidth || 0, root.offsetWidth || 0, 1320);
-    const rootHeight = Math.max(root.scrollHeight || 0, root.offsetHeight || 0, 1);
-    const widthZoom = printableWidthPx / rootWidth;
-    const heightZoom = printableHeightPx / rootHeight;
-    const printZoom = Math.min(baseZoom, widthZoom, heightZoom) * .97;
-
-    if(Number.isFinite(printZoom) && printZoom > 0){
-      root.style.setProperty('--wm-map-record-print-zoom', String(printZoom));
-    }else{
-      root.style.setProperty('--wm-map-record-print-zoom', String(baseZoom));
-    }
-
-    window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
-    try{
-      window.print();
-    }catch(err){
-      cleanupPrintLayout();
-      throw err;
-    }
-  };
-
-  if(window.requestAnimationFrame){
-    requestAnimationFrame(function(){
-      requestAnimationFrame(runPrint);
-    });
-  }else{
-    setTimeout(runPrint, 0);
-  }
+  if(root && printZoom) root.style.setProperty('zoom', printZoom, 'important');
+  window.print();
+  if(root && printZoom) root.style.removeProperty('zoom');
 }
 
 function wmInitHomeworkSearchEnterKey(){
@@ -6706,4 +6648,4 @@ wmInitPublishedReportModal_();
 wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
-<!-- [TEST부스] Map 학습기록최근15개날짜제한제거 6661-6648 -->
+<!-- [REAL부스] Map A4한장 성공공식복구 6709-6651 -->
