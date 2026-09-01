@@ -1855,17 +1855,13 @@ body.wm-map-loading-active #wm-learning-record-widget{
     background:#D8EEFF !important;
     border-radius:28px !important;
     box-sizing:border-box !important;
-    overflow:visible !important;
-    zoom:.51;
+    overflow:hidden !important;
+    zoom:var(--wm-map-record-print-zoom,.51) !important;
     break-inside:avoid-page !important;
     page-break-inside:avoid !important;
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
   }
-  body.wm-map-record-print #wm-map-root{
-    zoom:var(--wm-map-record-print-zoom,.51) !important;
-  }
-
   body.wm-map-record-print #wm-map-root,
   body.wm-map-record-print #wm-map-root *{
     -webkit-print-color-adjust:exact !important;
@@ -5691,11 +5687,6 @@ async function wmLogout(){
 }
 
 function printRecords(){
-  const level = Number(currentLevelNumber);
-  const printZoom = (level >= 3 && level <= 6) ? '.51'
-    : (level >= 7 && level <= 9) ? '.49'
-    : (level >= 10 && level <= 13) ? '.47'
-    : '';
   const root = document.getElementById('wm-map-root');
   const html = document.documentElement;
   const body = document.body;
@@ -5708,16 +5699,20 @@ function printRecords(){
 
   if(html) html.classList.add('wm-map-record-print');
   if(body) body.classList.add('wm-map-record-print');
-  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
-
-  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
-  try{
-    window.print();
-  }catch(err){
-    cleanupPrintLayout();
-    throw err;
-  }
+  requestAnimationFrame(function(){
+    if(root){
+      const printableWidth=(210-14)*96/25.4;
+      const printableHeight=(297-14)*96/25.4;
+      const printZoom=Math.min(
+        printableWidth/root.offsetWidth,
+        printableHeight/root.scrollHeight
+      );
+      root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,printZoom).toFixed(4));
+    }
+    window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+    try{ window.print(); }
+    catch(err){ cleanupPrintLayout(); throw err; }
+  });
 }
 
 function wmInitHomeworkSearchEnterKey(){

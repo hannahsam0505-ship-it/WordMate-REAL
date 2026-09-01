@@ -477,34 +477,15 @@ body.wm-report-preview-open{overflow:hidden}
 @keyframes wmSharedRecentReportSpin{to{transform:rotate(360deg)}}
 @media(max-width:720px){#wmRecentReportModal{padding:64px 8px 8px}#wmRecentReportModal .wm-report-preview-modal-body{padding:8px;overflow:auto;justify-content:flex-start}}
 @media print{
-  @page{size:A4 portrait;margin:0}
-  html,body{width:210mm!important;height:297mm!important;margin:0!important;padding:0!important;background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body.wm-report-preview-open>*:not(#wmRecentReportModal){display:none!important}
   #wmRecentReportModal{position:static!important;inset:auto!important;display:block!important;padding:0!important;background:#fff!important;overflow:visible!important}
   #wmRecentReportModal .wm-report-preview-modal-card{width:210mm!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
   #wmRecentReportModal .wm-report-preview-modal-head{display:none!important}
   #wmRecentReportModal .wm-report-preview-modal-body{display:block!important;padding:0!important;background:#fff!important;overflow:visible!important}
   #wmRecentReportModal .wm-report-preview-modal-body .wmr-sheet{
-    width:210mm!important;
-    min-width:210mm!important;
-    max-width:210mm!important;
-    height:297mm!important;
-    min-height:297mm!important;
-    max-height:297mm!important;
-    margin:0!important;
-    padding:8mm 7mm 7mm!important;
-    box-sizing:border-box!important;
-    overflow:hidden!important;
-    break-after:avoid!important;
-    page-break-after:avoid!important;
+    margin:0 auto!important;
+    zoom:.985;
   }
-  #wmRecentReportModal .wmr-info{grid-template-columns:repeat(6,1fr)!important}
-  #wmRecentReportModal .wmr-kpis{grid-template-columns:repeat(5,1fr)!important}
-  #wmRecentReportModal .wmr-visuals{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
-  #wmRecentReportModal .wmr-level{grid-template-columns:138px minmax(0,1fr)!important}
-  #wmRecentReportModal .wmr-comments{grid-template-columns:minmax(0,28%) minmax(0,72%)!important}
-  #wmRecentReportModal .wmr-footer:after{display:none!important}
-  #wmRecentReportModal .wmr-sheet *{break-inside:avoid!important;page-break-inside:avoid!important}
 }
 `;
 
@@ -782,12 +763,12 @@ body.wm-report-preview-open{overflow:hidden}
     sheetWidth:'210mm',
     sheetHeight:'297mm',
     modalCardWidth:'210mm',
-    responsivePrintOverride:true
+    modalSheetZoom:'.985'
   });
 
   const WM_SHARED_REPORT_PRINT_LOCK = Object.freeze({
-    version:'WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK_V1.1',
-    date:'2026-09-01',
+    version:'WM_SHARED_RECENT_REPORT_PRINT_A4_FORMAT_LOCK_V1.0',
+    date:'2026-08-27',
     format:WM_SHARED_REPORT_PRINT_FORMAT
   });
 
@@ -808,9 +789,7 @@ body.wm-report-preview-open{overflow:hidden}
       templateA4:template.indexOf('@page{size:A4portrait;margin:0}')!==-1,
       sheetA4:template.indexOf('.wmr-sheet{width:210mm;height:297mm;margin:0;border-radius:0;box-shadow:none;page-break-after:avoid}')!==-1,
       modalA4:modalStyle.indexOf('.wm-report-preview-modal-card{width:210mm!important;max-height:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}')!==-1,
-      responsivePrintOverride:modalStyle.indexOf('#wmRecentReportModal.wmr-info{grid-template-columns:repeat(6,1fr)!important}')!==-1 &&
-        modalStyle.indexOf('#wmRecentReportModal.wmr-footer:after{display:none!important}')!==-1 &&
-        modalStyle.indexOf('width:210mm!important;min-width:210mm!important;max-width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;')!==-1,
+      modalZoom:modalStyle.indexOf('#wmRecentReportModal.wm-report-preview-modal-body.wmr-sheet{margin:0auto!important;zoom:.985;}')!==-1,
       printButton:modalHtml.indexOf('class="wm-report-print-button"onclick="window.print()"')!==-1
     };
     status.verified=Object.keys(status).every(function(key){

@@ -28,16 +28,6 @@ const WM_STUDY_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_STUDY_PAGE_URL : WM
 const WM_LMS_PAGE_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_LMS_PAGE_URL : WM_REAL_LMS_PAGE_URL;
 const WM_API_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_API_URL : WM_REAL_API_URL;
 
-const WM_LOGIN_REDIRECT_MAP_PAGE_URL = (() => {
-  const currentOrigin = window.location.origin;
-  const productionOrigins = [WM_TEST_MAP_PAGE_URL, WM_REAL_MAP_PAGE_URL].reduce((origins, url) => {
-    try { origins.push(new URL(url).origin); } catch (err) {}
-    return origins;
-  }, []);
-  const isVercelPreview = /\.vercel\.app$/i.test(window.location.hostname) && !productionOrigins.includes(currentOrigin);
-  return isVercelPreview ? currentOrigin + "/map" : WM_MAP_PAGE_URL;
-})();
-
 const WM_STUDENT_LOGIN_API_URL = WM_API_URL;
 const WM_MAP_EXEC_URL = WM_API_URL;
 
@@ -496,7 +486,7 @@ try{
        Map에 학생ID + 세션토큰만 전달하고,
        학생정보·현재세트·현재진행은 Map/Code.gs가 자기 공식 DB에서 다시 조회합니다. */
     window.top.location.href =
-      WM_LOGIN_REDIRECT_MAP_PAGE_URL
+      WM_MAP_PAGE_URL
       + "?wmEntry=login"
       + "&studentId=" + encodeURIComponent(studentId)
       + "&studentID=" + encodeURIComponent(studentId)
