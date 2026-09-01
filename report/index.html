@@ -9,6 +9,9 @@
     html,body{margin:0;min-height:100%;background:#eef3f9;font-family:Pretendard,"Noto Sans KR",Arial,sans-serif;}
     #wmPublicReportRoot{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px 10px;box-sizing:border-box;}
     .wm-public-report-state{margin:auto;padding:28px 22px;text-align:center;color:#334155;font-size:15px;font-weight:800;}
+    .wm-public-report-loading{width:100%;margin:0;box-sizing:border-box;padding:0 22px 28px;padding-top:28vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:24px;font-size:18px;}
+    .wm-public-report-spinner{width:76px;height:76px;border:8px solid #cbd9ea;border-top-color:#0d55c8;border-right-color:#0d55c8;border-radius:50%;box-sizing:border-box;animation:wmPublicReportSpin .8s linear infinite;}
+    @keyframes wmPublicReportSpin{to{transform:rotate(360deg);}}
     @media (max-width:720px){#wmPublicReportRoot{padding:8px 4px;}}
     @media print{html,body,#wmPublicReportRoot{background:#fff!important;padding:0!important;margin:0!important;}}
   </style>
@@ -16,7 +19,7 @@
 </head>
 <body>
   <main id="wmPublicReportRoot">
-    <div class="wm-public-report-state">성적표를 불러오는 중입니다.</div>
+    <div class="wm-public-report-state wm-public-report-loading"><div>성적표를 불러오는 중입니다.</div><span class="wm-public-report-spinner" aria-hidden="true"></span></div>
   </main>
   <script>
     (function(){
