@@ -1830,7 +1830,9 @@ body.wm-map-loading-active #wm-learning-record-widget{
     print-color-adjust:exact !important;
   }
   body.wm-map-record-print{
-    display:flex !important;
+    display:block !important;
+    width:210mm !important;
+    max-width:210mm !important;
     align-items:flex-start !important;
     justify-content:center !important;
   }
@@ -1847,16 +1849,16 @@ body.wm-map-loading-active #wm-learning-record-widget{
   }
 
   body.wm-map-record-print #wm-map-root{
-    width:1320px !important;
-    max-width:1320px !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
     margin:0 auto !important;
-    padding:24px !important;
-    padding-bottom:44px !important;
+    padding:12mm 10mm 8mm !important;
     background:#D8EEFF !important;
     border-radius:28px !important;
     box-sizing:border-box !important;
     overflow:visible !important;
-    transform:scale(var(--wm-map-record-print-zoom,.51)) !important;
+    transform:scale(var(--wm-map-record-print-zoom,1)) !important;
     transform-origin:top center !important;
     break-inside:avoid-page !important;
     page-break-inside:avoid !important;
@@ -5690,10 +5692,10 @@ async function wmLogout(){
 
 function printRecords(){
   const level = Number(currentLevelNumber);
-  const printZoom = (level >= 3 && level <= 6) ? '.51'
-    : (level >= 7 && level <= 9) ? '.49'
-    : (level >= 10 && level <= 13) ? '.47'
-    : '';
+  const printZoom = (level >= 3 && level <= 6) ? '.63'
+    : (level >= 7 && level <= 9) ? '.58'
+    : (level >= 10 && level <= 13) ? '.53'
+    : '1';
   const root = document.getElementById('wm-map-root');
   const html = document.documentElement;
   const body = document.body;
@@ -5706,7 +5708,7 @@ function printRecords(){
 
   if(html) html.classList.add('wm-map-record-print');
   if(body) body.classList.add('wm-map-record-print');
-  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
+  if(root) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
 
   window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
   window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
