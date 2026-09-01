@@ -1856,14 +1856,12 @@ body.wm-map-loading-active #wm-learning-record-widget{
     border-radius:28px !important;
     box-sizing:border-box !important;
     overflow:visible !important;
-    zoom:.51;
+    transform:scale(var(--wm-map-record-print-zoom,.51)) !important;
+    transform-origin:top center !important;
     break-inside:avoid-page !important;
     page-break-inside:avoid !important;
     -webkit-print-color-adjust:exact !important;
     print-color-adjust:exact !important;
-  }
-  body.wm-map-record-print #wm-map-root{
-    zoom:var(--wm-map-record-print-zoom,.51) !important;
   }
 
   body.wm-map-record-print #wm-map-root,
@@ -5710,6 +5708,7 @@ function printRecords(){
   if(body) body.classList.add('wm-map-record-print');
   if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
 
+  window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
   window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
   window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
   try{
