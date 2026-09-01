@@ -1818,6 +1818,28 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 @media print{
+  /* Print preview can evaluate the mobile viewport query after the transient
+     print class has been cleared. Keep this Map-only output in desktop form. */
+  #wm-map-root{
+    width:1320px !important;
+    min-width:1320px !important;
+    max-width:1320px !important;
+    margin:0 auto !important;
+    padding:24px 24px 44px !important;
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+    zoom:var(--wm-map-record-print-zoom,.51) !important;
+  }
+  #wm-map-root .student-info-row-main{grid-template-columns:repeat(4,1fr) !important;}
+  #wm-map-root .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
+  #wm-map-root .filter-box{grid-template-columns:repeat(6,1fr) auto auto !important;}
+  #wm-map-root .record-summary{grid-template-columns:repeat(5,1fr) !important;}
+  #wm-map-root .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
+  #wm-map-root .homework-table-scroll,
+  #wm-map-root .detail-box{overflow:hidden !important;}
+  #wm-map-root .homework-scroll-top-fixed,
+  #wm-map-root .homework-scroll-bottom-fixed{display:none !important;}
+
   html.wm-map-record-print,
   body.wm-map-record-print{
     margin:0 !important;
