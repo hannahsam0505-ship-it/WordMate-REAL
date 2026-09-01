@@ -833,6 +833,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
     #reportManageTable tbody tr:nth-child(even) { background:#eef4ff; }
     #reportManageTable tbody td { background-color:inherit; }
     .wm-report-button-group { display:flex; align-items:center; gap:7px; }
+    #reportManageTable tbody td.wm-report-student-name { color:#0d55c8; font-weight:900; }
     .wm-recent-report-btn { border:1px solid #0d55c8; background:#fff; color:#0d55c8; border-radius:9px; padding:8px 10px; font-size:12px; font-weight:900; cursor:pointer; white-space:nowrap; }
     .wm-recent-report-btn:hover { background:#eef4ff; }
     .wm-current-progress-pager { display:flex; justify-content:center; align-items:center; gap:10px; margin:12px 0 0; flex-wrap:wrap; }
@@ -3964,9 +3965,9 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
 
     function wmProfilePrepareReportRows(selectedId){
       const wanted=String(selectedId || '').trim().toUpperCase();
-      wmProfileReportRows=(WM_REPORT_MANAGE_ROWS || []).filter(isValidReportDbRow).filter(row=>
+      wmProfileReportRows=sortRowsByDateDesc((WM_REPORT_MANAGE_ROWS || []).filter(isValidReportDbRow).filter(row=>
         String(cellValue(row,headerAliases('학생ID')) || '').trim().toUpperCase()===wanted
-      );
+      ),'학습날짜');
       wmProfileReportPage=1;
       wmProfileRenderReportPage();
       wmProfileBindReportPager();
@@ -4752,19 +4753,19 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         return;
       }
       if(type==='monthlyNew' || type==='monthlyRegister' || type==='monthlyLeave'){
-        const rows = type==='monthlyNew' ? state.periodNewRows : (type==='monthlyRegister' ? state.periodRegisterRows : state.periodLeaveRows);
+        const rows = sortRowsByDateDesc(type==='monthlyNew' ? state.periodNewRows : (type==='monthlyRegister' ? state.periodRegisterRows : state.periodLeaveRows), '등록일');
         const headers=['학생ID','학생이름','반','교사명','학교','등록일','최근결제일','등록상태','활성상태'];
         setDashboardTable(headers, renderRowsForHeaders(rows, headers), '해당 기간 학생 목록이 없습니다.');
         return;
       }
       if(type==='monthlySales'){
         const headers=['학생ID','학생이름','결제일','결제금액','결제상태','비고'];
-        setDashboardTable(headers, renderRowsForHeaders(state.paymentRows, headers), '결제 DB 데이터가 없습니다.');
+        setDashboardTable(headers, renderRowsForHeaders(sortRowsByDateDesc(state.paymentRows, '결제일'), headers), '결제 DB 데이터가 없습니다.');
         return;
       }
       if(type==='todayStudy'){
         const headers=['학습날짜','학생ID','학생이름','Class','교사명','Set_ID','점수','총소요시간','완료상태'];
-        setDashboardTable(headers, renderRowsForHeaders(state.todayRecordRows, headers), '오늘 학습 목록이 없습니다.');
+        setDashboardTable(headers, renderRowsForHeaders(sortRowsByDateDesc(state.todayRecordRows, '학습날짜'), headers), '오늘 학습 목록이 없습니다.');
         return;
       }
       if(type==='notStudy'){
@@ -4792,12 +4793,12 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       }
       if(type==='sendLog'){
         const headers=['발송ID','학생ID','학생이름','수신자구분','학부모연락처','발송채널','실제발송일시','발송상태','비고'];
-        setDashboardTable(headers, renderRowsForHeaders(state.sendLogRows, headers), '발송기록 목록이 없습니다.');
+        setDashboardTable(headers, renderRowsForHeaders((state.sendLogRows || []).slice().sort((a,b)=>wmProfileSendDateTime(b).localeCompare(wmProfileSendDateTime(a))), headers), '발송기록 목록이 없습니다.');
         return;
       }
       if(type==='counsel'){
         const headers=['상담ID','상담일','학생ID','학생이름','상담자','상담유형','상담방식','상담요약','비고'];
-        setDashboardTable(headers, renderRowsForHeaders(state.counselRows, headers), '상담기록 목록이 없습니다.');
+        setDashboardTable(headers, renderRowsForHeaders(sortRowsByDateDesc(state.counselRows, '상담일'), headers), '상담기록 목록이 없습니다.');
       }
     }
 
@@ -5921,7 +5922,7 @@ function extractRecordRowsFromResponse(data){
       const tbody = document.getElementById('recordManageTbody');
       if(!tbody) return;
 
-      const rows = getRecordManageFilteredRows(WM_RECORD_MANAGE_ROWS || []);
+      const rows = sortRowsByDateDesc(getRecordManageFilteredRows(WM_RECORD_MANAGE_ROWS || []), '학습날짜');
       const totalRows = rows.length;
       const totalPages = Math.max(1, Math.ceil(totalRows / WM_MANAGE_PAGE_SIZE));
       if(WM_RECORD_MANAGE_PAGE > totalPages) WM_RECORD_MANAGE_PAGE = totalPages;
@@ -7429,7 +7430,7 @@ function extractRecordRowsFromResponse(data){
       const tbody = document.getElementById('reportManageTbody');
       if(!tbody) return;
 
-      const rows = getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []);
+      const rows = sortRowsByDateDesc(getReportManageFilteredRows(WM_REPORT_MANAGE_ROWS || []), '학습날짜');
       const totalRows = rows.length;
       const totalPages = Math.max(1, Math.ceil(totalRows / WM_REPORT_PAGE_SIZE));
       if(WM_REPORT_MANAGE_PAGE > totalPages) WM_REPORT_MANAGE_PAGE = totalPages;
@@ -7455,6 +7456,9 @@ function extractRecordRowsFromResponse(data){
           }
           if(header === '리포트주차'){
             return '<td>'+escapeHtml(displayCellValue(row[header], header))+'</td>';
+          }
+          if(header === '학생이름'){
+            return '<td class="wm-report-student-name">'+escapeHtml(displayCellValue(row[header], header))+'</td>';
           }
           if(header === '성적표보기'){
             const copyButton = reportUrl ? '<button type="button" class="wm-recent-report-btn" onclick="wmCopyReportUrl(\''+escapeJs(reportUrl)+'\',this)">URL복사</button>' : '';
@@ -10444,7 +10448,8 @@ function wmRenderSendCenterRows(tbodyId,headers,rows,emptyText,type){
   if(!tbody)return;
   const actualHeaders=Array.isArray(headers)?headers.filter(header=>String(header||'').trim()):[];
   const colspan=Math.max(actualHeaders.length+1,1);
-  const pageData=wmSendCenterPageRows(type||'log',rows);
+  const orderedRows=(type==='log' ? (Array.isArray(rows)?rows:[]).slice().sort((a,b)=>wmProfileSendDateTime(b).localeCompare(wmProfileSendDateTime(a))) : rows);
+  const pageData=wmSendCenterPageRows(type||'log',orderedRows);
   wmUpdateSendCenterPager(type||'log',pageData.totalRows,pageData.totalPages,pageData.page);
   if(!pageData.totalRows){
     tbody.innerHTML='<tr><td colspan="'+colspan+'">'+escapeHtml(emptyText)+'</td></tr>';
