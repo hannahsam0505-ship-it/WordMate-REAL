@@ -5,7 +5,7 @@
 
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
 
-      테스트부스 적용: const WM_ENV = 'TEST';
+      테스트부스 적용: const WM_ENV = 'REAL';
       리얼부스 적용: const WM_ENV = 'REAL';
 
    ⚠️ 아래 WM_ENV 한 줄 외에는 테스트/리얼 전환 목적으로 수정하지 않습니다
@@ -5700,11 +5700,11 @@ function printRecords(){
   const html = document.documentElement;
   const body = document.body;
 
-
+  function applyPrintLayout(){
     if(html) html.classList.add('wm-map-record-print');
     if(body) body.classList.add('wm-map-record-print');
     if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
-  
+  }
 
   function cleanupPrintLayout(){
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
@@ -5712,8 +5712,8 @@ function printRecords(){
     if(body) body.classList.remove('wm-map-record-print');
   }
 
-  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+  window.addEventListener('beforeprint', applyPrintLayout, {once:true});
+  window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
   applyPrintLayout();
   try{
     window.print();
