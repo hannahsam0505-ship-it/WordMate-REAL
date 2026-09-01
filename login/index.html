@@ -30,7 +30,10 @@ const WM_API_URL = WM_BOOTH_MODE === "TEST" ? WM_TEST_API_URL : WM_REAL_API_URL;
 
 const WM_LOGIN_REDIRECT_MAP_PAGE_URL = (() => {
   const currentOrigin = window.location.origin;
-  const productionOrigins = [WM_TEST_MAP_PAGE_URL, WM_REAL_MAP_PAGE_URL].map(url => new URL(url).origin);
+  const productionOrigins = [WM_TEST_MAP_PAGE_URL, WM_REAL_MAP_PAGE_URL].reduce((origins, url) => {
+    try { origins.push(new URL(url).origin); } catch (err) {}
+    return origins;
+  }, []);
   const isVercelPreview = /\.vercel\.app$/i.test(window.location.hostname) && !productionOrigins.includes(currentOrigin);
   return isVercelPreview ? currentOrigin + "/map" : WM_MAP_PAGE_URL;
 })();
