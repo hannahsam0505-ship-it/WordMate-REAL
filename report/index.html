@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Word Mate 성적표</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#eef3f9;font-family:Pretendard,"Noto Sans KR",Arial,sans-serif;}
+    #wmPublicReportRoot{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px 10px;box-sizing:border-box;}
+    .wm-public-report-state{margin:auto;padding:28px 22px;text-align:center;color:#334155;font-size:15px;font-weight:800;}
+    @media (max-width:720px){#wmPublicReportRoot{padding:8px 4px;}}
+    @media print{html,body,#wmPublicReportRoot{background:#fff!important;padding:0!important;margin:0!important;}}
+  </style>
+  <script src="/shared/report-renderer.js?v=4"></script>
+</head>
+<body>
+  <main id="wmPublicReportRoot">
+    <div class="wm-public-report-state">성적표를 불러오는 중입니다.</div>
+  </main>
+  <script>
+    (function(){
+      'use strict';
+      const WM_APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbw_x_YPqGjjYeUJ0HIEVhGBbbw4TBDeAjJ3aNUQJix_my_j4kAsnm48IxfIm5ai60gu/exec';
+      const root=document.getElementById('wmPublicReportRoot');
+
+      function getToken(){
+        const parts=location.pathname.split('/').filter(Boolean);
+        const pathToken=parts.length>=2&&parts[0].toLowerCase()==='report'?parts[1]:'';
+        const queryToken=new URLSearchParams(location.search).get('token')||'';
+        const token=String(pathToken||queryToken).trim().toUpperCase();
+        return /^[A-Z0-9]{8}$/.test(token)?token:'';
+      }
+
+      function showError(){
+        root.innerHTML='<div class="wm-public-report-state">성적표를 확인할 수 없습니다.</div>';
+      }
+
+      async function loadReport(){
+        const token=getToken();
+        if(!token){showError();return;}
+        if(!window.WMSharedRecentReport||typeof window.WMSharedRecentReport.render!=='function'){
+          showError();return;
+        }
+        try{
+          const params=new URLSearchParams();
+          params.set('mode','publicReport');
+          params.set('action','publicReport');
+          params.set('token',token);
+          params.set('ts',String(Date.now()));
+          const response=await fetch(WM_APPS_SCRIPT_URL+'?'+params.toString(),{method:'GET',cache:'no-store'});
+          const text=await response.text();
+          if(!response.ok) throw new Error('HTTP '+response.status);
+          const result=JSON.parse(text)||{};
+          if(!result.success||!result.data) throw new Error('REPORT_NOT_FOUND');
+          root.innerHTML=window.WMSharedRecentReport.render(result.data);
+          document.title='Word Mate 성적표';
+        }catch(err){
+          showError();
+        }
+      }
+
+      loadReport();
+    })();
+  </script>
+</body>
+</html>
