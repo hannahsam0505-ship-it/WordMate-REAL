@@ -1812,6 +1812,24 @@ body.wm-map-loading-active #wm-learning-record-widget{
 
 }
 
+/* printRecords() applies this class before measuring content.  These rules
+   deliberately duplicate the desktop print geometry outside @media print so
+   the measurement cannot use the mobile stacked layout. */
+html.wm-map-record-print #wm-map-root{
+  width:1320px !important;
+  min-width:1320px !important;
+  max-width:1320px !important;
+  margin:0 auto !important;
+  padding:24px 24px 44px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+html.wm-map-record-print #wm-map-root .student-info-row-main{grid-template-columns:repeat(4,1fr) !important;}
+html.wm-map-record-print #wm-map-root .student-info-row-sub{grid-template-columns:repeat(5,1fr) !important;}
+html.wm-map-record-print #wm-map-root .filter-box{grid-template-columns:repeat(6,1fr) auto auto !important;}
+html.wm-map-record-print #wm-map-root .record-summary{grid-template-columns:repeat(5,1fr) !important;}
+html.wm-map-record-print #wm-map-root .learning-block-area{grid-template-columns:repeat(4,1fr) !important;}
+
 @page{
   size:A4 portrait;
   margin:7mm;
