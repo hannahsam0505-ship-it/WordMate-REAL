@@ -5714,7 +5714,7 @@ function printRecords(){
         const printableWidth=(A4_WIDTH_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
         const printableHeight=(A4_HEIGHT_MM-PAGE_MARGIN_MM*2)*CSS_PIXELS_PER_INCH/MILLIMETERS_PER_INCH;
         const printZoom=Math.min(
-          printableWidth/root.offsetWidth,
+          printableWidth/root.scrollWidth,
           printableHeight/root.scrollHeight
         );
         root.style.setProperty('--wm-map-record-print-zoom',Math.max(.1,printZoom).toFixed(4));
