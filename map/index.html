@@ -5700,11 +5700,11 @@ function printRecords(){
   const html = document.documentElement;
   const body = document.body;
 
-  function applyPrintLayout(){
+
     if(html) html.classList.add('wm-map-record-print');
     if(body) body.classList.add('wm-map-record-print');
     if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
-  }
+  
 
   function cleanupPrintLayout(){
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
@@ -5712,8 +5712,8 @@ function printRecords(){
     if(body) body.classList.remove('wm-map-record-print');
   }
 
-  window.addEventListener('beforeprint', applyPrintLayout, {once:true});
-  window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
+  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
   applyPrintLayout();
   try{
     window.print();
