@@ -1,4 +1,4 @@
-<!-- [REAL부스] Map TEST정상인쇄동일승격 6678-6678 -->
+<!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
 <!-- ==========================================================
    🧪 WORD MATE Map.html - TEST / REAL 전환 설정
    ==========================================================
@@ -1761,7 +1761,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
   font-weight:900;
 }
 
-@media(max-width:768px){
+@media screen and (max-width:768px){
 
   .main-title{
     font-size:40px !important;
@@ -5700,18 +5700,21 @@ function printRecords(){
   const html = document.documentElement;
   const body = document.body;
 
+  function applyPrintLayout(){
+    if(html) html.classList.add('wm-map-record-print');
+    if(body) body.classList.add('wm-map-record-print');
+    if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
+  }
+
   function cleanupPrintLayout(){
     if(root) root.style.removeProperty('--wm-map-record-print-zoom');
     if(html) html.classList.remove('wm-map-record-print');
     if(body) body.classList.remove('wm-map-record-print');
   }
 
-  if(html) html.classList.add('wm-map-record-print');
-  if(body) body.classList.add('wm-map-record-print');
-  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
-
-  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
+  window.addEventListener('beforeprint', applyPrintLayout, {once:true});
+  window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+  applyPrintLayout();
   try{
     window.print();
   }catch(err){
@@ -6675,4 +6678,4 @@ wmInitPublishedReportModal_();
 wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
-<!-- [REAL부스] Map TEST정상인쇄동일승격 6678-6678 -->
+<!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
