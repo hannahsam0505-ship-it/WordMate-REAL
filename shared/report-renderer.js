@@ -466,6 +466,7 @@
 #wmRecentReportModal .wm-report-preview-modal-title{font-size:16px;font-weight:950;color:#173b75;white-space:nowrap}
 #wmRecentReportModal .wm-report-preview-modal-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 #wmRecentReportModal .wm-recent-report-select{min-width:150px;border:1px solid #9fbce8;border-radius:9px;background:#fff;color:#173b75;padding:8px 10px;font-size:13px;font-weight:900}
+#wmRecentReportModal .wm-report-fit-button{border:1px solid #0d55c8;background:#fff;color:#0d55c8;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap}
 #wmRecentReportModal .wm-report-print-button{border:1px solid #0d55c8;background:#0d55c8;color:#fff;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap}
 #wmRecentReportModal .wm-action-btn.sub{border:1px solid #e5e7eb;background:#f3f4f6;color:#1f2937;border-radius:12px;padding:11px 15px;font-weight:900;cursor:pointer}
 #wmRecentReportModal .wm-report-preview-modal-body{flex:1 1 auto;min-height:140px;padding:18px;background:#eaf0f8;display:flex;justify-content:center;overflow:auto}
@@ -496,6 +497,7 @@ body.wm-report-preview-open{overflow:hidden}
       <div id="wmRecentReportModalTitle" class="wm-report-preview-modal-title">최근성적표보기</div>
       <div class="wm-report-preview-modal-actions">
         <select id="wmRecentReportMonthSelect" class="wm-recent-report-select" aria-label="최근성적표 월 선택" onchange="changeRecentReportMonth()"></select>
+        <button type="button" id="wmRecentReportFitButton" class="wm-report-fit-button" aria-pressed="false">한페이지 보기</button>
         <button type="button" class="wm-report-print-button" onclick="window.print()">인쇄하기</button>
         <button type="button" class="wm-action-btn sub" aria-label="최근성적표 닫기" onclick="closeRecentReportModal()">×</button>
       </div>
@@ -522,8 +524,29 @@ body.wm-report-preview-open{overflow:hidden}
     const title=document.getElementById('wmRecentReportModalTitle');
     const select=document.getElementById('wmRecentReportMonthSelect');
     const body=document.getElementById('wmRecentReportModalBody');
-    if(!modal||!title||!select||!body) throw new Error('최근성적표 공통 팝업 구조를 확인할 수 없습니다.');
-    return {modal,title,select,body};
+    const fitButton=document.getElementById('wmRecentReportFitButton');
+    if(!modal||!title||!select||!body||!fitButton) throw new Error('최근성적표 공통 팝업 구조를 확인할 수 없습니다.');
+    if(!fitButton.dataset.wmFitBound){
+      fitButton.dataset.wmFitBound='1';
+      fitButton.addEventListener('click',function(){ wmToggleRecentReportFit(body,fitButton); });
+    }
+    return {modal,title,select,body,fitButton};
+  }
+
+  function wmToggleRecentReportFit(body,fitButton){
+    const sheet=body.querySelector('.wmr-sheet');
+    if(!sheet) return;
+    if(sheet.style.zoom){
+      sheet.style.zoom='';
+      fitButton.textContent='한페이지 보기';
+      fitButton.setAttribute('aria-pressed','false');
+    }else{
+      sheet.style.zoom='';
+      const scale=Math.min(body.clientWidth/sheet.offsetWidth,body.clientHeight/sheet.offsetHeight,1);
+      sheet.style.zoom=String(scale>0&&scale<1?scale:1);
+      fitButton.textContent='원본 크기 보기';
+      fitButton.setAttribute('aria-pressed','true');
+    }
   }
 
   function openModal(){
@@ -579,8 +602,8 @@ body.wm-report-preview-open{overflow:hidden}
     templateLock: 'WM_REPORT_TEMPLATE_LOCK_V3',
     templateAttribute: 'data-wmr-template-lock="V1"',
     templateLength: 124659,
-    modalStyleLength: 3480,
-    modalHtmlLength: 900
+    modalStyleLength: 3691,
+    modalHtmlLength: 1026
   });
 
   const WM_SHARED_REPORT_API = Object.freeze({
