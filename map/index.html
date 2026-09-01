@@ -1761,7 +1761,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
   font-weight:900;
 }
 
-@media screen and (max-width:768px){
+@media(max-width:768px){
 
   .main-title{
     font-size:40px !important;
@@ -5692,10 +5692,10 @@ async function wmLogout(){
 
 function printRecords(){
   const level = Number(currentLevelNumber);
-  const printZoom = (level >= 3 && level <= 6) ? '.51'
-    : (level >= 7 && level <= 9) ? '.49'
-    : (level >= 10 && level <= 13) ? '.47'
-    : '';
+  const baseZoom = (level >= 3 && level <= 6) ? .51
+    : (level >= 7 && level <= 9) ? .49
+    : (level >= 10 && level <= 13) ? .47
+    : .47;
   const root = document.getElementById('wm-map-root');
   const html = document.documentElement;
   const body = document.body;
@@ -5706,17 +5706,48 @@ function printRecords(){
     if(body) body.classList.remove('wm-map-record-print');
   }
 
+  if(!root){
+    window.print();
+    return;
+  }
+
   if(html) html.classList.add('wm-map-record-print');
   if(body) body.classList.add('wm-map-record-print');
-  if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
 
-  window.addEventListener('pointerdown', cleanupPrintLayout, {once:true, capture:true});
-  window.addEventListener('keydown', cleanupPrintLayout, {once:true, capture:true});
-  try{
-    window.print();
-  }catch(err){
-    cleanupPrintLayout();
-    throw err;
+  /* 인쇄 계산은 항상 PC 1320px 레이아웃을 먼저 만든 뒤 A4 한 장에 맞춥니다. */
+  root.style.setProperty('--wm-map-record-print-zoom', '1');
+
+  const runPrint = function(){
+    const pxPerMm = 96 / 25.4;
+    const printableWidthPx = 196 * pxPerMm;  // A4 210mm - 좌우 7mm
+    const printableHeightPx = 283 * pxPerMm; // A4 297mm - 상하 7mm
+    const rootWidth = Math.max(root.scrollWidth || 0, root.offsetWidth || 0, 1320);
+    const rootHeight = Math.max(root.scrollHeight || 0, root.offsetHeight || 0, 1);
+    const widthZoom = printableWidthPx / rootWidth;
+    const heightZoom = printableHeightPx / rootHeight;
+    const printZoom = Math.min(baseZoom, widthZoom, heightZoom) * .97;
+
+    if(Number.isFinite(printZoom) && printZoom > 0){
+      root.style.setProperty('--wm-map-record-print-zoom', String(printZoom));
+    }else{
+      root.style.setProperty('--wm-map-record-print-zoom', String(baseZoom));
+    }
+
+    window.addEventListener('afterprint', cleanupPrintLayout, {once:true});
+    try{
+      window.print();
+    }catch(err){
+      cleanupPrintLayout();
+      throw err;
+    }
+  };
+
+  if(window.requestAnimationFrame){
+    requestAnimationFrame(function(){
+      requestAnimationFrame(runPrint);
+    });
+  }else{
+    setTimeout(runPrint, 0);
   }
 }
 
