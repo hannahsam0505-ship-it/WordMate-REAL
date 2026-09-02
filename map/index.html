@@ -5702,7 +5702,7 @@ function printRecords(){
 
   function applyPrintLayout(){
     if(html) html.classList.add('wm-map-record-print');
-    if(body){ body.classList.add('wm-map-record-print'); body.style.setProperty('--wm-map-record-print-align', 'flex-start');
+    if(body){ body.classList.add('wm-map-record-print'); body.style.setProperty('--wm-map-record-print-align', wmMobileTabletPrint ? 'flex-start' : 'center');
     if(root && printZoom) root.style.setProperty('--wm-map-record-print-zoom', printZoom);
   }
 
