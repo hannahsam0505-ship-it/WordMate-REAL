@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>영어잡는 Word Mate 성적표</title>
+  <meta property="og:title" content="영어잡는 Word Mate 성적표">
   <style>
     html,body{margin:0;min-height:100%;background:#eef3f9;font-family:Pretendard,"Noto Sans KR",Arial,sans-serif;}
     #wmPublicReportRoot{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:18px 10px;box-sizing:border-box;}
@@ -57,7 +58,7 @@
           const result=JSON.parse(text)||{};
           if(!result.success||!result.data) throw new Error('REPORT_NOT_FOUND');
           root.innerHTML=window.WMSharedRecentReport.render(result.data);
-          document.title='Word Mate 성적표';
+          document.title='영어잡는 Word Mate 성적표';
         }catch(err){
           showError();
         }
