@@ -9773,7 +9773,7 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   const access=wmStudentDataAccessForCurrentActor_();
   if(access.parent){
     setIfChanged('학부모명','parentName',read('학부모명'));
-    setIfChanged('학부모연락처','parentPhone',String(read('학부모연락처')||'').trim().replace(/^(\d{3})-?(\d{4})-?(\d{4
+    setIfChanged('학부모연락처','parentPhone',String(read('학부모연락처')||'').trim().replace(/^(\d{3})-?(\d{4})-?(\d{4})$/,'$1-$2-$3'));
   }
 
   if(!skipLockAndToast) wmSetSaveWaiting(true, '학생 정보를 저장 중입니다...');
