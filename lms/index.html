@@ -1261,7 +1261,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
       <div class="wm-filter-box" data-filter-scope="students">
         <div class="wm-manage-filter-head">
           <div class="wm-filter-title">검색조건</div>
-          <div class="wm-manage-date-row" aria-label="학생관리 검색기간">
+          <div class="wm-manage-date-row" aria-label="학생관리 검색기간" style="display:none;">
             <label class="wm-manage-date-field">시작일<input type="date" data-filter="dateStart" /></label>
             <label class="wm-manage-date-field">마지막일<input type="date" data-filter="dateEnd" /></label>
             <button type="button" class="wm-date-quick-btn" onclick="setManageDateRange('students','today')">오늘</button>
@@ -1271,8 +1271,19 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
             <button type="button" class="wm-date-quick-btn" onclick="resetManageDateRange('students')">기간초기화</button>
           </div>
         </div>
-        <div class="wm-filter-grid">
+        <div class="wm-filter-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));">
           <label>학생이름<input type="text" placeholder="학생명" data-filter="studentName" /></label>
+          <label>활성상태
+            <select data-filter="activeStatus">
+              <option value="">전체</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </label>
+
+          <label>등록일
+            <input type="date" data-filter="registerDate" />
+          </label>
           <label>학생ID<input type="text" placeholder="학생ID" data-filter="studentId" /></label>
           <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
           <label>레벨<input type="text" placeholder="예: 5 / Basic 5" data-filter="level" /></label>
@@ -1285,6 +1296,7 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <button class="wm-action-btn" onclick="runFilter('students')">검색</button>
           <span id="wmStudentManageLoading" class="wm-manage-loading"><span class="wm-loading-spinner"></span>조회 중</span>
           <button class="wm-action-btn sub" onclick="resetFilter('students')">초기화</button>
+          <button type="button" class="wm-action-btn sub" id="wmDeletedStudentsBtn" style="display:none;" onclick="wmOpenDeletedStudents()">삭제학생</button>
         </div>
       </div>
       <div class="wm-action-inline-row">
@@ -2929,6 +2941,28 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
 
     function applyRole(role){
       const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
+            const filtered = (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
+        const rowActiveStatus = String(
+          wmStudentField(row, ['활성상태']) || ''
+        ).trim().toUpperCase();
+
+        if(
+          filters.activeStatus &&
+          rowActiveStatus !== String(filters.activeStatus).trim().toUpperCase()
+        ) return false;
+
+        const rowRegisterDate = wmStudentField(row, ['등록일']);
+
+        if(
+          filters.registerDate &&
+          !isWithinManageDateRange(
+            rowRegisterDate,
+            filters.registerDate,
+            filters.registerDate
+          )
+        ) return false;
+
+        if(!wmStudentMatch(row, filters.studentId, ['학생ID','StudentID','아이디'])) return false;
       if(authRole === 'SPECIAL_ADMIN' && role === 'SUPER_ADMIN') role = 'SPECIAL_ADMIN';
       if(authRole === 'SUB_LEADER' && (role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN')) role = 'SUB_LEADER';
       if(authRole === 'TEACHER') role = 'TEACHER';
@@ -6185,7 +6219,7 @@ function extractRecordRowsFromResponse(data){
     }
 
     function getStudentManageFilteredRows(rows){
-      const filters = {
+        const filters = {
         studentId: getFilterValue('students','studentId'),
         studentName: getFilterValue('students','studentName'),
         teacher: getFilterValue('students','teacher'),
@@ -6194,13 +6228,31 @@ function extractRecordRowsFromResponse(data){
         school: getFilterValue('students','school'),
         region: getFilterValue('students','region'),
         level: getFilterValue('students','level'),
-        dateStart: getFilterValue('students','dateStart'),
-        dateEnd: getFilterValue('students','dateEnd')
+        activeStatus: getFilterValue('students','activeStatus'),
+        registerDate: getFilterValue('students','registerDate')
       };
 
       const filtered = (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
-        const rowDate = wmStudentField(row, ['등록일','최초등록일','최근결제일','최종결제','수정일']);
-        if(!isWithinManageDateRange(rowDate, filters.dateStart, filters.dateEnd)) return false;
+        const rowActiveStatus = String(
+          wmStudentField(row, ['활성상태']) || ''
+        ).trim().toUpperCase();
+
+        if(
+          filters.activeStatus &&
+          rowActiveStatus !== String(filters.activeStatus).trim().toUpperCase()
+        ) return false;
+
+        const rowRegisterDate = wmStudentField(row, ['등록일']);
+
+        if(
+          filters.registerDate &&
+          !isWithinManageDateRange(
+            rowRegisterDate,
+            filters.registerDate,
+            filters.registerDate
+          )
+        ) return false;
+
         if(!wmStudentMatch(row, filters.studentId, ['학생ID','StudentID','아이디'])) return false;
         if(!wmStudentMatch(row, filters.studentName, ['학생이름','학생명','이름','StudentName'])) return false;
         if(!wmStudentMatch(row, filters.teacher, ['교사명','현재담당교사','담당교사','Teacher'])) return false;
@@ -8857,6 +8909,110 @@ function updateStudentCreatePreview(){
 /* ===== STUDENT CREATE SAVE / DB PREVIEW LINK ===== */
 const WM_STUDENT_LOCAL_DB_KEY = 'wmStudentManageRowsV1';
 
+      async function wmOpenDeletedStudents(){
+  const teacher = window.WM_LMS_AUTH_TEACHER || {};
+  const role = String(teacher.권한 || getCurrentRole() || '').trim().toUpperCase();
+
+  if(role !== 'SUPER_ADMIN' && role !== 'SPECIAL_ADMIN'){
+    alert('삭제학생 조회는 SUPER_ADMIN 또는 SPECIAL_ADMIN만 가능합니다.');
+    return;
+  }
+
+  document.getElementById('wmDeletedStudentsModal')?.remove();
+
+  wmSetSaveWaiting(true, '삭제학생 기록을 불러오는 중입니다...');
+
+  try{
+    const params = new URLSearchParams({
+      mode:'deletedStudents',
+      actorTeacherId:wmGetSettingActorTeacherId(),
+      ts:String(Date.now())
+    });
+
+    const res = await fetch(
+      WM_APPS_SCRIPT_URL + '?' + params.toString(),
+      {method:'GET', cache:'no-store'}
+    );
+
+    const data = await res.json();
+
+    if(!data || !data.success){
+      throw new Error(
+        data && (data.message || data.error)
+          ? String(data.message || data.error)
+          : '삭제학생_DB 조회 실패'
+      );
+    }
+
+    const headers = (data.headers || []).filter(function(header){
+      return header && header !== '원본학생관리데이터';
+    });
+
+    const rows = data.rows || [];
+
+    const modal = document.createElement('div');
+    modal.id = 'wmDeletedStudentsModal';
+    modal.style.cssText =
+      'position:fixed;inset:0;z-index:2147483200;background:rgba(15,23,42,.48);' +
+      'display:flex;align-items:center;justify-content:center;padding:24px;';
+
+    const tableRows = rows.length
+      ? rows.map(function(row){
+          return '<tr>' +
+            headers.map(function(header){
+              return '<td>' + escapeHtml(String(row[header] || '')) + '</td>';
+            }).join('') +
+          '</tr>';
+        }).join('')
+      : '<tr><td colspan="' + Math.max(1, headers.length) + '">삭제학생 기록이 없습니다.</td></tr>';
+
+    modal.innerHTML =
+      '<div style="width:min(1380px,96vw);max-height:88vh;background:#fff;border-radius:18px;' +
+      'box-shadow:0 24px 70px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;">' +
+
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #e5e7eb;">' +
+          '<div><strong style="font-size:20px;">삭제학생</strong>' +
+          '<span style="margin-left:10px;color:#6b7280;font-weight:800;">' +
+          escapeHtml(String(rows.length)) + '명</span></div>' +
+          '<button type="button" class="wm-action-btn sub" onclick="document.getElementById(\'wmDeletedStudentsModal\')?.remove()">닫기</button>' +
+        '</div>' +
+
+        '<div style="overflow:auto;padding:14px;">' +
+          '<table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:12px;">' +
+            '<thead><tr>' +
+              headers.map(function(header){
+                return '<th style="position:sticky;top:0;background:#eef4ff;border:1px solid #dbeafe;padding:9px 10px;white-space:nowrap;">' +
+                  escapeHtml(header) +
+                '</th>';
+              }).join('') +
+            '</tr></thead>' +
+            '<tbody>' + tableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+
+    modal.addEventListener('click', function(event){
+      if(event.target === modal) modal.remove();
+    });
+
+    document.body.appendChild(modal);
+
+    modal.querySelectorAll('tbody td').forEach(function(td){
+      td.style.border = '1px solid #e5e7eb';
+      td.style.padding = '8px 10px';
+      td.style.whiteSpace = 'nowrap';
+    });
+
+  }catch(err){
+    alert(
+      '삭제학생 조회 오류: ' +
+      String(err && err.message ? err.message : err)
+    );
+  }finally{
+    wmSetSaveWaiting(false);
+  }
+}
+      
 function getCurrentRole(){
   return currentRoleText?.textContent || 'SUPER_ADMIN';
 }
