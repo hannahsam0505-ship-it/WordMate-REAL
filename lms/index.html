@@ -192,7 +192,21 @@ TEACHER:{showDev:false,scope:'CLASS'}
 function wmApplyRoleUI(role){
  const cfg=WM_ROLE_CONFIG[role]||WM_ROLE_CONFIG.SUPER_ADMIN;
  const dev=document.getElementById('devCenterBtn');
+ const adminOnly = role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN';
+ const activeFilter=document.getElementById('wmStudentActiveStatusFilter');
+ const paymentFilter=document.getElementById('wmStudentPaymentFilter');
+ const deletedBtn=document.getElementById('wmDeletedStudentsBtn');
+
  if(dev) dev.style.display=cfg.showDev?'block':'none';
+ if(activeFilter) activeFilter.style.display=adminOnly?'':'none';
+ if(paymentFilter) paymentFilter.style.display=adminOnly?'':'none';
+ if(deletedBtn) deletedBtn.style.display=adminOnly?'':'none';
+if(!adminOnly){
+  const activeSelect=activeFilter?.querySelector('[data-filter="activeStatus"]');
+  const paymentSelect=paymentFilter?.querySelector('[data-filter="paymentPeriod"]');
+  if(activeSelect) activeSelect.value='';
+  if(paymentSelect) paymentSelect.value='';
+}
  if(typeof wmApplyDashboardSalesCardByRole==='function') wmApplyDashboardSalesCardByRole(role);
 }
 /* WM_ROLE_LOCK_V1 END */
@@ -1273,17 +1287,6 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
         </div>
         <div class="wm-filter-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));">
           <label>학생이름<input type="text" placeholder="학생명" data-filter="studentName" /></label>
-          <label>활성상태
-            <select data-filter="activeStatus">
-              <option value="">전체</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
-          </label>
-
-          <label>등록일
-            <input type="date" data-filter="registerDate" />
-          </label>
           <label>학생ID<input type="text" placeholder="학생ID" data-filter="studentId" /></label>
           <label>반<input type="text" placeholder="반명" data-filter="class" /></label>
           <label>레벨<input type="text" placeholder="예: 5 / Basic 5" data-filter="level" /></label>
@@ -1291,6 +1294,27 @@ const WM_APPS_SCRIPT_URL = WM_CONFIG.APPS_SCRIPT_URL;
           <label>리더<input type="text" list="leaderList" placeholder="리더명" data-filter="leader" /></label>
           <label>학교<input type="text" placeholder="학교명" data-filter="school" /></label>
           <label>지역<input type="text" placeholder="지역명" data-filter="region" /></label>
+                    <label id="wmStudentActiveStatusFilter" style="display:none;">활성상태
+            <select data-filter="activeStatus">
+              <option value="">전체</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </label>
+
+          <label id="wmStudentPaymentFilter" style="display:none;">결제조회
+            <select data-filter="paymentPeriod">
+              <option value="">전체</option>
+              <option value="paid_last_week">지난주 결제완료</option>
+              <option value="paid_this_week">이번주 결제완료</option>
+              <option value="paid_last_month">지난달 결제완료</option>
+              <option value="paid_this_month">이번달 결제완료</option>
+              <option value="due_this_week">이번주 결제예정</option>
+              <option value="due_next_week">다음주 결제예정</option>
+              <option value="due_this_month">이번달 결제예정</option>
+              <option value="due_next_month">다음달 결제예정</option>
+            </select>
+          </label>
         </div>
         <div class="wm-filter-actions">
           <button class="wm-action-btn" onclick="runFilter('students')">검색</button>
@@ -4866,8 +4890,22 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
         runProfileFilter();
         return;
       }
-      if(scope==='students'){
+            if(scope==='students'){
         WM_STUDENT_MANAGE_PAGE = 1;
+
+        const activeStatus = String(
+          getFilterValue('students','activeStatus') || ''
+        ).trim();
+
+        const paymentPeriod = String(
+          getFilterValue('students','paymentPeriod') || ''
+        ).trim();
+
+        if(activeStatus || paymentPeriod){
+          wmLoadAllStudentsForAdminFilter_();
+          return;
+        }
+
         if(WM_STUDENT_MANAGE_ROWS && WM_STUDENT_MANAGE_ROWS.length){
           renderStudentManageRows();
         }else{
@@ -6196,6 +6234,168 @@ function extractRecordRowsFromResponse(data){
       return new RegExp('(^|[^0-9])' + levelNumber + '($|[^0-9])').test(haystack);
     }
 
+        function wmPaymentDateRange_(period){
+      const now = new Date();
+
+      const seoulText = new Intl.DateTimeFormat('en-CA',{
+        timeZone:'Asia/Seoul',
+        year:'numeric',
+        month:'2-digit',
+        day:'2-digit'
+      }).format(now);
+
+      const parts = seoulText.split('-').map(Number);
+      const today = new Date(parts[0], parts[1] - 1, parts[2]);
+      today.setHours(0,0,0,0);
+
+      const mondayOffset = (today.getDay() + 6) % 7;
+      const thisMonday = new Date(today);
+      thisMonday.setDate(today.getDate() - mondayOffset);
+
+      if(period === 'paid_last_week'){
+        const start = new Date(thisMonday);
+        start.setDate(start.getDate() - 7);
+        const end = new Date(thisMonday);
+        end.setDate(end.getDate() - 1);
+        return {start:start,end:end};
+      }
+
+      if(period === 'paid_this_week' || period === 'due_this_week'){
+        const start = new Date(thisMonday);
+        const end = new Date(thisMonday);
+        end.setDate(end.getDate() + 6);
+        return {start:start,end:end};
+      }
+
+      if(period === 'due_next_week'){
+        const start = new Date(thisMonday);
+        start.setDate(start.getDate() + 7);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return {start:start,end:end};
+      }
+
+      if(period === 'paid_last_month'){
+        return {
+          start:new Date(today.getFullYear(),today.getMonth()-1,1),
+          end:new Date(today.getFullYear(),today.getMonth(),0)
+        };
+      }
+
+      if(period === 'paid_this_month' || period === 'due_this_month'){
+        return {
+          start:new Date(today.getFullYear(),today.getMonth(),1),
+          end:new Date(today.getFullYear(),today.getMonth()+1,0)
+        };
+      }
+
+      if(period === 'due_next_month'){
+        return {
+          start:new Date(today.getFullYear(),today.getMonth()+1,1),
+          end:new Date(today.getFullYear(),today.getMonth()+2,0)
+        };
+      }
+
+      return null;
+    }
+
+        function wmScheduledPaymentDateForMonth_(registerValue, year, monthIndex){
+      const registered = parseManageDate(registerValue);
+      if(!registered) return null;
+
+      const lastDay = new Date(
+        year,
+        monthIndex + 1,
+        0
+      ).getDate();
+
+      const scheduled = new Date(
+        year,
+        monthIndex,
+        Math.min(registered.getDate(), lastDay)
+      );
+
+      scheduled.setHours(0,0,0,0);
+
+      if(scheduled < registered) return null;
+
+      return scheduled;
+    }
+
+    function wmScheduledPaymentInRange_(registerValue, start, end){
+      if(!registerValue || !start || !end) return false;
+
+      const cursor = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        1
+      );
+
+      const lastMonth = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        1
+      );
+
+      while(cursor <= lastMonth){
+        const scheduled = wmScheduledPaymentDateForMonth_(
+          registerValue,
+          cursor.getFullYear(),
+          cursor.getMonth()
+        );
+
+        if(
+          scheduled &&
+          scheduled >= start &&
+          scheduled <= end
+        ){
+          return true;
+        }
+
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      return false;
+    }
+
+        function wmStudentPaymentPeriodMatch_(row, period){
+      if(!period) return true;
+
+      const range = wmPaymentDateRange_(period);
+      if(!range) return true;
+
+      if(period.indexOf('paid_') === 0){
+        const paidDate = parseManageDate(
+          wmStudentField(
+            row,
+            ['최근결제일','최종결제']
+          )
+        );
+
+        return !!(
+          paidDate &&
+          paidDate >= range.start &&
+          paidDate <= range.end
+        );
+      }
+
+      if(period.indexOf('due_') === 0){
+        const activeStatus = String(
+          wmStudentField(row,['활성상태']) || ''
+        ).trim().toUpperCase();
+
+        if(activeStatus !== 'ACTIVE') return false;
+
+        return wmScheduledPaymentInRange_(
+          wmStudentField(row,['등록일']),
+          range.start,
+          range.end
+        );
+      }
+
+      return true;
+    }
+    
     function getStudentManageFilteredRows(rows){
         const filters = {
         studentId: getFilterValue('students','studentId'),
@@ -6207,7 +6407,7 @@ function extractRecordRowsFromResponse(data){
         region: getFilterValue('students','region'),
         level: getFilterValue('students','level'),
         activeStatus: getFilterValue('students','activeStatus'),
-        registerDate: getFilterValue('students','registerDate')
+        paymentPeriod: getFilterValue('students','paymentPeriod')
       };
 
       const filtered = (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
@@ -6220,14 +6420,11 @@ function extractRecordRowsFromResponse(data){
           rowActiveStatus !== String(filters.activeStatus).trim().toUpperCase()
         ) return false;
 
-        const rowRegisterDate = wmStudentField(row, ['등록일']);
-
-        if(
-          filters.registerDate &&
-          !isWithinManageDateRange(
-            rowRegisterDate,
-            filters.registerDate,
-            filters.registerDate
+                if(
+          filters.paymentPeriod &&
+          !wmStudentPaymentPeriodMatch_(
+            row,
+            filters.paymentPeriod
           )
         ) return false;
 
@@ -6340,6 +6537,54 @@ function extractRecordRowsFromResponse(data){
       return WM_CURRENT_PROGRESS_ROWS;
     }
 
+        async function wmLoadAllStudentsForAdminFilter_(){
+      setManageLoading('students', true);
+
+      try{
+        const res = await fetch(
+          WM_APPS_SCRIPT_URL +
+          '?mode=students&phase=list&ts=' +
+          Date.now() +
+          wmLmsActorQuery(),
+          {
+            method:'GET',
+            cache:'no-store'
+          }
+        );
+
+        const data = await res.json();
+
+        if(!data || data.success === false){
+          throw new Error(
+            data && (data.message || data.error)
+              ? String(data.message || data.error)
+              : '학생관리_DB 전체조회 실패'
+          );
+        }
+
+        WM_STUDENT_MANAGE_ROWS = normalizeRows(
+          data && data.students ? data.students : []
+        );
+
+        WM_STUDENT_MANAGE_PAGE = 1;
+        renderStudentManageRows();
+
+        return WM_STUDENT_MANAGE_ROWS;
+
+      }catch(err){
+        console.error('학생관리 관리자 검색 전체조회 실패', err);
+
+        alert(
+          '학생관리 검색 오류: ' +
+          String(err && err.message ? err.message : err)
+        );
+
+        return [];
+      }finally{
+        setManageLoading('students', false);
+      }
+    }
+    
     async function loadStudents() {
       if(WM_STUDENT_LOAD_PROMISE) return WM_STUDENT_LOAD_PROMISE;
       WM_STUDENT_LOAD_PROMISE=(async()=>{
@@ -10760,14 +11005,17 @@ function renderStudentManageRows(){
       ${studentAccess.parent ? `<td>${wmStudentTextInputHtml(studentId, '학부모명', row['학부모명'] || '', {maxLength:30,placeholder:'학부모명'})}</td><td>${wmStudentTextInputHtml(studentId, '학부모연락처', row['학부모연락처'] || '', {maxLength:20,placeholder:'010-0000-0000'})}</td>` : ''}
       ${studentAccess.payment ? `<td>${escapeHtml(displayCellValue(row['최종결제']))}</td><td>${escapeHtml(displayCellValue(row['등록일']))}</td><td>${escapeHtml(displayCellValue(row['최초등록일']))}</td><td>${escapeHtml(displayCellValue(row['최근결제일']))}</td><td>${escapeHtml(row['결제공백일수'] || '')}</td><td>${escapeHtml(row['재등록횟수'] || '')}</td><td>${escapeHtml(row['총등록기간'] || '')}</td>` : ''}
       <td>${escapeHtml(row['등록상태'] || '')}</td>
-      <td>${wmModeSelectHtml(
-        studentId,
-        '활성상태',
-        String(row['활성상태'] || 'ACTIVE').trim().toUpperCase(),
-        showStudentSerial
-          ? ['ACTIVE','INACTIVE','DELETE']
-          : ['ACTIVE','INACTIVE']
-      )}</td>
+            <td>${showStudentSerial
+        ? wmModeSelectHtml(
+            studentId,
+            '활성상태',
+            String(row['활성상태'] || 'ACTIVE').trim().toUpperCase(),
+            ['ACTIVE','INACTIVE','DELETE']
+          )
+        : escapeHtml(
+            String(row['활성상태'] || 'ACTIVE').trim().toUpperCase()
+          )
+      }</td>
       <td>${escapeHtml(row['반ID'] || '')}</td>
       <td>${escapeHtml(row['교사ID'] || '')}</td>
       <td>${wmStudentSessionStatusHtml_(row['세션상태'])}</td>
