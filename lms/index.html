@@ -2939,30 +2939,8 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
       });
     }
 
-    function applyRole(role){
+        function applyRole(role){
       const authRole = String((window.WM_LMS_AUTH_TEACHER || {}).권한 || '').trim().toUpperCase();
-            const filtered = (rows || []).map(row=>wmRepairShiftedStudentModeRow(row)).filter(row=>{
-        const rowActiveStatus = String(
-          wmStudentField(row, ['활성상태']) || ''
-        ).trim().toUpperCase();
-
-        if(
-          filters.activeStatus &&
-          rowActiveStatus !== String(filters.activeStatus).trim().toUpperCase()
-        ) return false;
-
-        const rowRegisterDate = wmStudentField(row, ['등록일']);
-
-        if(
-          filters.registerDate &&
-          !isWithinManageDateRange(
-            rowRegisterDate,
-            filters.registerDate,
-            filters.registerDate
-          )
-        ) return false;
-
-        if(!wmStudentMatch(row, filters.studentId, ['학생ID','StudentID','아이디'])) return false;
       if(authRole === 'SPECIAL_ADMIN' && role === 'SUPER_ADMIN') role = 'SPECIAL_ADMIN';
       if(authRole === 'SUB_LEADER' && (role === 'SUPER_ADMIN' || role === 'SPECIAL_ADMIN')) role = 'SUB_LEADER';
       if(authRole === 'TEACHER') role = 'TEACHER';
