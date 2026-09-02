@@ -9716,9 +9716,192 @@ function wmLevelConditionLockState(row){
   return {locked:true,reason:'현재레벨 첫 세트를 통과하여 레벨완료조건을 수정할 수 없습니다.'};
 }
 
+async function wmDeleteStudentFromRow_(studentId, row, safeId, skipLockAndToast){
+  const activeSelect = document.getElementById(
+    `wmMode_활성상태_${safeId}`
+  );
+
+  const savedActive = String(
+    (row && row['활성상태']) || 'ACTIVE'
+  ).trim().toUpperCase();
+
+  /* ACTIVE 상태에서는 DELETE 자체를 실행하지 않습니다. */
+  if(savedActive !== 'INACTIVE'){
+    if(activeSelect){
+      activeSelect.value = savedActive || 'ACTIVE';
+    }
+
+    if(!skipLockAndToast){
+      alert(
+        'ACTIVE 상태는 DELETE가 되지 않습니다.\n' +
+        'DELETE하려면 해당 학생을 먼저 INACTIVE 하세요.'
+      );
+    }
+
+    return {
+      success:false,
+      studentId:String(studentId || '').trim(),
+      message:'먼저 INACTIVE로 변경해야 합니다.'
+    };
+  }
+
+  /* 전체저장에서는 DELETE를 실행하지 않습니다. */
+  if(skipLockAndToast){
+    if(activeSelect){
+      activeSelect.value = 'INACTIVE';
+    }
+
+    return {
+      success:false,
+      studentId:String(studentId || '').trim(),
+      message:'DELETE는 해당 학생의 저장 버튼에서만 실행할 수 있습니다.'
+    };
+  }
+
+  const studentName = String(
+    (row && row['학생이름']) || studentId || ''
+  ).trim();
+
+  const confirmed = confirm(
+    studentName +
+    ' 학생의 자료를 삭제하시겠습니까?\n' +
+    '확인을 누르시면 완전히 삭제됩니다.'
+  );
+
+  if(!confirmed){
+    if(activeSelect){
+      activeSelect.value = 'INACTIVE';
+    }
+
+    return {
+      success:true,
+      cancelled:true,
+      studentId:String(studentId || '').trim()
+    };
+  }
+
+  wmSetSaveWaiting(
+    true,
+    '학생 데이터를 삭제 중입니다...'
+  );
+
+  try{
+    const params = new URLSearchParams({
+      mode:'deleteStudent',
+      actorTeacherId:wmGetSettingActorTeacherId(),
+      studentId:String(studentId || '').trim(),
+      ts:String(Date.now())
+    });
+
+    const res = await fetch(
+      WM_APPS_SCRIPT_URL + '?' + params.toString(),
+      {
+        method:'GET',
+        cache:'no-store'
+      }
+    );
+
+    const data = await res.json();
+
+    if(!data || !data.success){
+      if(activeSelect){
+        activeSelect.value = 'INACTIVE';
+      }
+
+      const message = data && (data.error || data.message)
+        ? String(data.error || data.message)
+        : '학생 DELETE 실패';
+
+      alert(message);
+
+      return {
+        success:false,
+        studentId:String(studentId || '').trim(),
+        message:message
+      };
+    }
+
+    /* 전체 학생 재조회 금지.
+       현재 화면 메모리에서 삭제 학생 1명만 제거합니다. */
+    const deleteKey = String(
+      studentId || ''
+    ).trim().toUpperCase();
+
+    WM_STUDENT_MANAGE_ROWS = (
+      WM_STUDENT_MANAGE_ROWS || []
+    ).filter(function(item){
+      return String(
+        (item && item['학생ID']) || ''
+      ).trim().toUpperCase() !== deleteKey;
+    });
+
+    if(
+      WM_STUDENT_DETAIL_LOADED_IDS &&
+      typeof WM_STUDENT_DETAIL_LOADED_IDS.delete === 'function'
+    ){
+      WM_STUDENT_DETAIL_LOADED_IDS.delete(
+        String(studentId || '').trim()
+      );
+    }
+
+    renderStudentManageRows();
+
+    showStudentModeToast(
+      '학생 DELETE를 완료하였습니다.'
+    );
+
+    return {
+      success:true,
+      studentId:String(studentId || '').trim()
+    };
+
+  }catch(err){
+    if(activeSelect){
+      activeSelect.value = 'INACTIVE';
+    }
+
+    const message = String(
+      err && err.message
+        ? err.message
+        : err
+    );
+
+    alert(
+      '학생 DELETE 오류: ' + message
+    );
+
+    return {
+      success:false,
+      studentId:String(studentId || '').trim(),
+      message:message
+    };
+
+  }finally{
+    wmSetSaveWaiting(false);
+  }
+}
+
 async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
+
+  const activeSelect = document.getElementById(
+    `wmMode_활성상태_${safeId}`
+  );
+
+  const selectedActive = String(
+    activeSelect?.value || ''
+  ).trim().toUpperCase();
+
+  if(selectedActive === 'DELETE'){
+    return wmDeleteStudentFromRow_(
+      studentId,
+      row,
+      safeId,
+      skipLockAndToast
+    );
+  }
+
   const changes = wmStudentChangedItems(row, safeId);
   if(!changes.length){
     if(!skipLockAndToast) alert('변경된 항목이 없습니다.');
@@ -9797,6 +9980,84 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
     Object.keys(updateMap).forEach(param=>{
       if(Object.prototype.hasOwnProperty.call(saveValues,param)) row[updateMap[param]]=saveValues[param];
     });
+
+    if(
+      Object.prototype.hasOwnProperty.call(
+        saveValues,
+        'activeStatus'
+      )
+    ){
+      const serialShift = data && data.serialShift
+        ? data.serialShift
+        : null;
+
+      /*
+       * ACTIVE → INACTIVE
+       * 서버에서 실제로 당겨진 번호만
+       * 현재 LMS 메모리에서도 -1 합니다.
+       */
+      if(
+        serialShift &&
+        serialShift.type === 'DOWN_AFTER'
+      ){
+        const pivot = Number(
+          serialShift.pivot || 0
+        );
+
+        (WM_STUDENT_MANAGE_ROWS || []).forEach(function(item){
+          const serial = Number(
+            String(
+              (item && item['학생일련번호']) || ''
+            ).replace(/[^0-9]/g, '')
+          );
+
+          if(serial > pivot){
+            item['학생일련번호'] = String(
+              serial - 1
+            );
+          }
+        });
+      }
+
+      /*
+       * INACTIVE → ACTIVE
+       * 서버에서 삽입된 위치 이상의 번호만
+       * 현재 LMS 메모리에서 +1 합니다.
+       */
+      if(
+        serialShift &&
+        serialShift.type === 'UP_FROM'
+      ){
+        const pivot = Number(
+          serialShift.pivot || 0
+        );
+
+        (WM_STUDENT_MANAGE_ROWS || []).forEach(function(item){
+          const serial = Number(
+            String(
+              (item && item['학생일련번호']) || ''
+            ).replace(/[^0-9]/g, '')
+          );
+
+          if(serial >= pivot){
+            item['학생일련번호'] = String(
+              serial + 1
+            );
+          }
+        });
+      }
+
+      /* 현재 학생 값만 서버 응답으로 확정합니다. */
+      row['활성상태'] = String(
+        data.activeStatus ||
+        saveValues.activeStatus ||
+        ''
+      ).trim().toUpperCase();
+
+      row['학생일련번호'] = String(
+        data.studentSerial || ''
+      );
+    }
 
     const syncWarning = data.currentProgressStudentInfoSync && data.currentProgressStudentInfoSync.success === false
       ? String(data.currentProgressStudentInfoSync.message || '현재진행_DB 동기화 확인 필요')
@@ -9898,6 +10159,22 @@ function confirmNextLevelCompleteCondition(button, studentId){
   const safeId = String(studentId || '').replace(/[^A-Za-z0-9_-]/g, '');
   const row = (WM_STUDENT_MANAGE_ROWS || []).find(r => String(r['학생ID'] || '').trim() === String(studentId || '').trim()) || {};
   const studentName = String(row['학생이름'] || '').trim();
+
+  const activeSelect = document.getElementById(
+    `wmMode_활성상태_${safeId}`
+  );
+
+  if(
+    String(
+      activeSelect?.value || ''
+    ).trim().toUpperCase() === 'DELETE'
+  ){
+    saveStudentLearningModeFromRow(
+      studentId
+    );
+    return;
+  }
+
   const changes = wmStudentChangedItems(row, safeId);
   if(!changes.length){
     alert('변경된 항목이 없습니다.');
@@ -10349,7 +10626,14 @@ function renderStudentManageRows(){
       ${studentAccess.parent ? `<td>${wmStudentTextInputHtml(studentId, '학부모명', row['학부모명'] || '', {maxLength:30,placeholder:'학부모명'})}</td><td>${wmStudentTextInputHtml(studentId, '학부모연락처', row['학부모연락처'] || '', {maxLength:20,placeholder:'010-0000-0000'})}</td>` : ''}
       ${studentAccess.payment ? `<td>${escapeHtml(displayCellValue(row['최종결제']))}</td><td>${escapeHtml(displayCellValue(row['등록일']))}</td><td>${escapeHtml(displayCellValue(row['최초등록일']))}</td><td>${escapeHtml(displayCellValue(row['최근결제일']))}</td><td>${escapeHtml(row['결제공백일수'] || '')}</td><td>${escapeHtml(row['재등록횟수'] || '')}</td><td>${escapeHtml(row['총등록기간'] || '')}</td>` : ''}
       <td>${escapeHtml(row['등록상태'] || '')}</td>
-      <td>${wmModeSelectHtml(studentId, '활성상태', String(row['활성상태'] || 'ACTIVE').trim().toUpperCase(), ['ACTIVE','INACTIVE'])}</td>
+      <td>${wmModeSelectHtml(
+        studentId,
+        '활성상태',
+        String(row['활성상태'] || 'ACTIVE').trim().toUpperCase(),
+        showStudentSerial
+          ? ['ACTIVE','INACTIVE','DELETE']
+          : ['ACTIVE','INACTIVE']
+      )}</td>
       <td>${escapeHtml(row['반ID'] || '')}</td>
       <td>${escapeHtml(row['교사ID'] || '')}</td>
       <td>${wmStudentSessionStatusHtml_(row['세션상태'])}</td>
