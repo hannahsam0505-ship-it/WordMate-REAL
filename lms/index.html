@@ -10436,6 +10436,14 @@ async function saveStudentLearningModeFromRow(studentId, skipLockAndToast){
       row['학생일련번호'] = String(
         data.studentSerial || ''
       );
+            row['학생일련번호'] = String(
+        data.studentSerial || ''
+      );
+
+      try { localStorage.removeItem(WM_DASHBOARD_BROWSER_CACHE_KEY); } catch(ignoreDashboardCache) {}
+      WM_DASHBOARD_FAST_PAYLOAD = null;
+      ensureDashboardSourceRows.loadedAt = 0;
+      WM_DASHBOARD_FIRST_LOAD_STARTED = false;
     }
 
     const syncWarning = data.currentProgressStudentInfoSync && data.currentProgressStudentInfoSync.success === false
