@@ -10514,7 +10514,7 @@ function wmStudentEditableValues(row, safeId){
       '교사명':read('교사명'),
       '학교':read('학교'),
       '학년':read('학년'),
-      '활성상태':read('활성상태')
+      '활성상태':document.getElementById(`wmMode_활성상태_${safeId}`) ? read('활성상태') : String(row['활성상태'] || 'ACTIVE').trim().toUpperCase()
     };
   if(access.parent){
     previous['학부모명']=String(row['학부모명']||'').trim();
