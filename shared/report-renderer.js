@@ -483,7 +483,7 @@ body.wm-report-preview-open{overflow:hidden}
   #wmRecentReportModal .wm-report-preview-modal-head{display:none!important}
   #wmRecentReportModal .wm-report-preview-modal-body{display:block!important;padding:0!important;background:#fff!important;overflow:visible!important}
   #wmRecentReportModal .wm-report-preview-modal-body .wmr-sheet{
-    margin:0 auto!important;
+    margin:2mm auto 0!important; left:-1mm!important;
     zoom:.985!important;
   }
 }
