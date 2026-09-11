@@ -3075,6 +3075,7 @@ function wmApplyCurrentProgressDisplayOverrideToSetData_(){
   const override = wmCurrentProgressDisplayOverride || {};
   const currentSet = wmNormalizeCurrentSetIdForMap_(override.currentSet || '');
   if(!currentSet || !Array.isArray(setData)) return;
+  if(wmViewingCompletedHistoryLevel || Number(currentSet.split('-')[0]) !== Number(currentLevelNumber)) return;
 
   const dbSetProgress = wmParseProgressPercentNumber_(override.setProgress);
   const safeSetProgress = Math.max(0, Math.min(99, Math.floor(dbSetProgress || 0)));
@@ -3152,9 +3153,9 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
 
   const latest = Number(String(wmPickFirstValue_(raw.현재레벨, raw.currentLevel, raw.level, latestLevel, 0)).replace(/[^0-9]/g, '')) || 0;
 
-  if(!levels.length && latest && WM_LEVEL_CONFIG[latest]){
-    levels = [latest];
-    rounds = [Number(wmPickFirstValue_(raw.순차완주회차, raw.sequentialRound, raw.완료회차, 0)) || 0];
+  if(latest && WM_LEVEL_CONFIG[latest] && levels.indexOf(latest) < 0){
+    levels.push(latest);
+    rounds.push(Number(wmPickFirstValue_(raw.순차완주회차, raw.sequentialRound, raw.완료회차, 0)) || 0);
   }
 
   const pairs = levels.map(function(level, index){
@@ -3164,7 +3165,7 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   return {
     levels: pairs.map(function(item){ return item.level; }),
     roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {}),
-    currentLevel: pairs.length ? pairs[pairs.length - 1].level : latest,
+    currentLevel: latest,
     levelProgress: wmParseProgressPercentNumber_(wmPickFirstValue_(raw.레벨진행률, raw.levelProgress, raw.progressPercent, 0))
   };
 }
@@ -4470,6 +4471,7 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     : null;
 
   const latestLevel = Number(
+    (wmCurrentProgressDisplayOverride && wmCurrentProgressDisplayOverride.currentLevel) ||
     latestLevelOverride ||
     (cacheHistory && cacheHistory.currentLevel) ||
     currentLevelNumber ||
@@ -4492,12 +4494,12 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     return true;
   }).sort(function(a,b){ return a-b; });
 
-  if(!levels.length && WM_LEVEL_CONFIG[latestLevel]){
-    levels = [latestLevel];
-  }
-  if(!levels.length) return;
+  if(!WM_LEVEL_CONFIG[latestLevel]) return;
+  // 현재진행_DB 현재레벨을 마지막에 둡니다. 과거 레벨을 현재로 대체하지 않습니다.
+  levels = levels.filter(function(level){ return level !== latestLevel; });
+  levels.push(latestLevel);
 
-  const currentHistoryLevel = levels.indexOf(latestLevel) >= 0 ? latestLevel : levels[levels.length - 1];
+  const currentHistoryLevel = latestLevel;
   const levelProgress = Math.max(0, Math.min(100, Math.round(Number(
     (cacheHistory && cacheHistory.levelProgress) ||
     (wmCurrentProgressDisplayOverride && wmCurrentProgressDisplayOverride.levelProgress) ||
@@ -4813,7 +4815,7 @@ function renderSetMap(){
               ? 'startStudy'
               : 'showSetDetail';
           return `
-            <button class="set-block ${getBlockClass(item)}" onclick="${blockAction}('${item.set}')">
+            <button class="set-block ${getBlockClass(item)}" ${wmViewingCompletedHistoryLevel ? 'disabled aria-disabled="true"' : `onclick="${blockAction}('${item.set}')"`}>
               ${getBlockContent(item)}
             </button>
           `;
@@ -5450,6 +5452,7 @@ function wmForceHomeworkBottomFixedBarOnFirstView(){
 }
 
 async function startStudy(setId){
+  if(wmViewingCompletedHistoryLevel) return;
   if(!wmMapDataReady){
     alert('학습맵을 불러오는 중입니다. 잠시만 기다려 주세요.');
     return;
@@ -6685,3 +6688,4 @@ wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
 <!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
+
