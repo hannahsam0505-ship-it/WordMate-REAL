@@ -3126,36 +3126,16 @@ function wmParsePipeNumberListForHistory_(value, keepZero){
 function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
   raw = raw || {};
 
-  /* WM_CURRENT_PROGRESS_HISTORY_DIRECT_RENDER_26070739
-     학습히스토리는 현재진행_DB가 이미 계산해 둔 히스토리레벨/히스토리횟수만 사용합니다.
-     학습기록_DB 재계산, 레벨 중복제거, 완료조건 재판단을 여기서 하지 않습니다. */
-  let levels = wmParsePipeNumberListForHistory_(wmPickFirstValue_(
-    raw.히스토리레벨,
-    raw['히스토리레벨'],
-    raw['히스토리 레벨'],
-    raw.historyLevels,
-    raw.historyLevel,
-    raw.levelHistoryLevels,
-    raw.levelHistory,
-    raw.historyLevelList
-  ), false);
+  /* WM_CURRENT_PROGRESS_HISTORY_DB_ONLY_V1
+     히스토리 보드는 8.현재진행_DB의 히스토리레벨/히스토리횟수 두 값만 사용합니다.
+     두 값이 없으면 과거 레벨을 만들지 않고 현재레벨만 표시합니다. */
+  let levels = wmParsePipeNumberListForHistory_(raw.히스토리레벨, false);
+  let rounds = wmParsePipeNumberListForHistory_(raw.히스토리횟수, true);
+  const latest = Number(String(raw.현재레벨 || latestLevel || 0).replace(/[^0-9]/g, '')) || 0;
 
-  let rounds = wmParsePipeNumberListForHistory_(wmPickFirstValue_(
-    raw.히스토리횟수,
-    raw['히스토리횟수'],
-    raw['히스토리 횟수'],
-    raw.historyRounds,
-    raw.historyRound,
-    raw.levelHistoryRounds,
-    raw.levelHistoryRound,
-    raw.historyRoundList
-  ), true);
-
-  const latest = Number(String(wmPickFirstValue_(raw.현재레벨, raw.currentLevel, raw.level, latestLevel, 0)).replace(/[^0-9]/g, '')) || 0;
-
-  if(latest && WM_LEVEL_CONFIG[latest] && levels.indexOf(latest) < 0){
-    levels.push(latest);
-    rounds.push(Number(wmPickFirstValue_(raw.순차완주회차, raw.sequentialRound, raw.완료회차, 0)) || 0);
+  if(!levels.length && latest && WM_LEVEL_CONFIG[latest]){
+    levels = [latest];
+    rounds = [0];
   }
 
   const pairs = levels.map(function(level, index){
@@ -3166,7 +3146,7 @@ function wmBuildCurrentProgressHistoryCacheForMap_(raw, latestLevel){
     levels: pairs.map(function(item){ return item.level; }),
     roundsByLevel: pairs.reduce(function(acc, item){ acc[item.level] = item.round; return acc; }, {}),
     currentLevel: latest,
-    levelProgress: wmParseProgressPercentNumber_(wmPickFirstValue_(raw.레벨진행률, raw.levelProgress, raw.progressPercent, 0))
+    levelProgress: wmParseProgressPercentNumber_(raw.레벨진행률 || 0)
   };
 }
 
@@ -3187,16 +3167,7 @@ function wmParseRecent30Records_(value){
 
 function wmHasCurrentProgressHistoryValue_(candidate){
   if(!candidate || typeof candidate !== 'object') return false;
-  return String(wmPickFirstValue_(
-    candidate.히스토리레벨,
-    candidate['히스토리레벨'],
-    candidate['히스토리 레벨'],
-    candidate.historyLevels,
-    candidate.historyLevel,
-    candidate.levelHistoryLevels,
-    candidate.levelHistory,
-    candidate.historyLevelList
-  ) || '').trim() !== '';
+  return String(candidate.히스토리레벨 || '').trim() !== '';
 }
 
 function wmFindCurrentProgressCache_(data){
@@ -4482,22 +4453,14 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
     ? cacheHistory.levels.map(function(level){ return Number(level || 0); })
     : [];
 
+  if(!WM_LEVEL_CONFIG[latestLevel]) return;
   if(!levels.length){
-    levels = wmGetRecordLevelListForHistory_(records, latestLevel);
+    levels = [latestLevel];
   }
 
-  const seen = {};
   levels = levels.filter(function(level){
-    const n = Number(level || 0);
-    if(!WM_LEVEL_CONFIG[n] || seen[n]) return false;
-    seen[n] = true;
-    return true;
-  }).sort(function(a,b){ return a-b; });
-
-  if(!WM_LEVEL_CONFIG[latestLevel]) return;
-  // 현재진행_DB 현재레벨을 마지막에 둡니다. 과거 레벨을 현재로 대체하지 않습니다.
-  levels = levels.filter(function(level){ return level !== latestLevel; });
-  levels.push(latestLevel);
+    return !!WM_LEVEL_CONFIG[Number(level || 0)];
+  });
 
   const currentHistoryLevel = latestLevel;
   const levelProgress = Math.max(0, Math.min(100, Math.round(Number(
@@ -4526,7 +4489,6 @@ function wmRenderRecordLevelHistoryBoard_(records, setStatusMap, latestLevelOver
       + '<span' + spanId + '>' + level + ' LEVEL</span><br><strong' + strongId + '>' + label + '</strong></button>';
   }).join('');
 
-  wmSaveLevelHistoryList_(levels);
   wmHistoryCompletedLevel = levels.length >= 2 ? levels[0] : 0;
   wmHistoryCurrentLevel = currentHistoryLevel;
 }
