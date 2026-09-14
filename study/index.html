@@ -3963,7 +3963,15 @@ async function wmLoadLearningProgress(){
 function wmApplyResumeProgress(progress){
   if(!progress || !progress.success) return 1;
 
-  const progressStep = String(progress.currentProgressStep || "").toUpperCase().trim();
+  /* WM_CURRENT_PROGRESS_TWO_FIELD_RESUME_V1_20260914
+     8.현재진행_DB의 완료Step + 현재Step을 그대로 Study 기준으로 사용합니다. */
+  const progressRow = (progress.currentProgressRow && typeof progress.currentProgressRow === "object")
+    ? progress.currentProgressRow
+    : ((progress.currentProgressCache && typeof progress.currentProgressCache === "object")
+      ? progress.currentProgressCache
+      : ((progress.currentProgress && typeof progress.currentProgress === "object") ? progress.currentProgress : {}));
+  const progressStep = String(progress.currentProgressStep || progressRow["현재Step"] || "").toUpperCase().trim();
+  const lastCompletedStep = String(progress.lastCompletedStep || progressRow["완료Step"] || "").toUpperCase().trim();
 
   /* WM_SPLIT_SESSION_CUMULATIVE_SOURCE_V1_20260825
      새 Study 접속에서는 직전 학습기록ID를 UPDATE 대상으로 재사용하지 않습니다.
@@ -3987,6 +3995,14 @@ function wmApplyResumeProgress(progress){
   }
 
   const normalizedSteps = wmNormalizeCompletedStepsFromProgress(progress);
+  const requiredStepIdsByCompletedStep = {
+    STEP1: ["step1_flash_card"],
+    STEP2: ["step1_flash_card", "step2_choose_meaning"],
+    STEP3: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english"],
+    STEP4: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory"],
+    STEP5: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"],
+    TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review", "test_all"]
+  };
   const requiredStepIdsByCurrentStep = {
     STEP2: ["step1_flash_card"],
     STEP3: ["step1_flash_card", "step2_choose_meaning"],
@@ -3995,12 +4011,22 @@ function wmApplyResumeProgress(progress){
     BEFORE_TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"],
     TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"]
   };
-  const requiredStepIds = requiredStepIdsByCurrentStep[progressStep] || [];
+  const requiredStepIds = requiredStepIdsByCompletedStep[lastCompletedStep]
+    || requiredStepIdsByCurrentStep[progressStep]
+    || [];
 
-  /* 현재 회차의 currentProgressStep보다 뒤쪽 과거 회차 기록은 저장 payload에서도 제외합니다. */
+  /* 서버가 completedSteps 상세배열을 비워 보내도 현재진행_DB의 완료Step을 누락시키지 않습니다.
+     시간값은 임의 계산하지 않고 기존 학습기록 누적값을 그대로 승계합니다. */
   completedSteps = requiredStepIds.map(stepId=>{
-    return normalizedSteps.find(step=>step.stepId === stepId) || null;
-  }).filter(Boolean);
+    const existing = normalizedSteps.find(step=>step.stepId === stepId);
+    return existing || {
+      stepId,
+      stepTitle:"",
+      completedAt:"",
+      elapsedSeconds:0,
+      elapsedText:""
+    };
+  });
 
   return wmStageFromProgressStep(progressStep);
 }
