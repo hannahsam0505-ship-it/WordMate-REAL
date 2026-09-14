@@ -3816,11 +3816,12 @@ function renderStepSaveWaiting(stepTitle){
   afterScreenRender();
 }
 
-function completeStepThen(stepId, stepTitle, nextAction){
-  /* WM_STEP_SAVE_IMMEDIATE_TRANSITION_V1_20260615
-     Step 완료 저장은 백그라운드 큐에 즉시 등록하고, 화면은 바로 다음 Step으로 이동합니다.
-     저장 완료 대기는 X/나가기/다음학습/최종이동 시점에만 처리합니다. */
-  WM_STUDY_SPEED_LOCKS.FINAL_TEST_SINGLE_SAVE.markStepCompleted(stepId, stepTitle);
+async function completeStepThen(stepId, stepTitle, nextAction){
+  /* WM_STEP_SAVE_BEFORE_NEXT_STEP_V1_20260914
+     Step 완료 순간의 현재진행_DB/학습기록_DB 자동기록이 끝난 뒤 다음 Step 화면으로 이동합니다.
+     복귀에서는 새 저장·재저장 없이 기존 즉시 Map 복귀 공식을 그대로 유지합니다. */
+  const result=await WM_STUDY_SPEED_LOCKS.FINAL_TEST_SINGLE_SAVE.markStepCompleted(stepId, stepTitle);
+  if(!wmIsSaveSuccess(result)) return;
   if(typeof nextAction === "function") nextAction();
 }
 
