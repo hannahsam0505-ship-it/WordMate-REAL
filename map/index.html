@@ -2,12 +2,12 @@
 <!-- ==========================================================
    🧪 WORD MATE Map.html - TEST / REAL 전환 설정
    ==========================================================
-
+   [진입 대표 이름] [03] REAL Map.html — 현재 학습중 세트 즉시진입
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
-
+   [수정내용] 기존 병렬기록 규칙 유지 / 노란 학습중 세트 클릭 시 getSetData 대기 제거 / 현재세트·현재Step 그대로 즉시 Study 이동
       테스트부스 적용: const WM_ENV = 'TEST';
       리얼부스 적용: const WM_ENV = 'REAL';
-
+   [수정 전후 줄수] 직전 Map 6,627줄 → 이번 수정 6,627줄 (최초 6,652줄)
    ⚠️ 아래 WM_ENV 한 줄 외에는 테스트/리얼 전환 목적으로 수정하지 않습니다
    ⚠️ 이 파일의 모든 URL 호출은 반드시 WM_CONFIG 또는 아래 자동 선택 상수를 사용합니다.
    ⚠️ 공통 코드 아래에서 URL을 직접 문자열로 새로 쓰지 않습니다.
@@ -5396,7 +5396,7 @@ function wmForceHomeworkBottomFixedBarOnFirstView(){
   setTimeout(wmInitHomeworkTopScrollbar, 100);
 }
 
-async function startStudy(setId){
+function startStudy(setId){
   if(wmViewingCompletedHistoryLevel) return;
   if(!wmMapDataReady){
     alert('학습맵을 불러오는 중입니다. 잠시만 기다려 주세요.');
@@ -5431,7 +5431,7 @@ async function startStudy(setId){
   const learningAssign = wmCurrentStudent && wmCurrentStudent.학습배정 ? String(wmCurrentStudent.학습배정).trim() : '';
   const sessionToken = wmGetCurrentSessionToken();
 
-  const preparedSetData=await wmWarmCurrentStudyContentFromMap_(selectedSetId);
+  const preparedSetData=(wmStudyWarmSetId_===('WM'+selectedSetId) && wmStudyWarmData_ && wmStudyWarmData_.success===true) ? wmStudyWarmData_ : null;
   const currentProgress=wmCurrentProgressDisplayOverride;
   const currentProgressStudentId=String(wmCurrentStudent && wmCurrentStudent.학생ID || '').trim();
   const currentProgressSetId='WM' + selectedSetId;
