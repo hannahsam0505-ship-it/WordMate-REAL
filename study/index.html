@@ -3763,7 +3763,6 @@ function queueStepSave(status){
         /* WM_STEP_RETURN_CURRENT_PROGRESS_READY_V1_20260822
            Step 저장 응답에 이미 포함된 현재진행_DB 1행을 즉시 복귀용으로 보관합니다.
            나가기 때 저장/현재진행 재조회를 새로 만들지 않습니다. */
-        wmCacheCurrentProgressForMapReturn_(result);
       }
       return result;
     })
@@ -3963,71 +3962,24 @@ async function wmLoadLearningProgress(){
 function wmApplyResumeProgress(progress){
   if(!progress || !progress.success) return 1;
 
-  /* WM_CURRENT_PROGRESS_TWO_FIELD_RESUME_V1_20260914
-     8.현재진행_DB의 완료Step + 현재Step을 그대로 Study 기준으로 사용합니다. */
+  /* WM_CURRENT_PROGRESS_TWO_FIELD_RESUME_DIRECT_V2_20260916
+     Step 복귀 위치는 8.현재진행_DB에서 Map이 확정해 넘긴 완료Step + 현재Step만 그대로 사용합니다.
+     학습기록 저장상태, completedSteps 재구성, 캐시, 추정값으로 복귀 위치를 계산하지 않습니다. */
   const progressRow = (progress.currentProgressRow && typeof progress.currentProgressRow === "object")
     ? progress.currentProgressRow
-    : ((progress.currentProgressCache && typeof progress.currentProgressCache === "object")
-      ? progress.currentProgressCache
-      : ((progress.currentProgress && typeof progress.currentProgress === "object") ? progress.currentProgress : {}));
+    : ((progress.currentProgress && typeof progress.currentProgress === "object") ? progress.currentProgress : {});
   const progressStep = String(progress.currentProgressStep || progressRow["현재Step"] || "").toUpperCase().trim();
   const lastCompletedStep = String(progress.lastCompletedStep || progressRow["완료Step"] || "").toUpperCase().trim();
 
-  /* WM_SPLIT_SESSION_CUMULATIVE_SOURCE_V1_20260825
-     새 Study 접속에서는 직전 학습기록ID를 UPDATE 대상으로 재사용하지 않습니다.
-     직전 미완료행은 누적시간 승계 원본으로만 보관하고,
-     새 접속에서 최소 1개 Step을 완료했을 때 새 학습기록ID/새 행을 생성합니다. */
+  /* 새 접속의 기록행 연결은 복귀 화면에서 계산하지 않습니다.
+     실제 Step 완료 기록 요청이 시작될 때 서버의 현재진행_DB 학습기록ID를 기준으로 처리합니다. */
   WM_RECORD_SESSION_ID = "";
-  WM_RESUME_SOURCE_RECORD_ID = (
-    progressStep !== "COMPLETE" &&
-    progressStep !== "STEP1" &&
-    progressStep &&
-    progress.learningRecordId
-  ) ? String(progress.learningRecordId || "").trim() : "";
+  WM_RESUME_SOURCE_RECORD_ID = "";
+  completedSteps = [];
 
-  /* WM_SEQUENTIAL_ROUND_RESUME_RESET_V1_20260721
-     순차완주 회차가 바뀌어 서버 현재Step이 STEP1이면 이전 회차 completedSteps를 전부 폐기합니다.
-     같은 Set_ID의 1회차 Step 기록이 2·3회차에 섞여 뒤 Step으로 점프하는 것을 차단합니다.
-     복귀 화면은 completedSteps 개수로 다시 계산하지 않고 서버 currentProgressStep을 기준으로 합니다. */
-  if(progressStep === "COMPLETE" || progressStep === "STEP1" || !progressStep){
-    completedSteps = [];
-    return 1;
-  }
-
-  const normalizedSteps = wmNormalizeCompletedStepsFromProgress(progress);
-  const requiredStepIdsByCompletedStep = {
-    STEP1: ["step1_flash_card"],
-    STEP2: ["step1_flash_card", "step2_choose_meaning"],
-    STEP3: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english"],
-    STEP4: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory"],
-    STEP5: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"],
-    TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review", "test_all"]
-  };
-  const requiredStepIdsByCurrentStep = {
-    STEP2: ["step1_flash_card"],
-    STEP3: ["step1_flash_card", "step2_choose_meaning"],
-    STEP4: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english"],
-    STEP5: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory"],
-    BEFORE_TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"],
-    TEST: ["step1_flash_card", "step2_choose_meaning", "step3_choose_english", "step4_memory", "step6_last_flash_review"]
-  };
-  const requiredStepIds = requiredStepIdsByCompletedStep[lastCompletedStep]
-    || requiredStepIdsByCurrentStep[progressStep]
-    || [];
-
-  /* 서버가 completedSteps 상세배열을 비워 보내도 현재진행_DB의 완료Step을 누락시키지 않습니다.
-     시간값은 임의 계산하지 않고 기존 학습기록 누적값을 그대로 승계합니다. */
-  completedSteps = requiredStepIds.map(stepId=>{
-    const existing = normalizedSteps.find(step=>step.stepId === stepId);
-    return existing || {
-      stepId,
-      stepTitle:"",
-      completedAt:"",
-      elapsedSeconds:0,
-      elapsedText:""
-    };
-  });
-
+  /* 완료Step은 화면의 완료표시 기준값으로만 보존하고, 실제 진입 위치는 현재Step을 그대로 사용합니다. */
+  progress.lastCompletedStep = lastCompletedStep;
+  progress.currentProgressStep = progressStep;
   return wmStageFromProgressStep(progressStep);
 }
 
@@ -4596,27 +4548,13 @@ function wmStudyReturnToMap(){
   }
 }
 
-async function leaveLearning(){
-  /* WM_STUDY_EXIT_NO_NEW_SAVE_V1_20260825
-     복귀 버튼에서는 새 저장·재저장·현재진행 재조회를 만들지 않습니다.
-     아무 Step도 완료하지 않았거나 기존 Step 저장이 이미 끝났으면 즉시 복귀합니다.
-     실제로 진행 중인 Step 저장 1건이 있을 때만 그 이미 시작된 요청의 완료만 확인합니다. */
+function leaveLearning(){
+  /* WM_STUDY_EXIT_CURRENT_PROGRESS_DIRECT_V2_20260916
+     Step 완료 순간 현재진행_DB 기록은 끝난 것으로 봅니다.
+     나가기에서는 저장대기·저장확인·재저장·현재진행 캐시 생성 없이 즉시 Map으로 복귀합니다.
+     Map은 복귀 직후 8.현재진행_DB 공식값을 직접 다시 읽습니다. */
   const modal=document.getElementById("wmExitModal");
   if(modal) modal.style.display="none";
-
-  const pendingSave=wmStepSaveInFlight;
-  if(pendingSave){
-    const result=await Promise.resolve(pendingSave).catch(function(error){
-      return {ok:false,error:String(error)};
-    });
-    if(!wmIsSaveSuccess(result)){
-      app.innerHTML=`<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">이미 진행 중이던 Step 저장 응답을 확인하지 못했습니다.</div></div>`;
-      afterScreenRender();
-      return;
-    }
-    wmCacheCurrentProgressForMapReturn_(result);
-  }
-
   exitLearningFullscreen();
   wmStudyReturnToMap();
 }
@@ -5494,7 +5432,6 @@ function submitTest(){
       const officialResponse=wmGetOfficialSaveResponse(result);
       WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
       WM_OFFICIAL_NEXT_SET_ID=wmNormalizeOfficialNextSetId(officialResponse.nextOfficialSetId);
-      if(wmIsSaveSuccess(result)) wmCacheCurrentProgressForMapReturn_(result);
       return result;
     });
   }
@@ -5556,7 +5493,6 @@ function goNextTest(){
         const officialResponse=wmGetOfficialSaveResponse(result);
         WM_OFFICIAL_TRANSITION_RESULT=officialResponse;
         WM_OFFICIAL_NEXT_SET_ID=wmNormalizeOfficialNextSetId(officialResponse.nextOfficialSetId);
-        if(wmIsSaveSuccess(result)) wmCacheCurrentProgressForMapReturn_(result);
         return result;
       });
     }
@@ -5667,7 +5603,7 @@ function renderFinalResult(){
 
   function applyFinalSaveResult_(result){
     if(!wmIsSaveSuccess(result)){
-      if(saveStatus) saveStatus.textContent="학습 완료 저장을 확인하고 있습니다.";
+      if(saveStatus) saveStatus.textContent="학습 완료 기록을 확인하고 있습니다.";
       return;
     }
     if(saveStatus) saveStatus.textContent="학습이 완료되었습니다.";
