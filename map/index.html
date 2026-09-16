@@ -2979,24 +2979,24 @@ function wmInitLearningMap(){
     const initialCurrentProgress = window.WM_MAP_INITIAL_CURRENT_PROGRESS;
     const initialStudentId = String(initialCurrentProgress && (initialCurrentProgress.학생ID || initialCurrentProgress.studentId) || '').trim();
     const currentStudentId = String(wmCurrentStudent && wmCurrentStudent.학생ID || '').trim();
-    if(initialCurrentProgress && typeof initialCurrentProgress === 'object' && initialStudentId && initialStudentId === currentStudentId){
-      wmLoadLearningRecordsDirectForMap_('parallel-map-entry', 1, false, function(recordPayload){
-        const records = wmPickLearningRecordsFromPayload_(recordPayload || {}, null);
-        wmHandleLearningMapResponse({
-          success:true,
-          sessionValid:true,
-          valid:true,
-          source:'SERVER_MAP_BOOT_CURRENT_PROGRESS',
-          currentProgressCache:initialCurrentProgress,
-          currentProgress:initialCurrentProgress,
-          currentProgressRow:initialCurrentProgress,
-          progressCache:initialCurrentProgress,
-          mapCache:initialCurrentProgress,
-          studentProfile:window.WM_MAP_SERVER_STUDENT || wmCurrentStudent || {},
-          recordsDeferred:!(recordPayload && recordPayload.learningRecordDbDirect === true),
-          records:Array.isArray(records) ? records : []
-        });
+        if(initialCurrentProgress && typeof initialCurrentProgress === 'object' && initialStudentId && initialStudentId === currentStudentId){
+      wmHandleLearningMapResponse({
+        success:true,
+        sessionValid:true,
+        valid:true,
+        source:'SERVER_MAP_BOOT_CURRENT_PROGRESS',
+        currentProgressCache:initialCurrentProgress,
+        currentProgress:initialCurrentProgress,
+        currentProgressRow:initialCurrentProgress,
+        progressCache:initialCurrentProgress,
+        mapCache:initialCurrentProgress,
+        studentProfile:window.WM_MAP_SERVER_STUDENT || wmCurrentStudent || {},
+        recordsDeferred:true,
+        records:[]
       });
+      /* 현재진행 26개와 학생정보를 먼저 표시합니다. */
+      /* recordsDeferred=true이면 내부에서 학습기록 후속 조회를 시작합니다. */
+      /* 학습기록 완료 후 하단 기록만 갱신합니다. */
       return;
     }
     wmStopMapLoadingState_();
