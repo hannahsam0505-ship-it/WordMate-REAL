@@ -837,7 +837,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
           <tbody id="homeworkTableBody">
             <tr>
-              <td colspan="20">아직 표시할 학습기록이 없습니다.</td>
+              <td colspan="20">학습기록을 불러오는 중입니다.</td>
             </tr>
           </tbody>
 
@@ -2683,9 +2683,28 @@ function wmSaveMapReturnSnapshot_(){
   }
 }
 
+function wmTakeMapFrameHandoffValue_(key){
+  try{
+    const frameName=String(window.name || '');
+    const prefix='WM_MAP_FRAME_LOCK:';
+    if(frameName.indexOf(prefix)!==0) return '';
+    const frameData=JSON.parse(decodeURIComponent(frameName.slice(prefix.length)));
+    const value=String(frameData && frameData[key] || '');
+    if(value){
+      frameData[key]='';
+      window.name=prefix + encodeURIComponent(JSON.stringify(frameData));
+    }
+    return value;
+  }catch(err){
+    return '';
+  }
+}
+
 function wmReadMapReturnSnapshot_(){
-  let raw='';
-  try{ raw=sessionStorage.getItem(WM_MAP_RETURN_SNAPSHOT_KEY_) || ''; }catch(err){}
+  let raw=wmTakeMapFrameHandoffValue_('mapReturnSnapshot');
+  if(!raw){
+    try{ raw=sessionStorage.getItem(WM_MAP_RETURN_SNAPSHOT_KEY_) || ''; }catch(err){}
+  }
   if(!raw) return null;
 
   let snapshot=null;
@@ -2874,11 +2893,13 @@ function wmApplyStudyReturnSnapshot_(row, latestRecord){
 }
 
 function wmReadStudyReturnCurrentProgress_(){
-  /* WM_MAP_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V1_20260821
-     Study 완료 응답에서 받은 현재진행_DB 1행을 복귀 Map의 첫 화면에 즉시 사용합니다.
-     학생ID가 다르거나 오래된 값이면 사용하지 않고 기존 서버 조회로 돌아갑니다. */
-  let raw = '';
-  try{ raw = sessionStorage.getItem('WM_CURRENT_PROGRESS_RETURN_V1') || ''; }catch(err){}
+  /* WM_MAP_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2_20260916
+     Vercel Study가 같은 Vercel origin에 저장한 최신 현재진행 1행을 Mapframe이
+     iframe.name 브리지로 Apps Script Map iframe에 전달합니다. 기존 같은-origin 저장값도 fallback으로 유지합니다. */
+  let raw = wmTakeMapFrameHandoffValue_('returnProgress');
+  if(!raw){
+    try{ raw = sessionStorage.getItem('WM_CURRENT_PROGRESS_RETURN_V1') || ''; }catch(err){}
+  }
   if(!raw) return null;
 
   let envelope = null;
@@ -2962,17 +2983,40 @@ function wmInitLearningMap(){
   wmShowMapLoadingState_();
   /* WM_MAP_FAKE_INSTANT_RENDER_DISABLED_V1: 현재진행_DB 응답 전 임시 학생정보/임시맵 생성 금지 */
 
-  /* WM_MAP_AUTH_DATA_SINGLE_ROUNDTRIP_V1_20260818
-     Vercel Map은 getLearningMapCacheData 요청에 세션토큰을 함께 보내 서버에서 인증+Map 데이터를 한 번에 확인합니다.
-     동일 응답에 1.학생관리_DB studentProfile이 포함되므로 별도 기본정보 선조회도 하지 않습니다.
-     Apps Script 내부 실행환경도 Login 입장만 재심사를 생략하고 Study 복귀는 기존 세션확인을 유지합니다. */
-  if(window.google && google.script && google.script.run){
-    const entrySource = String(window.history && window.history.state && window.history.state.wmMapEntrySource || '').trim().toLowerCase();
+  /* WM_MAP_AUTH_DATA_SINGLE_ROUNDTRIP_V2_20260916
+     Login 직후 Apps Script mode=map이 이미 읽은 현재진행_DB 지정값을 첫 화면에 그대로 사용합니다.
+     같은 진입에서 getLearningMapCacheData로 현재진행을 다시 읽지 않습니다.
+     새로고침/기타 진입은 기존 세션검사 + 서버조회 경로를 유지합니다. */
+  const entrySource = String(window.history && window.history.state && window.history.state.wmMapEntrySource || '').trim().toLowerCase();
+  if(entrySource === 'login'){
+    const initialCurrentProgress = window.WM_MAP_INITIAL_CURRENT_PROGRESS;
+    const initialStudentId = String(initialCurrentProgress && (initialCurrentProgress.학생ID || initialCurrentProgress.studentId) || '').trim();
+    const currentStudentId = String(wmCurrentStudent && wmCurrentStudent.학생ID || '').trim();
+    if(initialCurrentProgress && typeof initialCurrentProgress === 'object' && initialStudentId && initialStudentId === currentStudentId){
+      wmLoadLearningRecordsDirectForMap_('parallel-map-entry');
+      wmHandleLearningMapResponse({
+        success:true,
+        sessionValid:true,
+        valid:true,
+        source:'SERVER_MAP_BOOT_CURRENT_PROGRESS',
+        currentProgressCache:initialCurrentProgress,
+        currentProgress:initialCurrentProgress,
+        currentProgressRow:initialCurrentProgress,
+        progressCache:initialCurrentProgress,
+        mapCache:initialCurrentProgress,
+        studentProfile:window.WM_MAP_SERVER_STUDENT || wmCurrentStudent || {},
+        recordsDeferred:true,
+        records:[]
+      });
+      return;
+    }
+  }
 
+  if(window.google && google.script && google.script.run){
     /* WM_LOGIN_MAP_DIRECT_ENTRY_V1_20260828
        Login 서버에서 ID+비밀번호+ACTIVE 확인과 새 sessionToken 발급이 끝난 직후에는
        같은 학생을 checkStudentSession으로 다시 입장심사하지 않고 바로 Map 데이터를 불러옵니다.
-       Study 복귀와 입장 후 세션감시는 기존대로 유지합니다. */
+       서버 부팅 현재진행값이 없을 때만 기존 조회로 fallback합니다. */
     if(entrySource === 'login'){
       wmRevealAuthenticatedMap_();
       wmFetchLearningMap(wmCurrentStudent.학생ID);
@@ -5415,6 +5459,52 @@ function wmForceHomeworkBottomFixedBarOnFirstView(){
   setTimeout(wmInitHomeworkTopScrollbar, 100);
 }
 
+function wmStoreStudyEntryReadyForVercel_(entryReady,mapReturnSnapshot){
+  /* WM_MAP_TO_STUDY_CROSS_ORIGIN_BRIDGE_V1_20260916
+     Apps Script iframe의 sessionStorage는 Vercel Study와 origin이 다르므로
+     부모 Mapframe에게 1회 전달해 같은 Vercel sessionStorage에 저장합니다. */
+  return new Promise(function(resolve){
+    if(!entryReady || !window.parent || window.parent === window){
+      resolve(false);
+      return;
+    }
+
+    const requestId='wmStudyHandoff_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    let finished=false;
+    let timer=null;
+
+    function finish(value){
+      if(finished) return;
+      finished=true;
+      if(timer) clearTimeout(timer);
+      window.removeEventListener('message',onMessage);
+      resolve(value === true);
+    }
+
+    function onMessage(event){
+      if(event.source !== window.parent) return;
+      const data=event && event.data ? event.data : null;
+      if(!data || data.type !== 'WM_MAP_TO_STUDY_HANDOFF_ACK_V1' || String(data.requestId || '') !== requestId) return;
+      finish(data.stored === true);
+    }
+
+    window.addEventListener('message',onMessage);
+    try{
+      window.parent.postMessage({
+        type:'WM_MAP_TO_STUDY_HANDOFF_V1',
+        requestId:requestId,
+        entryReady:entryReady,
+        mapReturnSnapshot:mapReturnSnapshot || null
+      },'*');
+    }catch(err){
+      finish(false);
+      return;
+    }
+
+    timer=setTimeout(function(){ finish(false); },300);
+  });
+}
+
 async function startStudy(setId){
   if(wmViewingCompletedHistoryLevel) return;
   if(!wmMapDataReady){
@@ -5477,19 +5567,35 @@ async function startStudy(setId){
     currentProgressRow:currentProgress
   };
 
-  sessionStorage.setItem('WM_STUDY_ENTRY_READY_V1',JSON.stringify({
+  const entryReady={
     version:'WM_STUDY_ENTRY_READY_V1',
     studentId:currentProgressStudentId,
     setId:currentProgressSetId,
     progress:progress,
     setData:preparedSetData
-  }));
+  };
+  sessionStorage.setItem('WM_STUDY_ENTRY_READY_V1',JSON.stringify(entryReady));
   sessionStorage.setItem('WM_CURRENT_PROGRESS_RETURN_V1',JSON.stringify({
     version:'WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2',
     studentId:currentProgressStudentId,
     currentProgress:currentProgress,
     learningRecord:null
   }));
+
+  const fallbackProgress={
+    success:true,
+    sessionValid:true,
+    valid:true,
+    source:'MAP_URL_FALLBACK_CURRENT_PROGRESS',
+    studentId:progress.studentId,
+    setId:progress.setId,
+    recordSetId:progress.recordSetId,
+    learningRecordId:progress.learningRecordId,
+    currentProgressStep:progress.currentProgressStep,
+    lastCompletedStep:progress.lastCompletedStep,
+    completedSteps:[],
+    learningMode:progress.learningMode
+  };
 
   const studyUrl =
     framePageUrl
@@ -5506,10 +5612,17 @@ async function startStudy(setId){
     + '&wmStudentName=' + encodeURIComponent(studentName)
     + '&learningAssign=' + encodeURIComponent(learningAssign)
     + '&wmLearningAssign=' + encodeURIComponent(learningAssign)
+    + '&wmS4=' + encodeURIComponent(progress.learningMode.S4실루엣단계 || '')
+    + '&wmS6=' + encodeURIComponent(progress.learningMode.S6테스트모드 || '')
+    + '&wmLevelCompleteCondition=' + encodeURIComponent(progress.learningMode.레벨완료조건 || '')
+    + '&wmLevelExtraRounds=' + encodeURIComponent(progress.learningMode.레벨회차추가 || 0)
+    + '&wmStudyProgress=' + encodeURIComponent(JSON.stringify(fallbackProgress))
     + '&sessionToken=' + encodeURIComponent(sessionToken)
     + '&wmSessionToken=' + encodeURIComponent(sessionToken);
 
   wmSaveMapReturnSnapshot_();
+  const mapReturnSnapshot=wmReadMapReturnSnapshot_();
+  await wmStoreStudyEntryReadyForVercel_(entryReady,mapReturnSnapshot);
   window.top.location.href = studyUrl;
 }
 
