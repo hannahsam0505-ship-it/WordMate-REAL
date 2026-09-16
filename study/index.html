@@ -3874,10 +3874,35 @@ function wmNormalizeCompletedStepsFromProgress(progress){
 }
 
 function wmReadMapStudyEntryReady_(){
-  /* WM_STUDY_ENTRY_OFFICIAL_ONLY_V2_20260825
-     Map이 현재진행_DB에서 준비해 전달한 자료를 그대로 사용합니다.
-     별도 만료·학생·세트·준비여부 조건을 추가하지 않습니다. */
-  return JSON.parse(sessionStorage.getItem('WM_STUDY_ENTRY_READY_V1'));
+  /* WM_STUDY_ENTRY_OFFICIAL_ONLY_V3_20260916
+     1순위: Mapframe이 같은 Vercel origin sessionStorage에 전달한 준비자료를 그대로 사용합니다.
+     2순위: 브리지 실패 시 URL의 최소 현재진행값으로 복귀 Step만 보존하고 세트 콘텐츠만 기존 API로 읽습니다. */
+  try{
+    const raw=sessionStorage.getItem('WM_STUDY_ENTRY_READY_V1');
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(parsed && parsed.progress) return parsed;
+    }
+  }catch(err){}
+
+  try{
+    const params=new URLSearchParams(window.location.search || '');
+    const rawProgress=String(params.get('wmStudyProgress') || '').trim();
+    if(!rawProgress) return null;
+    const progress=JSON.parse(rawProgress);
+    if(!progress || typeof progress !== 'object') return null;
+    const fallback={
+      version:'WM_STUDY_ENTRY_READY_URL_FALLBACK_V1',
+      studentId:String(progress.studentId || WM_STUDENT_ID || '').trim(),
+      setId:String(progress.setId || currentSetId || '').trim(),
+      progress:progress,
+      setData:null
+    };
+    try{ sessionStorage.setItem('WM_STUDY_ENTRY_READY_V1',JSON.stringify(fallback)); }catch(err){}
+    return fallback;
+  }catch(err){
+    return null;
+  }
 }
 
 async function wmLoadLearningProgress(){
@@ -4857,12 +4882,15 @@ function renderStart(){
 }
 
 async function startLearning(){
-  /* WM_STUDY_MAP_READY_DIRECT_START_V1_20260825
-     정상 학생경로는 Map이 현재진행_DB로 확정하고 미리 준비한
-     현재세트 콘텐츠 + 현재Step을 그대로 사용합니다.
-     Study 진입 시 getStudyProgressFast/getSetData 재조회나 임의 fallback을 만들지 않습니다. */
+  /* WM_STUDY_MAP_READY_DIRECT_START_V2_20260916
+     정상 학생경로는 Mapframe이 같은 Vercel origin에 보관한 현재세트 콘텐츠 + 현재Step을 그대로 사용합니다.
+     브리지 실패 시에도 URL 최소 현재진행값으로 Step은 유지하고 세트 콘텐츠만 기존 getSetData를 1회 사용합니다. */
   const ready=wmReadMapStudyEntryReady_();
-  const loaded=await WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB(ready.setData);
+  if(!ready || !ready.progress){
+    alert('학습 진입 정보를 확인할 수 없습니다. 학습맵에서 다시 시작해 주세요.');
+    return;
+  }
+  const loaded=await WM_STUDY_SPEED_LOCKS.SET_LOAD.loadSetFromDB(ready.setData || null);
   if(!loaded) return;
 
   const progress=ready.progress;
