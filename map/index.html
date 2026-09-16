@@ -1,9 +1,9 @@
 <!--
 [WORD MATE 수정확인]
 소속: REAL / Map
-기준파일: map.html
-수정내용: Login 직후 현재진행_DB 26개 재조회 제거, 학습기록 첫 조회와 Map 첫 화면 동시 확정, 조회완료 전 '기록없음' 표시 금지.
-수정 전 줄수: 6654 / 수정 후 줄수: 6684
+기준파일: REAL_Map_LoginMapRecords_6654-6684.html.txt
+수정내용: 로그인 진입은 현재진행_DB 26개 값만 사용하고 재조회 fallback 금지. 학습기록 첫 조회 완료 후 Map과 함께 표시. 조회완료 전 기록없음 표시 금지.
+수정 전 줄수: 6684 / 수정 후 줄수: 6681
 수정범위 외 변경: 없음
 -->
 <!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
@@ -2999,15 +2999,12 @@ function wmInitLearningMap(){
       });
       return;
     }
+    wmStopMapLoadingState_();
+    wmShowMapUnavailable_('현재진행_DB의 로그인 진입값을 확인할 수 없습니다.');
+    return;
   }
 
-  /* 기존 Login fast path를 사용할 수 없는 진입은 현재 세션검사/Map 조회 경로를 그대로 유지합니다. */
   if(window.google && google.script && google.script.run){
-    if(entrySource === 'login'){
-      wmRevealAuthenticatedMap_();
-      wmFetchLearningMap(wmCurrentStudent.학생ID);
-      return;
-    }
 
     wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
       if(!valid) return;
