@@ -3853,19 +3853,19 @@ function wmFetchLearningMap(studentId){
     + '&wmSessionToken=' + encodeURIComponent(sessionToken)
     + '&t=' + Date.now();
 
-  fetch(url)
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      wmHandleLearningMapResponse(data);
-    })
-    .catch(function(err){
-      wmRevealAuthenticatedMap_();
-      wmStopMapLoadingState_();
-      if(!wmRenderInstantMapFromStudentCache_()){
-        wmShowMapUnavailable_('현재진행_DB 캐시 응답 실패: 임시 학습맵을 표시할 수 없습니다.');
-        renderHomeworkTable([], wmStudentProfile || wmCurrentStudent);
-      }
+function wmFetchCurrentProgressWithRetry_(retried){
+    return fetch(retried ? url + '&retry=' + Date.now() : url, {cache:'no-store'}).then(function(res){
+      if(res.status === 404 && !retried) return wmFetchCurrentProgressWithRetry_(true);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
     });
+  }
+  wmFetchCurrentProgressWithRetry_(false).then(function(data){
+    wmHandleLearningMapResponse(data);
+  }).catch(function(err){
+    wmRevealAuthenticatedMap_(); wmStopMapLoadingState_();
+    if(!wmRenderInstantMapFromStudentCache_()) wmShowMapUnavailable_('현재진행_DB 캐시 응답 실패: ' + String(err && err.message ? err.message : err));
+  });
 }
 
 function wmShowMapMessage(message){
