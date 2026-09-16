@@ -2,7 +2,7 @@
 <!-- ============================================================
    🧪 WORD MATE Study.html - TEST / REAL 전환 설정
    ============================================================
-   [수정기록] 진입 대표 이름: Study.html | 수정 내용: 저장 복구(completeStepThen / leaveLearning 원본 흐름 복구) | 수정 전 줄수: 6,524줄 | 수정 후 줄수: 6,538줄
+
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
 
       테스트부스 적용: const WM_ENV = 'TEST';
@@ -3816,11 +3816,10 @@ function renderStepSaveWaiting(stepTitle){
   afterScreenRender();
 }
 
-function completeStepThen(stepId, stepTitle, nextAction){
-  /* WM_STEP_SAVE_IMMEDIATE_TRANSITION_V1_20260615
-     Step 완료 기록은 백그라운드 큐에 즉시 등록하고, 화면은 바로 다음 Step으로 이동합니다.
-     Step 전환에서는 기록 완료 응답을 기다리지 않습니다. */
-  WM_STUDY_SPEED_LOCKS.FINAL_TEST_SINGLE_SAVE.markStepCompleted(stepId, stepTitle);
+async function completeStepThen(stepId, stepTitle, nextAction){
+  if(wmStepSaveInFlight) return;
+  const result=await WM_STUDY_SPEED_LOCKS.FINAL_TEST_SINGLE_SAVE.markStepCompleted(stepId, stepTitle);
+  if(!wmIsSaveSuccess(result)) return;
   if(typeof nextAction === "function") nextAction();
 }
 
@@ -4596,26 +4595,13 @@ function wmStudyReturnToMap(){
   }
 }
 
-async function leaveLearning(){
+function leaveLearning(){
   /* WM_STUDY_EXIT_NO_NEW_SAVE_V1_20260825
-     복귀 버튼에서는 새 저장·재저장·현재진행 재조회를 만들지 않습니다.
-     아무 Step도 완료하지 않았거나 기존 Step 저장이 이미 끝났으면 즉시 복귀합니다.
-     실제로 진행 중인 Step 저장 1건이 있을 때만 그 이미 시작된 요청의 완료만 확인합니다. */
+     복귀 버튼에서는 새 저장·재저장·현재진행 재조회·저장대기를 만들지 않습니다.
+     마지막으로 확정된 현재진행값을 그대로 사용해 즉시 Map으로 복귀합니다. */
   const modal=document.getElementById("wmExitModal");
   if(modal) modal.style.display="none";
-
-  const pendingSave=wmStepSaveInFlight;
-  if(pendingSave){
-    const result=await Promise.resolve(pendingSave).catch(function(error){
-      return {ok:false,error:String(error)};
-    });
-    if(!wmIsSaveSuccess(result)){
-      app.innerHTML=`<div class="wm-card wm-study-state-card wm-study-start-card">${wmSetBadgeHtml()}<div class="wm-title">학습기록 저장 확인 필요</div><div class="wm-meaning" style="font-size:18px;line-height:1.8;">이미 진행 중이던 Step 저장 응답을 확인하지 못했습니다.</div></div>`;
-      afterScreenRender();
-      return;
-    }
-    wmCacheCurrentProgressForMapReturn_(result);
-  }
+  if(wmStepSaveInFlight) return;
 
   exitLearningFullscreen();
   wmStudyReturnToMap();
