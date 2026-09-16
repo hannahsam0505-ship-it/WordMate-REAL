@@ -2999,9 +2999,9 @@ function wmInitLearningMap(){
       /* 학습기록 완료 후 하단 기록만 갱신합니다. */
       return;
     }
-    wmStopMapLoadingState_();
-    wmShowMapUnavailable_('현재진행_DB의 로그인 진입값을 확인할 수 없습니다.');
-    return;
+    wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
+      if(valid){ wmRevealAuthenticatedMap_(); wmFetchLearningMap(wmCurrentStudent.학생ID); }
+    }); return;
   }
 
   if(window.google && google.script && google.script.run){
