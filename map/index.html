@@ -1,8 +1,8 @@
 <!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
 <!-- ==========================================================
-   진입 대표 이름: WORD MATE REAL Map.html — 7 RULE STRICT
-   수정 내용: Study 복귀 시 학습기록 상세조회 완료 전 기록없음 확정 방지, 하단 학습기록 독립 병렬조회 유지, Study 진입 시 준비된 setData 즉시 전달
-   수정 전후 줄수: 6,652줄 → 6,654줄
+   🧪 WORD MATE Map.html - TEST / REAL 전환 설정
+   ==========================================================
+
    ✅ 리얼부스로 옮길 때 실제로 수정하는 곳은 아래 한 줄뿐입니다.
 
       테스트부스 적용: const WM_ENV = 'TEST';
@@ -3472,10 +3472,10 @@ function wmLoadLearningRecordsDirectForMap_(reason, page, loadAll, done, query){
       serverPageNumber:wmHomeworkCurrentPage,
       serverHasMore:wmHomeworkServerHasMore,
       skipPeriod:true,
-      requestComplete:wmBottomRecordsDetailedLoaded === true,
+      requestComplete:true,
       emptyState:isSearchResult ? 'search' : 'initial'
     } : {
-      requestComplete:wmBottomRecordsDetailedLoaded === true,
+      requestComplete:true,
       emptyState:isSearchResult ? 'search' : 'initial'
     });
 
