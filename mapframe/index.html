@@ -222,6 +222,53 @@ window.wmGetParam = function(name) {
   return String(params.get(name) || "").trim();
 };
 
+/* WM_MAP_STUDY_CROSS_ORIGIN_HANDOFF_V1_20260916
+   Apps Script iframe(Map) -> Vercel Study 사이의 sessionStorage origin 분리를
+   Vercel Mapframe이 1회 브리지합니다. Study 저장 후 돌아온 최신 현재진행 1행도
+   같은 Vercel origin의 sessionStorage에서 읽어 Apps Script Map iframe에 전달합니다. */
+window.addEventListener("message", function(event) {
+  const data = event && event.data ? event.data : null;
+  if (!data || data.type !== "WM_MAP_TO_STUDY_HANDOFF_V1") return;
+
+  const iframe = document.getElementById("wmMapIframe");
+  if (!iframe || event.source !== iframe.contentWindow) return;
+
+  const requestId = String(data.requestId || "");
+  let stored = false;
+  try {
+    const entryReady = data.entryReady && typeof data.entryReady === "object" ? data.entryReady : null;
+    if (entryReady) {
+      sessionStorage.setItem("WM_STUDY_ENTRY_READY_V1", JSON.stringify(entryReady));
+      if (data.mapReturnSnapshot && typeof data.mapReturnSnapshot === "object") {
+        sessionStorage.setItem("WM_MAP_RETURN_SNAPSHOT_V1", JSON.stringify(data.mapReturnSnapshot));
+      }
+
+      const progress = entryReady.progress || {};
+      const currentProgress = progress.currentProgressRow || progress.currentProgressCache || progress.currentProgress || null;
+      const studentId = String(entryReady.studentId || progress.studentId || "").trim();
+      if (studentId && currentProgress && typeof currentProgress === "object") {
+        sessionStorage.setItem("WM_CURRENT_PROGRESS_RETURN_V1", JSON.stringify({
+          version: "WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2",
+          studentId: studentId,
+          currentProgress: currentProgress,
+          learningRecord: null
+        }));
+      }
+      stored = true;
+    }
+  } catch (err) {
+    stored = false;
+  }
+
+  try {
+    event.source.postMessage({
+      type: "WM_MAP_TO_STUDY_HANDOFF_ACK_V1",
+      requestId: requestId,
+      stored: stored
+    }, "*");
+  } catch (err) {}
+});
+
 window.wmBuildMapIframeUrl = function() {
   const studentId = window.wmGetParam("studentId") || window.wmGetParam("studentID") || window.wmGetParam("wmStudentId");
   const studentName = wmGetParam("studentName") || wmGetParam("name") || wmGetParam("wmStudentName");
@@ -232,6 +279,7 @@ window.wmBuildMapIframeUrl = function() {
   const learningAssign = wmGetParam("learningAssign") || wmGetParam("level") || wmGetParam("wmLearningAssign");
   const currentSet = wmGetParam("currentSet") || wmGetParam("setId") || wmGetParam("wmCurrentSet");
   const mode = window.wmGetParam("mode") || "map";
+  const entry = window.wmGetParam("wmEntry");
   const setId = wmGetParam("set_id") || wmGetParam("setId") || wmGetParam("currentSet");
   const payload = wmGetParam("wmStudentPayload");
   const sessionToken = wmGetParam("sessionToken") || wmGetParam("wmSessionToken") || wmGetParam("WM_SESSION_TOKEN");
@@ -239,6 +287,7 @@ window.wmBuildMapIframeUrl = function() {
 
   return WM_MAP_EXEC_URL
     + "?mode=" + encodeURIComponent(mode)
+    + "&wmEntry=" + encodeURIComponent(entry)
     + "&set_id=" + encodeURIComponent(setId)
     + "&studentId=" + encodeURIComponent(studentId)
     + "&studentID=" + encodeURIComponent(studentId)
@@ -284,14 +333,28 @@ window.wmInitMapIframe = function() {
   const iframe = document.getElementById("wmMapIframe");
   if (!iframe) return;
   const frameLock = window.WM_MAP_FRAME_ALL_LOCK || {};
+  const entry = window.wmGetParam("wmEntry");
+  let returnProgress = "";
+  let mapReturnSnapshot = "";
+  if (entry === "study") {
+    try { returnProgress = String(sessionStorage.getItem("WM_CURRENT_PROGRESS_RETURN_V1") || ""); } catch (err) {}
+    try { mapReturnSnapshot = String(sessionStorage.getItem("WM_MAP_RETURN_SNAPSHOT_V1") || ""); } catch (err) {}
+  }
   iframe.name = "WM_MAP_FRAME_LOCK:" + encodeURIComponent(JSON.stringify({
     version: String(frameLock.version || ""),
     accessGuard: frameLock.accessGuard === true,
     frameData: frameLock.frameData === true,
     frameRun: frameLock.frameRun === true,
-    allLocked: frameLock.allLocked === true
+    allLocked: frameLock.allLocked === true,
+    returnProgress: returnProgress,
+    mapReturnSnapshot: mapReturnSnapshot
   }));
   iframe.src = window.wmBuildMapIframeUrl();
+
+  if (entry === "study") {
+    try { sessionStorage.removeItem("WM_CURRENT_PROGRESS_RETURN_V1"); } catch (err) {}
+    try { sessionStorage.removeItem("WM_MAP_RETURN_SNAPSHOT_V1"); } catch (err) {}
+  }
 };
 
 /* ==========================================================
