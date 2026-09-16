@@ -837,7 +837,7 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
           <tbody id="homeworkTableBody">
             <tr>
-              <td colspan="20">아직 표시할 학습기록이 없습니다.</td>
+              <td colspan="20">학습기록을 불러오는 중입니다.</td>
             </tr>
           </tbody>
 
@@ -2902,31 +2902,14 @@ function wmRenderStudyReturnCurrentProgress_(){
   const source = String(window.history && window.history.state && window.history.state.wmMapEntrySource || '').trim().toLowerCase();
   if(source !== 'study') return false;
 
-  const row = wmReadStudyReturnCurrentProgress_();
-  if(!row){
-    wmRevealAuthenticatedMap_();
-    wmStopMapLoadingState_();
-    wmShowMapUnavailable_('Study 복귀용 현재진행_DB 자료를 확인할 수 없습니다.');
-    return true;
-  }
-
-  if(wmApplyStudyReturnSnapshot_(row,wmStudyReturnLatestRecord_)) return true;
-
-  wmHandleLearningMapResponse({
-    success:true,
-    sessionValid:true,
-    valid:true,
-    source:'STUDY_RETURN_CURRENT_PROGRESS_DIRECT',
-    currentProgressCache:row,
-    currentProgress:row,
-    currentProgressRow:row,
-    progressCache:row,
-    mapCache:row,
-    studentProfile:row,
-    recordsDeferred:true,
-    records:[]
-  });
-  return true;
+  /* WM_STUDY_RETURN_DB_DIRECT_ONLY_V1_20260916
+     Step/Set 복귀는 sessionStorage의 현재진행 스냅샷/캐시를 화면 기준으로 사용하지 않습니다.
+     Map의 공식 진입 경로로 그대로 이어서 8.현재진행_DB를 직접 읽고,
+     하단 2.학습기록_DB 조회는 wmFetchLearningMap()에서 동시에 병렬 시작합니다. */
+  try{ sessionStorage.removeItem('WM_CURRENT_PROGRESS_RETURN_V1'); }catch(err){}
+  try{ sessionStorage.removeItem(WM_MAP_RETURN_SNAPSHOT_KEY_); }catch(err){}
+  wmStudyReturnLatestRecord_=null;
+  return false;
 }
 
 function wmInitLearningMap(){
@@ -3785,7 +3768,7 @@ function wmHandleLearningMapResponse(data){
 }
 
 function wmFetchLearningMap(studentId){
-  wmShowMapMessage('현재진행_DB 캐시를 조회 중입니다.');
+  wmShowMapMessage('현재진행_DB를 조회 중입니다.');
 
   /* WM_MAP_RECORDS_TRUE_PARALLEL_V1_20260821
      현재진행_DB 첫 화면 조회와 2.학습기록_DB 상세기록 조회를 동시에 시작합니다.
@@ -5482,12 +5465,6 @@ async function startStudy(setId){
     progress:progress,
     setData:preparedSetData
   }));
-  sessionStorage.setItem('WM_CURRENT_PROGRESS_RETURN_V1',JSON.stringify({
-    version:'WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2',
-    studentId:currentProgressStudentId,
-    currentProgress:currentProgress,
-    learningRecord:null
-  }));
 
   const studyUrl =
     framePageUrl
@@ -5506,8 +5483,6 @@ async function startStudy(setId){
     + '&wmLearningAssign=' + encodeURIComponent(learningAssign)
     + '&sessionToken=' + encodeURIComponent(sessionToken)
     + '&wmSessionToken=' + encodeURIComponent(sessionToken);
-
-  wmSaveMapReturnSnapshot_();
   window.top.location.href = studyUrl;
 }
 
@@ -6650,4 +6625,3 @@ wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
 <!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
-
