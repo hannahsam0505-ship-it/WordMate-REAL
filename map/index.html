@@ -2668,6 +2668,7 @@ function wmSaveMapReturnSnapshot_(){
     studentId:studentId,
     savedAt:Date.now(),
     currentLevelNumber:Number(currentLevelNumber || 0),
+    currentProgressBase:Object.assign({},wmCurrentProgressDisplayOverride || {}),
     setData:setData.map(function(item){ return Object.assign({},item); }),
     learningRecords:Array.isArray(visibleLearningRecords) ? visibleLearningRecords.slice(0,WM_HOMEWORK_PAGE_SIZE).map(function(record){ return Object.assign({},record); }) : [],
     homeworkServerPaged:wmHomeworkServerPaged === true,
@@ -2708,6 +2709,7 @@ function wmReadMapReturnSnapshot_(){
 function wmApplyStudyReturnSnapshot_(row, latestRecord){
   const snapshot=wmReadMapReturnSnapshot_();
   if(!snapshot) return false;
+  row=Object.assign({},snapshot.currentProgressBase || {},row || {});
 
   const cacheData=wmNormalizeCurrentProgressCache_({
     currentProgressCache:row,
