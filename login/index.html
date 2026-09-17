@@ -358,9 +358,9 @@ try{
     btn.disabled = true;
     btn.textContent = "로그인 중...";
 
-    /* WM_LOGIN_FIVE_FIELDS_DIRECT_V2_20260915
+   /* WM_LOGIN_FIVE_FIELDS_DIRECT_V3_20260917
        브라우저는 학생ID + 비밀번호 + 접속기기만 전달합니다.
-       서버 응답은 최대 8초까지만 기다리고 HTTP/비JSON 응답을 구분합니다. */
+       Apps Script가 정상 처리 중인 요청을 브라우저가 8초에서 강제 중단하지 않습니다. */
     const url = WM_STUDENT_LOGIN_API_URL
       + "?mode=studentLogin"
       + "&studentId=" + encodeURIComponent(studentId)
@@ -368,14 +368,10 @@ try{
       + "&deviceInfo=" + encodeURIComponent(navigator.userAgent || "")
       + "&t=" + Date.now();
 
-    const controller = typeof AbortController === "function" ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(function(){ controller.abort(); }, 8000) : null;
-
     try {
       const res = await fetch(url, {
         cache: "no-store",
         redirect: "follow",
-        signal: controller ? controller.signal : undefined
       });
 
       const responseText = await res.text();
@@ -427,17 +423,11 @@ try{
 
       wmOpenLearningMap();
     } catch (e) {
-      if (e && e.name === "AbortError") {
-        msg.textContent = "로그인 서버 응답이 지연되고 있습니다. 다시 시도해 주세요.";
-      } else {
-        msg.textContent = "서버 연결 오류. 다시 시도해 주세요.";
-      }
+      msg.textContent = "서버 연결 오류. 다시 시도해 주세요.";
     } finally {
-      if (timeoutId) clearTimeout(timeoutId);
       btn.disabled = false;
       btn.textContent = "로그인";
     }
-  }
 
 
   function wmBuildInitialSetId(learningAssign) {
