@@ -2741,7 +2741,7 @@ function wmApplyStudyReturnSnapshot_(row, latestRecord){
       latestWasNew=true;
     }
     snapshotRecords.unshift(normalizedLatest);
-  }});
+  });
 
   wmLearningRecords=wmSortLearningRecordsDesc_(snapshotRecords).slice(0,WM_HOMEWORK_PAGE_SIZE);
   wmBottomRecordsDetailedLoaded=true;
