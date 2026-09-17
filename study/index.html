@@ -4220,18 +4220,36 @@ function wmCacheCurrentProgressForMapReturn_(result){
   const learningRecord=(response && response.learningRecord && typeof response.learningRecord === "object")
     ? Object.assign({},response.learningRecord)
     : null;
+   let learningRecords=[];
+try{
+  const previous=JSON.parse(sessionStorage.getItem("WM_CURRENT_PROGRESS_RETURN_V1") || "null");
+  learningRecords=previous && Array.isArray(previous.learningRecords) ? previous.learningRecords.slice() : [];
+}catch(err){}
+
+if(learningRecord){
+  const recordId=String(learningRecord.학습기록ID || learningRecord.recordId || "").trim();
+
+  if(recordId){
+    learningRecords=learningRecords.filter(function(record){
+      return String(record.학습기록ID || record.recordId || "").trim()!==recordId;
+    });
+  }
+
+  learningRecords.push(Object.assign({},learningRecord));
+}
 const core4={
   Set_ID:String(row.Set_ID || "").trim(),
   완료Step:String(row.완료Step || "").trim(),
   현재Step:String(row.현재Step || "").trim(),
   기록Set_ID:String(row.기록Set_ID || "").trim()
+  세트진행률:String(row.세트진행률 || "").trim()
 };
   const envelope = {
     version:"WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2",
     studentId:rowStudentId,
     savedAt:Date.now(),
     currentProgress:core4,
-    learningRecord:learningRecord
+    learningRecords:learningRecords
   };
   try{
     sessionStorage.setItem("WM_CURRENT_PROGRESS_RETURN_V1", JSON.stringify(envelope));
