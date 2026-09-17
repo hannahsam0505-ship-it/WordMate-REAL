@@ -3705,7 +3705,14 @@ function wmApplyLearningMapFromCurrentProgressCache_(cacheData, data){
   setText('summaryRecentScore', wmCurrentProgressRecentScoreForMap_ ? wmCurrentProgressRecentScoreForMap_ + '점' : '-');
 
   if(!(data && data.recordsDeferred === true && !wmBottomRecordsDetailedLoaded)){
-    renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+    if(data && data.newStudent === true){
+      renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent, {
+        requestComplete:true,
+        emptyState:'initial'
+      });
+    }else{
+      renderHomeworkTable(wmLearningRecords, wmStudentProfile || wmCurrentStudent);
+    }
   }
   wmShowLearningModeBanner();
   wmWarmCurrentStudyContentFromMap_(cacheData.currentSet).catch(function(error){ console.warn('Study content prepare failed',error); });
