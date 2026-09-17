@@ -2718,6 +2718,10 @@ function wmApplyStudyReturnSnapshot_(row, latestRecord){
   });
   if(!cacheData || !cacheData.currentLevel || !WM_LEVEL_CONFIG[cacheData.currentLevel]) return false;
 
+  if(String(row.완료세트수 || '').trim()!=='') cacheData.completedSetCount=Math.max(0,Number(row.완료세트수 || 0));
+  if(String(row.레벨진행률 || '').trim()!=='') cacheData.levelProgress=wmParseProgressPercentNumber_(row.레벨진행률);
+  if(String(row.최근점수 || '').trim()!=='') cacheData.recentScore=wmNormalizeScoreForMap_(row.최근점수); 
+
   const snapshotLevel=Number(snapshot.currentLevelNumber || 0);
   const returnLevel=Number(cacheData.currentLevel || 0);
   const snapshotRecords=Array.isArray(snapshot.learningRecords)
