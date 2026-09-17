@@ -4220,17 +4220,17 @@ function wmCacheCurrentProgressForMapReturn_(result){
   const learningRecord=(response && response.learningRecord && typeof response.learningRecord === "object")
     ? Object.assign({},response.learningRecord)
     : null;
-  const enteredCurrentProgress=(wmResumeProgress && (
-    wmResumeProgress.currentProgressRow ||
-    wmResumeProgress.currentProgressCache ||
-    wmResumeProgress.currentProgress
-  )) || {};
-  const fullCurrentProgress=Object.assign({},enteredCurrentProgress,row);
+const core4={
+  Set_ID:String(row.Set_ID || "").trim(),
+  완료Step:String(row.완료Step || "").trim(),
+  현재Step:String(row.현재Step || "").trim(),
+  기록Set_ID:String(row.기록Set_ID || "").trim()
+};
   const envelope = {
     version:"WM_STUDY_RETURN_CURRENT_PROGRESS_DIRECT_V2",
     studentId:rowStudentId,
     savedAt:Date.now(),
-    currentProgress:fullCurrentProgress,
+    currentProgress:core4,
     learningRecord:learningRecord
   };
   try{
