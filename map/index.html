@@ -2725,7 +2725,8 @@ function wmApplyStudyReturnSnapshot_(row, latestRecord){
     : [];
   const snapshotRecordCount=snapshotRecords.length;
   let latestWasNew=false;
-  if(latestRecord && typeof latestRecord === 'object'){
+  const latestRecords=Array.isArray(latestRecord) ? latestRecord : [];
+  latestRecords.forEach(function(latestRecord){
     const normalizedLatest=wmNormalizeLearningRecordForBottomTable_(latestRecord,{currentProgressCache:row});
     const latestId=String(normalizedLatest.학습기록ID || normalizedLatest.recordId || '').trim();
     let existingIndex=-1;
@@ -2740,14 +2741,14 @@ function wmApplyStudyReturnSnapshot_(row, latestRecord){
       latestWasNew=true;
     }
     snapshotRecords.unshift(normalizedLatest);
-  }
+  }});
 
   wmLearningRecords=wmSortLearningRecordsDesc_(snapshotRecords).slice(0,WM_HOMEWORK_PAGE_SIZE);
   wmBottomRecordsDetailedLoaded=true;
   wmBottomRecordsDirectLoading=false;
   wmHomeworkCurrentPage=1;
-  wmHomeworkServerPaged=snapshot.homeworkServerPaged === true || (latestWasNew && snapshotRecordCount>=WM_HOMEWORK_PAGE_SIZE);
-  wmHomeworkServerHasMore=snapshot.homeworkServerHasMore === true || (latestWasNew && snapshotRecordCount>=WM_HOMEWORK_PAGE_SIZE);
+  wmHomeworkServerPaged=snapshot.homeworkServerPaged === true || (latestWasNew && snapshotRecords.length>WM_HOMEWORK_PAGE_SIZE);
+  wmHomeworkServerHasMore=snapshot.homeworkServerHasMore === true || (latestWasNew && snapshotRecords.length>WM_HOMEWORK_PAGE_SIZE);
   wmHomeworkAllRecordsLoaded=false;
 
   wmLearningMapScoreStateForMap_=cacheData.learningMapScoreState || {v:2,scores:{}};
@@ -2894,9 +2895,9 @@ function wmReadStudyReturnCurrentProgress_(){
   if(!row || typeof row !== 'object') return null;
   const rowStudentId = String(row.학생ID || row.studentId || '').trim();
   if(rowStudentId && rowStudentId !== currentStudentId) return null;
-  wmStudyReturnLatestRecord_=(envelope.learningRecord && typeof envelope.learningRecord === 'object')
-    ? Object.assign({},envelope.learningRecord)
-    : null;
+wmStudyReturnLatestRecord_=Array.isArray(envelope.learningRecords)
+  ? envelope.learningRecords.map(function(record){ return Object.assign({},record); })
+  : [];
   return row;
 }
 
