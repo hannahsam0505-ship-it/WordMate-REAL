@@ -106,7 +106,7 @@
       setText('[data-wmr-student-id]',student.studentId||'');
       setText('[data-wmr-class]',student.className||'');
       setText('[data-wmr-level]',student.learningLevel||'');
-      setText('[data-wmr-completed]',monthly.completedSets||0);
+      setText('[data-wmr-completed]',Math.max(0,Number((reportData.levelProgress&&reportData.levelProgress.completedSets)||0)));
       setText('[data-wmr-words]',monthly.wordCount||0);
       setText('[data-wmr-average]',monthly.averageScore||0);
       setText('[data-wmr-days]',monthly.attendanceDays||0);
@@ -369,7 +369,7 @@
       compare('student.id',text('[data-wmr-student-id]'),student.studentId||'');
       compare('student.class',text('[data-wmr-class]'),student.className||'');
       compare('student.level',text('[data-wmr-level]'),student.learningLevel||'');
-      compare('monthly.completed',text('[data-wmr-completed]'),Number(monthly.completedSets||0));
+      compare('monthly.completed',text('[data-wmr-completed]'),Math.max(0,Number((data.levelProgress&&data.levelProgress.completedSets)||0)));
       compare('monthly.words',text('[data-wmr-words]'),Number(monthly.wordCount||0));
       compare('monthly.average',text('[data-wmr-average]'),Number(monthly.averageScore||0));
       compare('monthly.days',text('[data-wmr-days]'),Number(monthly.attendanceDays||0));
