@@ -106,7 +106,7 @@
       setText('[data-wmr-student-id]',student.studentId||'');
       setText('[data-wmr-class]',student.className||'');
       setText('[data-wmr-level]',student.learningLevel||'');
-      setText('[data-wmr-completed]',Math.max(0,Number((reportData.levelProgress&&reportData.levelProgress.completedSets)||0)));
+      setText('[data-wmr-completed]',monthly.completedSets||0);
       setText('[data-wmr-words]',monthly.wordCount||0);
       setText('[data-wmr-average]',monthly.averageScore||0);
       setText('[data-wmr-days]',monthly.attendanceDays||0);
@@ -117,8 +117,8 @@
       if(monthlyCondition){
         monthlyCondition.innerHTML='(레벨완료조건 <span class="wmr-monthly-condition-number">'+completionCondition+'</span>회 중 <span class="wmr-monthly-condition-number">'+reportRound+'</span>회차 진행중)';
       }
-      setText('[data-wmr-kpi-completed-sub]','전체 '+Math.max(0,Number(levelProgress.totalSets||0))+'세트');
-      setText('[data-wmr-kpi-words-sub]','해당 주차');
+      setText('[data-wmr-kpi-completed-sub]','월 누적');
+      setText('[data-wmr-kpi-words-sub]','월 누적');
       setText('[data-wmr-kpi-average-sub]','누적 평균');
       setText('[data-wmr-kpi-time-sub]','학습 소요시간');
       setText('[data-wmr-kpi-days-sub]','누적 출석');
@@ -369,15 +369,15 @@
       compare('student.id',text('[data-wmr-student-id]'),student.studentId||'');
       compare('student.class',text('[data-wmr-class]'),student.className||'');
       compare('student.level',text('[data-wmr-level]'),student.learningLevel||'');
-      compare('monthly.completed',text('[data-wmr-completed]'),Math.max(0,Number((data.levelProgress&&data.levelProgress.completedSets)||0)));
+      compare('monthly.completed',text('[data-wmr-completed]'),Number(monthly.completedSets||0));
       compare('monthly.words',text('[data-wmr-words]'),Number(monthly.wordCount||0));
       compare('monthly.average',text('[data-wmr-average]'),Number(monthly.averageScore||0));
       compare('monthly.days',text('[data-wmr-days]'),Number(monthly.attendanceDays||0));
       const reportRound=Math.max(1,Number((data.levelProgress&&data.levelProgress.currentRound)||1));
       const completionCondition=Math.max(1,Number((data.levelProgress&&data.levelProgress.levelCompletionCondition)||1));
       compare('monthly.condition',text('[data-wmr-monthly-condition]'),'(레벨완료조건 '+completionCondition+'회 중 '+reportRound+'회차 진행중)');
-      compare('monthly.completed.sub',text('[data-wmr-kpi-completed-sub]'),'전체 '+Math.max(0,Number((data.levelProgress&&data.levelProgress.totalSets)||0))+'세트');
-      compare('monthly.words.sub',text('[data-wmr-kpi-words-sub]'),'해당 주차');
+      compare('monthly.completed.sub',text('[data-wmr-kpi-completed-sub]'),'월 누적');
+      compare('monthly.words.sub',text('[data-wmr-kpi-words-sub]'),'월 누적');
       compare('monthly.average.sub',text('[data-wmr-kpi-average-sub]'),'누적 평균');
       compare('monthly.time.sub',text('[data-wmr-kpi-time-sub]'),'학습 소요시간');
       compare('monthly.days.sub',text('[data-wmr-kpi-days-sub]'),'누적 출석');
