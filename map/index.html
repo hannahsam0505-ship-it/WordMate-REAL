@@ -4714,16 +4714,25 @@ function wmApplyLearningMapStatus(mapData){
        완료된 이전 레벨을 열었을 때는 개별 학습기록 개수와 무관하게
        해당 레벨의 모든 세트를 완료 상태·초록색으로 고정합니다. */
     if(forceLevelDone){
+      const historyRound = Math.max(1, Math.min(3, Number(
+        (wmCurrentProgressHistoryCache &&
+         wmCurrentProgressHistoryCache.roundsByLevel &&
+         wmCurrentProgressHistoryCache.roundsByLevel[currentLevelNumber]) ||
+        officialRound ||
+        1
+      )));
+      const historyRecordInfo = getRecordInfoForSet(item.set, historyRound);
+
       return {
         set:item.set,
         status:'complete',
         progress:100,
         repeatCount:repeatCount,
-        officialRound:Number(sequentialState.targetLimit || 1),
+        officialRound:historyRound,
         targetRoundLimit:Number(sequentialState.targetLimit || 1),
         levelComplete:true,
-        score:String(recordInfo.점수 || recordInfo.score || recordInfo.한영주관식 || statusInfo.latestScore || statusInfo.score || '-').trim() || '-',
-        latestDate:String(statusInfo.latestDate || recordInfo.학습날짜 || '').trim()
+        score:String(historyRecordInfo.점수 || historyRecordInfo.score || historyRecordInfo.한영주관식 || statusInfo.latestScore || statusInfo.score || '-').trim() || '-',
+        latestDate:String(statusInfo.latestDate || historyRecordInfo.학습날짜 || '').trim()
       };
     }
 
@@ -4867,7 +4876,8 @@ function getBlockContent(item){
   const scoreText = item.score && item.score !== '-' ? item.score + '점' : '';
 
   if(item.levelComplete === true){
-    return `${scoreText ? scoreText + '<br>' : ''}${item.set}<br><small>레벨완료</small>`;
+    const displayRound = Math.max(1, Math.min(3, Number(item.officialRound || 1)));
+    return `${scoreText ? scoreText + '<br>' : ''}${item.set}<br><small>${displayRound}회 완료</small>`;
   }
 
   const displayRound = wmGetDisplayRoundForBlock_(item) || 1;
