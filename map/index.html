@@ -589,6 +589,8 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
     <div class="student-top-card">
 
+      <div class="wm-map-section-title">Student Information</div>
+       
       <div class="student-info-row student-info-row-main">
         <div class="student-info-item wm-student-visual-card">
           <span class="wm-info-icon" aria-hidden="true"><svg class="wm-info-svg" viewBox="0 0 48 48" width="42" height="42" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wmBlueGrad1" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38BDF8"/><stop offset="0.55" stop-color="#2563EB"/><stop offset="1" stop-color="#1D4ED8"/></linearGradient></defs><circle cx="24" cy="15" r="8" fill="url(#wmBlueGrad1)"/><path d="M9 39c1.8-9 8.2-14 15-14s13.2 5 15 14c.35 1.75-.95 3-2.7 3H11.7C9.95 42 8.65 40.75 9 39z" fill="url(#wmBlueGrad1)"/></svg></span>
@@ -672,6 +674,10 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
   <!-- 2. 레벨세트 학습맵 -->
   <div id="wm-level-map-widget">
 
+    <div id="wm-level-map-widget">
+
+    <div class="level-bar">
+
     <div class="level-bar">
 
       <button class="level-block level-current">
@@ -707,6 +713,8 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
       </div>
     </div>
 
+    <div class="wm-map-section-title">Study Block</div>
+       
     <div id="setMap" class="set-map"></div>
 
   </div>
@@ -794,13 +802,16 @@ const WM_LMS_URL = WM_CONFIG.LMS_URL;
 
       </div>
 
-
+       <div class="wm-map-section-title">Study Setting</div>
+         
       <div id="learningDetailBox" class="learning-detail-box">
         학습 블럭을 클릭하면 상세기록이 표시됩니다.
       </div>
 
       </div>
 
+      <div class="wm-map-section-title">Study Record</div>
+       
       <div id="homeworkSearchResultMessage" class="wm-homework-search-result-message" aria-live="polite"></div>
 
       <div class="homework-scroll-top-fixed" id="homeworkScrollTopFixed">
@@ -1075,6 +1086,38 @@ body.wm-map-loading-active #wm-learning-record-widget{
 
 .detail-box{
   overflow-x:hidden;
+}
+
+.wm-map-section-title{
+  display:flex;
+  align-items:center;
+  min-height:40px;
+  margin:0 0 10px;
+  padding:8px 14px;
+  border-radius:10px;
+  background:linear-gradient(180deg,#ffffff 0%,#f7fbff 100%);
+  color:#0b4fa3;
+  font-size:18px;
+  font-weight:900;
+  line-height:1.2;
+  letter-spacing:-0.01em;
+  box-shadow:0 2px 8px rgba(13,85,200,.06);
+  box-sizing:border-box;
+}
+
+.wm-map-section-title::before{
+  content:"";
+  width:5px;
+  height:24px;
+  margin-right:10px;
+  border-radius:999px;
+  background:#0066cc;
+  flex:0 0 5px;
+}
+
+#wm-level-map-widget > .wm-map-section-title{
+  margin-left:12px;
+  margin-right:12px;
 }
 
 .main-title{
