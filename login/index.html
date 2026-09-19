@@ -402,6 +402,8 @@ try{
 
       const s = {
         학생ID: String((data.student && data.student.학생ID) || studentId).trim(),
+        출석약속: String((data.student && data.student.출석약속) || "").trim(),
+        세트약속: String((data.student && data.student.세트약속) || "").trim(),
         현재세션: sessionToken,
         sessionToken: sessionToken,
         wmSessionToken: sessionToken
@@ -411,6 +413,10 @@ try{
         sessionStorage.setItem("WM_STUDENT_ID", s.학생ID);
         sessionStorage.setItem("WM_SESSION_TOKEN", sessionToken);
         localStorage.setItem("WM_SESSION_TOKEN", sessionToken);
+        sessionStorage.setItem("WM_ATTENDANCE_PROMISE", s.출석약속);
+        localStorage.setItem("WM_ATTENDANCE_PROMISE", s.출석약속);
+        sessionStorage.setItem("WM_SET_PROMISE", s.세트약속);
+        localStorage.setItem("WM_SET_PROMISE", s.세트약속);
         sessionStorage.setItem("wmLoggedInStudent", JSON.stringify(s));
         localStorage.setItem("wmLoggedInStudent", JSON.stringify(s));
       } catch (storageErr) {}
