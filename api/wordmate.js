@@ -123,12 +123,9 @@ module.exports = async function handler(req, res) {
 
     let allowed = false;
 
-    if (action === 'studentLogin' && refererPath === '/login') {
+    if (action === 'studentLogin') {
       allowed = true;
-    } else if (
-      action === 'lmsLogin' &&
-      (refererPath === '/lms' || refererPath === '/dev')
-    ) {
+    } else if (action === 'lmsLogin') {
       allowed = true;
     } else if (
       action === 'publicReport' &&
