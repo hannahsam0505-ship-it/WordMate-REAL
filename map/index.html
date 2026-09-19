@@ -5604,8 +5604,21 @@ async function startStudy(setId){
     + '&sessionToken=' + encodeURIComponent(sessionToken)
     + '&wmSessionToken=' + encodeURIComponent(sessionToken);
 
-  wmSaveMapReturnSnapshot_();
-  window.top.location.href = studyUrl;
+try{
+  const nextState=Object.assign({},window.history.state || {},{
+    wmMapAuthorized:true,
+    wmMapEntrySource:'study'
+  });
+
+  window.history.replaceState(
+    nextState,
+    document.title,
+    window.location.pathname + window.location.search + window.location.hash
+  );
+}catch(err){}
+
+wmSaveMapReturnSnapshot_();
+window.top.location.href = studyUrl;
 }
 
 function showSetDetail(setId){
