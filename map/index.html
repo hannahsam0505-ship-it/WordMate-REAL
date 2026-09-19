@@ -1569,7 +1569,7 @@ body.wm-map-loading-active #wm-learning-record-widget{
   min-height:46px;
   box-sizing:border-box;
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(4,190px);
   align-items:center;
   text-align:center;
   gap:10px 14px;
@@ -1592,9 +1592,23 @@ body.wm-map-loading-active #wm-learning-record-widget{
 }
 
 .wm-learning-mode-banner .wm-mode-item{
-  justify-content:center;
+  position:relative;
+  justify-content:flex-start;
   min-width:0;
   white-space:nowrap;
+  padding-left:12px;
+}
+
+.wm-learning-mode-banner .wm-mode-item::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:50%;
+  width:3px;
+  height:18px;
+  transform:translateY(-50%);
+  background:#0b73e0;
+  border-radius:2px;
 }
    
 .wm-learning-mode-banner .wm-mode-value{
@@ -5285,14 +5299,14 @@ function wmRenderCurrentProgressGuide_(){
    }catch(err){}
 
    box.innerHTML = '<div class="wm-learning-mode-banner">'
-     + '<span class="wm-mode-item">출석약속 : <b class="wm-mode-value">' + escapeHtml(pick(attendancePromise)) + '</b></span>'
-     + '<span class="wm-mode-item">세트약속 : <b class="wm-mode-value">' + escapeHtml(pick(setPromise)) + '</b></span>'
-     + '<span class="wm-mode-item">S4실루엣단계 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계)) + '</b></span>'
-     + '<span class="wm-mode-item">S6TEST모드 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드)) + '</b></span>'
-     + '<span class="wm-mode-item">레벨완료조건 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건)) + '</b></span>'
-     + '<span class="wm-mode-item">레벨완료횟수 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수)) + '</b></span>'
-     + '<span class="wm-mode-item">순차완주세트 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트)) + '</b></span>'
-     + '<span class="wm-mode-item">순차완주회차 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차)) + '</b></span>'
+       + '<span class="wm-mode-item">출석약속<b class="wm-mode-value">주' + escapeHtml(pick(attendancePromise)) + '회</b></span>'
+       + '<span class="wm-mode-item">세트약속<b class="wm-mode-value">주' + escapeHtml(pick(setPromise)) + '세트</b></span>'
+       + '<span class="wm-mode-item">S4실루엣단계<b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계)) + '</b></span>'
+       + '<span class="wm-mode-item">S6TEST모드<b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드)) + '</b></span>'
+       + '<span class="wm-mode-item">레벨완료조건<b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건)) + '</b></span>'
+       + '<span class="wm-mode-item">레벨완료횟수<b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수)) + '회</b></span>'
+       + '<span class="wm-mode-item">순차완주세트<b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트)) + '세트</b></span>'
+       + '<span class="wm-mode-item">순차완주회차<b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차)) + '회</b></span>'
      + '</div>';
 }
 
