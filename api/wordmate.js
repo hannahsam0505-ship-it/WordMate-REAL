@@ -100,6 +100,60 @@ module.exports = async function handler(req, res) {
     const incomingUrl = new URL(req.url, 'https://word-mate-real.vercel.app');
     const targetUrl = new URL(appsScriptUrl);
 
+        const action = String(
+      incomingUrl.searchParams.get('action') ||
+      incomingUrl.searchParams.get('mode') ||
+      ''
+    ).trim();
+
+    const refererPath = (wmRefererPath(req).replace(/\/+$/, '') || '/');
+    const cookies = wmCookies(req);
+
+    const studentAuth = wmValidAuth(
+      cookies.WM_STUDENT_AUTH,
+      'student',
+      proxyKey
+    );
+
+    const adminAuth = wmValidAuth(
+      cookies.WM_ADMIN_AUTH,
+      'admin',
+      proxyKey
+    );
+
+    let allowed = false;
+
+    if (action === 'studentLogin' && refererPath === '/login') {
+      allowed = true;
+    } else if (
+      action === 'lmsLogin' &&
+      (refererPath === '/lms' || refererPath === '/dev')
+    ) {
+      allowed = true;
+    } else if (
+      action === 'publicReport' &&
+      refererPath.indexOf('/report/') === 0
+    ) {
+      allowed = true;
+    } else if (
+      (refererPath === '/map' || refererPath === '/study') &&
+      studentAuth
+    ) {
+      allowed = true;
+    } else if (
+      (refererPath === '/lms' || refererPath === '/dev') &&
+      adminAuth
+    ) {
+      allowed = true;
+    }
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: 'Direct access blocked.'
+      });
+    }
+
     incomingUrl.searchParams.forEach((value, key) => {
       targetUrl.searchParams.append(key, value);
     });
@@ -140,6 +194,32 @@ module.exports = async function handler(req, res) {
     });
 
     const responseText = await response.text();
+
+        try {
+      const data = JSON.parse(responseText);
+
+      if (data && data.success === true) {
+        if (action === 'studentLogin') {
+          wmSetAuthCookie(
+            res,
+            'WM_STUDENT_AUTH',
+            wmMakeAuth('student', proxyKey)
+          );
+        }
+
+        if (action === 'lmsLogin') {
+          wmSetAuthCookie(
+            res,
+            'WM_ADMIN_AUTH',
+            wmMakeAuth('admin', proxyKey)
+          );
+        }
+      }
+    } catch (e) {}
+
+    if (action === 'studentLogout') {
+      wmClearAuthCookie(res, 'WM_STUDENT_AUTH');
+    }
 
     res.status(response.status);
     res.setHeader(
