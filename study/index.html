@@ -4598,8 +4598,16 @@ function wmStudyRestoreMapLoginStorage(){
 
 function wmStudyReturnToMap(){
   if(WM_DEV_LIVE_REVIEW_MODE) return;
-  const mapUrl = wmBuildReturnToMapUrl();
   wmStudyRestoreMapLoginStorage();
+
+  try{
+    if(window.top && window.top.history && window.top.history.length > 1){
+      window.top.history.back();
+      return;
+    }
+  }catch(err){}
+
+  const mapUrl = wmBuildReturnToMapUrl();
 
   try{
     window.top.location.href = mapUrl;
