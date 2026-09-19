@@ -1568,12 +1568,11 @@ body.wm-map-loading-active #wm-learning-record-widget{
   width:100%;
   min-height:46px;
   box-sizing:border-box;
-  display:flex;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
   align-items:center;
-  justify-content:center;
   text-align:center;
-  flex-wrap:wrap;
-  gap:0;
+  gap:10px 14px;
   background:#fff;
   border:1px solid #e5e7eb;
   border-radius:14px;
@@ -1592,6 +1591,12 @@ body.wm-map-loading-active #wm-learning-record-widget{
   line-height:1;
 }
 
+.wm-learning-mode-banner .wm-mode-item{
+  justify-content:center;
+  min-width:0;
+  white-space:nowrap;
+}
+   
 .wm-learning-mode-banner .wm-mode-value{
   color:#dc2626;
   font-size:inherit;
@@ -5266,19 +5271,29 @@ function wmRenderCurrentProgressGuide_(){
   /* WM_MAP_CURRENT_PROGRESS_GUIDE_ONLY_V1_20260820
      하단 학습조건 6가지는 학생관리/캐시 기본값으로 보정하지 않고
      현재진행_DB에 저장된 값을 그대로 표시합니다. */
-  box.innerHTML = '<div class="wm-learning-mode-banner">'
-    + '<span>S4실루엣단계 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계)) + '</b></span>'
-    + '<span class="wm-banner-sep">|</span>'
-    + '<span>S6TEST모드 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드)) + '</b></span>'
-    + '<span class="wm-banner-sep">|</span>'
-    + '<span>레벨완료조건 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건)) + '</b></span>'
-    + '<span class="wm-banner-sep">|</span>'
-    + '<span>레벨완료횟수 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수)) + '</b></span>'
-    + '<span class="wm-banner-sep">|</span>'
-    + '<span>순차완주세트 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트)) + '</b></span>'
-    + '<span class="wm-banner-sep">|</span>'
-    + '<span>순차완주회차 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차)) + '</b></span>'
-    + '</div>';
+  let attendancePromise = '';
+  let setPromise = '';
+
+  try{
+    attendancePromise =
+      sessionStorage.getItem('WM_ATTENDANCE_PROMISE') ||
+      localStorage.getItem('WM_ATTENDANCE_PROMISE') || '';
+
+    setPromise =
+      sessionStorage.getItem('WM_SET_PROMISE') ||
+      localStorage.getItem('WM_SET_PROMISE') || '';
+   }catch(err){}
+
+   box.innerHTML = '<div class="wm-learning-mode-banner">'
+     + '<span class="wm-mode-item">출석약속 : <b class="wm-mode-value">' + escapeHtml(pick(attendancePromise)) + '</b></span>'
+     + '<span class="wm-mode-item">세트약속 : <b class="wm-mode-value">' + escapeHtml(pick(setPromise)) + '</b></span>'
+     + '<span class="wm-mode-item">S4실루엣단계 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S4실루엣단계)) + '</b></span>'
+     + '<span class="wm-mode-item">S6TEST모드 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.S6테스트모드)) + '</b></span>'
+     + '<span class="wm-mode-item">레벨완료조건 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료조건)) + '</b></span>'
+     + '<span class="wm-mode-item">레벨완료횟수 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.레벨완료횟수)) + '</b></span>'
+     + '<span class="wm-mode-item">순차완주세트 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주세트)) + '</b></span>'
+     + '<span class="wm-mode-item">순차완주회차 : <b class="wm-mode-value">' + escapeHtml(pick(progressSource.순차완주회차)) + '</b></span>'
+     + '</div>';
 }
 
 function wmUpdateHomeworkPager_(totalRows){
