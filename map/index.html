@@ -5715,6 +5715,22 @@ function wmLogoutOnPageExit_(){
 window.addEventListener('beforeunload', wmLogoutOnPageExit_);
 window.addEventListener('pagehide', wmLogoutOnPageExit_);
 
+window.addEventListener('pageshow', function(event){
+  if(!event.persisted) return;
+
+  let hasStudyReturn=false;
+  try{
+    hasStudyReturn=!!sessionStorage.getItem('WM_CURRENT_PROGRESS_RETURN_V1');
+  }catch(err){}
+
+  if(!hasStudyReturn) return;
+
+  wmInternalStudyExitApproved_=false;
+  try{ sessionStorage.removeItem(WM_MAP_STUDY_EXIT_MARKER_); }catch(err){}
+
+  wmRenderStudyReturnCurrentProgress_();
+});
+
 async function wmLogout(){
   if(wmLogoutInProgress) return;
   const studentId = wmCurrentStudent && wmCurrentStudent.학생ID ? String(wmCurrentStudent.학생ID).trim() : '';
