@@ -2830,7 +2830,7 @@ HTML/CSS 배치·크기·여백·폰트·아이콘·표·그래프·푸터 구�
     }
     document.addEventListener('DOMContentLoaded', function(){
       wmLockStatusMessage('LMS_Login_V1_LOCK','LMS 교사 로그인/인증 흐름');
-      wmRestoreLmsAuth();
+      try { localStorage.removeItem(WM_LMS_AUTH_STORAGE_KEY); } catch(err) {}
       const loginBtn = document.getElementById('wmLmsLoginBtn');
       const logoutBtn = document.getElementById('wmLmsLogoutBtn');
       const passwordInput = document.getElementById('wmLmsPassword');
