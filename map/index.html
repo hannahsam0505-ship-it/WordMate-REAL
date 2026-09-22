@@ -2969,9 +2969,16 @@ function wmRenderStudyReturnCurrentProgress_(){
 
   const row = wmReadStudyReturnCurrentProgress_();
   if(!row){
-    wmRevealAuthenticatedMap_();
-    wmStopMapLoadingState_();
-    wmShowMapUnavailable_('Study 복귀용 현재진행_DB 자료를 확인할 수 없습니다.');
+    /* WM_MAP_STUDY_RETURN_SERVER_FALLBACK_V1_20260922
+       Study 복귀 전달값이 없거나 검증에 실패해도 학생별 예외처리 없이
+       기존 세션검증 + 현재진행_DB Map 공식 조회로 즉시 복구합니다. */
+    wmMapDataReady = false;
+    wmShowMapLoadingState_();
+    wmCheckCurrentSession({ redirectOnInvalid:true }).then(function(valid){
+      if(!valid) return;
+      wmRevealAuthenticatedMap_();
+      wmFetchLearningMap(wmCurrentStudent.학생ID);
+    });
     return true;
   }
 
@@ -6807,4 +6814,3 @@ wmInitLearningMap();
 wmForceHomeworkBottomFixedBarOnFirstView();
 </script>
 <!-- [REAL부스] Map 모든기기A4한장인쇄 6678-6681 -->
-
